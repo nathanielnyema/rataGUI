@@ -58,7 +58,6 @@ class WorkerThread(QRunnable):
         finally:
             self.signals.finished.emit()  # Done
 
-
 class CameraThread(QRunnable):
 
     def __init__(self, camera, deque):

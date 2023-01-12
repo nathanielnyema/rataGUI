@@ -43,9 +43,9 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
         while self.cameraGrid.count() > 0:
             camWidget = self.cameraGrid.takeAt(0).widget()
             if camWidget is not None:
-                camWidget.stopCameraThread()
                 if camWidget.recording:
                     camWidget.stopWriter()
+                camWidget.stopCameraThread()
                 camWidget.deleteLater()
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
