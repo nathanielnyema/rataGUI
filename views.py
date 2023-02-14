@@ -16,6 +16,7 @@ from UI.CameraWindow import Ui_CameraWindow
 from threads import CameraThread, WorkerThread
 from cameras.WebCamera import WebCamera
 from cameras.NetworkCamera import NetworkCamera
+from cameras.FLIRCamera import FLIRCamera
 
 class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
     def __init__(self, cameraID):
@@ -31,7 +32,7 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
 
 
         cam0 = CameraWidget(self.window_width, self.window_height, cameraID, aspect_ratio=True)
-        self.cameraGrid.addWidget(cam0, 0, 0, 1, 1)
+        self.cameraGrid.addWidget(cam0)
 
     def startRecording(self, writer_params):
         widgets = (self.cameraGrid.itemAt(i).widget() for i in range(self.cameraGrid.count())) 
@@ -61,7 +62,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         y_position = sg.height() - window_height
         self.setGeometry(x_position, y_position, window_width, window_height)
 
-        self.cameraWindow = None
+        self.cameraWindow1 = None
+        self.cameraWindow2 = None
 
         # Open and show camera feed but don't record
         self.displayButton.clicked.connect(self.show_camera_window)
@@ -74,13 +76,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def show_camera_window(self):
-        if self.cameraWindow is None:
+        if self.cameraWindow1 is None:
             # Specified video stream
-            cameraID = 0
+            cameraID1 = "21129754"
 
             # Create separate thread and window for camera
-            self.cameraWindow = CameraWindow(cameraID)
-            self.cameraWindow.show()
+            self.cameraWindow1 = CameraWindow(cameraID1)
+            self.cameraWindow1.show()
 
             #Set geometry relative to screen
             sg = QtGui.QGuiApplication.primaryScreen().availableGeometry()
@@ -88,24 +90,44 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             window_height = int(sg.height() / 1.5)
             x_position = (sg.width() - window_width) // 2
             y_position = self.pos().y() - window_height
-            self.cameraWindow.setGeometry(x_position, y_position, window_width, window_height)
+            self.cameraWindow1.setGeometry(x_position, y_position, window_width, window_height)
+
+            cameraID2 = "19173292"
+
+            self.cameraWindow2 = CameraWindow(cameraID2)
+            self.cameraWindow2.show()
+
+            #Set geometry relative to screen
+            sg = QtGui.QGuiApplication.primaryScreen().availableGeometry()
+            window_width = sg.width() // 2
+            window_height = int(sg.height() / 1.5)
+            x_position = (sg.width() - window_width) // 2
+            y_position = self.pos().y() - window_height
+            self.cameraWindow2.setGeometry(x_position, y_position, window_width, window_height)
+            
         else:
-            self.cameraWindow.show()
+            self.cameraWindow1.show()
+            self.cameraWindow2.show()
 
 
     def record_camera_window(self):
         self.show_camera_window()
         # params = {"-vcodec": "libx264", "-crf": 0, "-preset": "fast"}
         params = {}
-        self.cameraWindow.startRecording(writer_params=params)
+        self.cameraWindow1.startRecording(writer_params=params)
         
 
 
     def close_camera_window(self):
-        if self.cameraWindow is not None:
-            self.cameraWindow.clearLayout()
-            self.cameraWindow.deleteLater()
-            self.cameraWindow = None
+        if self.cameraWindow1 is not None:
+            self.cameraWindow1.clearLayout()
+            self.cameraWindow1.deleteLater()
+            self.cameraWindow1 = None
+
+        if self.cameraWindow2 is not None:
+            self.cameraWindow2.clearLayout()
+            self.cameraWindow2.deleteLater()
+            self.cameraWindow2 = None
 
 
 
@@ -119,7 +141,7 @@ class CameraWidget(QtWidgets.QWidget):
     @param aspect_ratio - Whether to maintain frame aspect ratio or force into fraame
     """
 
-    def __init__(self, width, height, stream_link=0, cameraType="network", aspect_ratio=False, deque_size=1):
+    def __init__(self, width, height, streamID=0, cameraType="flir", aspect_ratio=False, deque_size=1):
         super().__init__()
         
         # Initialize deque used to store frames read from the stream
@@ -142,12 +164,14 @@ class CameraWidget(QtWidgets.QWidget):
         self.threadpool = QThreadPool().globalInstance()
 
         # Create camera wrapper object
-        self.camera_stream_link = stream_link
+        self.camera_stream_link = streamID
         match cameraType:
             case "network":
-                self.camera = NetworkCamera(stream_link)
+                self.camera = NetworkCamera(streamID)
             case "web":
-                self.camera = WebCamera(stream_link)
+                self.camera = WebCamera(streamID)
+            case "flir":
+                self.camera = FLIRCamera(streamID)
 
         # Start thread to load camera stream
         worker = WorkerThread(self.camera.initializeCamera)
@@ -184,7 +208,7 @@ class CameraWidget(QtWidgets.QWidget):
             self.writer.close()
         
         print("Started writer")
-        file_name = datetime.now().strftime('%H:%M:%S')+".mp4"
+        file_name = datetime.now().strftime('%H,%M,%S')+".mp4"
         # file_name = "output.mp4"
         self.writer = WriteGear(output_filename=file_name, logging=True, **output_params)
         self.recording = True

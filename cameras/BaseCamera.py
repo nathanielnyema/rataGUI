@@ -6,14 +6,12 @@
 """
 
 class BaseCamera():
-    MODE_CONTINUOUS = 1
-    MODE_SINGLE_SHOT = 0
+    
     def __init__(self):
         self.stream = None
         self._running = False
-        self.maxWidth = 0
-        self.maxHeight = 0
-        self.exposure = 0
+
+        # Add more properties?
 
     def initializeCamera(self):
         """
