@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'UI_files/mainwindow.ui'
+# Form implementation generated from reading ui file 'UI/mainWindow.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.0
 #
@@ -25,13 +25,25 @@ class Ui_MainWindow(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 780, 191))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 184, 191))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
+        self.label = QtWidgets.QLabel(self.scrollAreaWidgetContents)
+        self.label.setGeometry(QtCore.QRect(0, 10, 181, 20))
+        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.label.setObjectName("label")
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.horizontalLayout.addWidget(self.scrollArea)
+        self.scrollArea_2 = QtWidgets.QScrollArea(self.centralwidget)
+        self.scrollArea_2.setWidgetResizable(True)
+        self.scrollArea_2.setObjectName("scrollArea_2")
+        self.scrollAreaWidgetContents_2 = QtWidgets.QWidget()
+        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 554, 191))
+        self.scrollAreaWidgetContents_2.setObjectName("scrollAreaWidgetContents_2")
+        self.scrollArea_2.setWidget(self.scrollAreaWidgetContents_2)
+        self.horizontalLayout.addWidget(self.scrollArea_2)
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint)
-        self.verticalLayout.setContentsMargins(-1, -1, -1, 10)
+        self.verticalLayout.setContentsMargins(-1, -1, -1, 0)
         self.verticalLayout.setObjectName("verticalLayout")
         self.stopButton = QtWidgets.QPushButton(self.centralwidget)
         self.stopButton.setEnabled(True)
@@ -58,8 +70,9 @@ class Ui_MainWindow(object):
         self.recordButton.setObjectName("recordButton")
         self.verticalLayout.addWidget(self.recordButton)
         self.horizontalLayout.addLayout(self.verticalLayout)
-        self.horizontalLayout.setStretch(0, 5)
-        self.horizontalLayout.setStretch(1, 1)
+        self.horizontalLayout.setStretch(0, 1)
+        self.horizontalLayout.setStretch(1, 3)
+        self.horizontalLayout.setStretch(2, 1)
         self.gridLayout.addLayout(self.horizontalLayout, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
@@ -110,6 +123,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.label.setText(_translate("MainWindow", "Available Cameras"))
         self.stopButton.setText(_translate("MainWindow", "Stop"))
         self.displayButton.setText(_translate("MainWindow", "Display"))
         self.recordButton.setText(_translate("MainWindow", "Record"))

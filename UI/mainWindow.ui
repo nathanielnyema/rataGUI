@@ -28,7 +28,7 @@
      <number>5</number>
     </property>
     <item row="0" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout" stretch="5,1">
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,3,1">
       <property name="leftMargin">
        <number>0</number>
       </property>
@@ -45,7 +45,40 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>780</width>
+           <width>184</width>
+           <height>191</height>
+          </rect>
+         </property>
+         <widget class="QLabel" name="label">
+          <property name="geometry">
+           <rect>
+            <x>0</x>
+            <y>10</y>
+            <width>181</width>
+            <height>20</height>
+           </rect>
+          </property>
+          <property name="text">
+           <string>Available Cameras</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </widget>
+       </widget>
+      </item>
+      <item>
+       <widget class="QScrollArea" name="scrollArea_2">
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
+        <widget class="QWidget" name="scrollAreaWidgetContents_2">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>0</y>
+           <width>554</width>
            <height>191</height>
           </rect>
          </property>
