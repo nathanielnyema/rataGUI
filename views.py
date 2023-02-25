@@ -62,8 +62,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         y_position = sg.height() - window_height
         self.setGeometry(x_position, y_position, window_width, window_height)
 
+        self.cameras = []
+
         self.cameraWindow1 = None
         self.cameraWindow2 = None
+
+        self.show_available_cameras()
 
         # Open and show camera feed but don't record
         self.displayButton.clicked.connect(self.show_camera_window)
@@ -74,6 +78,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Close camera feed (stop recording) and window
         self.stopButton.clicked.connect(self.close_camera_window)
 
+    def show_available_cameras(self):
+        cameraList = FLIRCamera.getCameraList()
+        for i, camera in enumerate(cameraList):
+            print(camera[])
+            self.cameras.append(camera)
+            
 
     def show_camera_window(self):
         if self.cameraWindow1 is None:

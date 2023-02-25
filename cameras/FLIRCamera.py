@@ -20,19 +20,27 @@ PropertyConverter = {
 }
 
 
+
+
 class FLIRCamera(BaseCamera):
+
+    CameraAttributes = {
+        "LineSelector" : "Line 2",
+        "LineMode" : "Output",
+        "LineSource": "Exposure Active",
+    }
 
     # Global pyspin system variable
     _SYSTEM = None
 
     @staticmethod
-    def listCameras():
+    def getCameraList():
         '''Return a list of Spinnaker cameras. Also initializes the PySpin 'System', if needed.'''
 
-        if _SYSTEM is None:
-            _SYSTEM = PySpin.System.GetInstance()
+        if FLIRCamera._SYSTEM is None:
+            FLIRCamera._SYSTEM = PySpin.System.GetInstance()
 
-        return _SYSTEM.GetCameras()
+        return FLIRCamera._SYSTEM.GetCameras()
 
     def __init__(self, cameraID=0):
 

@@ -105,10 +105,6 @@ class BaseCamera():
         """
         print("Not Implemented")
 
-    def stopAcq(self):
-        """Stops the acquisition without closing the connection to the camera."""
-        print("Not Implemented")
-
     def setBinning(self,xbin,ybin):
         """
         Sets the binning of the camera if supported. Has to check if binning in X/Y can be different or not, etc.
