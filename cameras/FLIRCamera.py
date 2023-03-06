@@ -1,34 +1,20 @@
 from .BaseCamera import BaseCamera
 
 import cv2
-import EasyPySpin
 import PySpin
-
-PropertyConverter = { 
-    'AcquisitionFrameRateEnable': bool, 
-    'AcquisitionFrameRate': float,  
-    'GainAuto': str, 
-    'ExposureAuto': str,
-    'TriggerMode': str, 
-    'TriggerDelay': float, 
-    'Width': int, 
-    'Height': int, 
-    'OffsetX': int, 
-    'OffsetY': int,
-    'ExposureTime': float,
-    'Gain': float, 
-}
-
-
+import EasyPySpin
 
 
 class FLIRCamera(BaseCamera):
 
-    CameraAttributes = {
-        "LineSelector" : "Line 2",
-        "LineMode" : "Output",
-        "LineSource": "Exposure Active",
+    CameraProperties = {
+        "LineSelector" : PySpin.LineSelector_Line2,
+        "LineMode" : PySpin.LineMode_Output,
+        "LineSource": PySpin.LineSource_ExposureActive,
+        "AcquisitionFrameRate" : 30,
     }
+
+    EasySpinProperties = ["AcquisitionFrameRate", ]
 
     # Global pyspin system variable
     _SYSTEM = None
@@ -39,7 +25,9 @@ class FLIRCamera(BaseCamera):
 
         if FLIRCamera._SYSTEM is None:
             FLIRCamera._SYSTEM = PySpin.System.GetInstance()
-
+        else:
+            FLIRCamera._SYSTEM.UpdateCameras()
+    
         return FLIRCamera._SYSTEM.GetCameras()
 
     def __init__(self, cameraID=0):
@@ -58,8 +46,15 @@ class FLIRCamera(BaseCamera):
             # self.stream.set(cv2.CAP_PROP_GAIN, -1)  # -1 sets gain to auto
 
             for prop_name, value in prop_dict.items():
-                if prop_name in PropertyConverter:
+                # if prop_name == ""
+
+                try: 
+                    print(prop_name, value, end="\t")
                     self.stream.set_pyspin_value(prop_name, value)
+                    print(self.stream.get_pyspin_value(prop_name))
+                    print()
+                except Exception as err:
+                    print (err)
 
             self._running = True
 
@@ -89,11 +84,13 @@ class FLIRCamera(BaseCamera):
         else:
             self._initialized = False
         cap.release()
-        return True
+        return self._initialized
 
     def stopCamera(self):
         if self.stream is not None:
             self.stream.release()
+
+        self._initialized = False
         self._running = False
 
     def getCameraID(self):

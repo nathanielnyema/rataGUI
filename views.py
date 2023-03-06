@@ -1,6 +1,8 @@
 import sys
 import numpy as np
 import cv2
+import PySpin
+
 from vidgear.gears import WriteGear
 
 
@@ -19,7 +21,7 @@ from cameras.NetworkCamera import NetworkCamera
 from cameras.FLIRCamera import FLIRCamera
 
 class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
-    def __init__(self, cameraID):
+    def __init__(self, camera):
         super().__init__()
         self.setupUi(self)
 
@@ -31,7 +33,7 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
         self.setLayout(self.cameraGrid)
 
 
-        cam0 = CameraWidget(self.window_width, self.window_height, cameraID, aspect_ratio=True)
+        cam0 = CameraWidget(self.window_width, self.window_height, camera, aspect_ratio=True)
         self.cameraGrid.addWidget(cam0)
 
     def startRecording(self, writer_params):
@@ -62,12 +64,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         y_position = sg.height() - window_height
         self.setGeometry(x_position, y_position, window_width, window_height)
 
-        self.cameras = []
+        self.cameras = {}
+        self.cameraWindows = {}
 
-        self.cameraWindow1 = None
-        self.cameraWindow2 = None
+        # self.cameraWindow1 = None
+        # self.cameraWindow2 = None
 
-        self.show_available_cameras()
+        self.populate_available_cameras()
+        # print(self.camList.children())
 
         # Open and show camera feed but don't record
         self.displayButton.clicked.connect(self.show_camera_window)
@@ -78,66 +82,87 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Close camera feed (stop recording) and window
         self.stopButton.clicked.connect(self.close_camera_window)
 
-    def show_available_cameras(self):
-        cameraList = FLIRCamera.getCameraList()
-        for i, camera in enumerate(cameraList):
-            print(camera[])
-            self.cameras.append(camera)
-            
+
+    def populate_available_cameras(self):
+        camList = FLIRCamera.getCameraList()
+        layout = QtWidgets.QVBoxLayout()
+
+        for camera in camList:
+            # print(camera.TLDevice.DeviceSerialNumber.ToString())
+            if camera.TLDevice.DeviceSerialNumber.GetAccessMode() == PySpin.RO:
+                serialNumber = camera.TLDevice.DeviceSerialNumber.ToString()
+                layout.addWidget(QtWidgets.QCheckBox(serialNumber))
+
+                # Create camera wrapper object
+                self.cameras[serialNumber] = FLIRCamera(serialNumber)
+                # print(dir(camera))
+
+                # False = Don't open, True = To be opened !None = Already opened
+                self.cameraWindows[serialNumber] = None
+        
+        layout.addStretch()
+        self.camList.setLayout(layout)
+    
+    def checkBoxState(self):
+        updatedList = {}
+
+        for widget in self.camList.children():
+            if isinstance(widget, QtWidgets.QCheckBox):
+                serialNumber = widget.text()
+                updatedList[serialNumber] = widget.isChecked()
+        
+        return updatedList
 
     def show_camera_window(self):
-        if self.cameraWindow1 is None:
-            # Specified video stream
-            cameraID1 = "21129754"
+        updatedList = self.checkBoxState()
 
-            # Create separate thread and window for camera
-            self.cameraWindow1 = CameraWindow(cameraID1)
-            self.cameraWindow1.show()
+        for serial, value in updatedList.items():
+            if value is True:
+                if self.cameraWindows[serial] is None:
+                    window = CameraWindow(self.cameras[serial])
+                    window.show()
 
-            #Set geometry relative to screen
-            sg = QtGui.QGuiApplication.primaryScreen().availableGeometry()
-            window_width = sg.width() // 2
-            window_height = int(sg.height() / 1.5)
-            x_position = (sg.width() - window_width) // 2
-            y_position = self.pos().y() - window_height
-            self.cameraWindow1.setGeometry(x_position, y_position, window_width, window_height)
+                    #Set geometry relative to screen
+                    sg = QtGui.QGuiApplication.primaryScreen().availableGeometry()
+                    window_width = sg.width() // 2
+                    window_height = int(sg.height() / 1.5)
+                    x_position = (sg.width() - window_width) // 2
+                    y_position = self.pos().y() - window_height
+                    window.setGeometry(x_position, y_position, window_width, window_height)
 
-            cameraID2 = "19173292"
-
-            self.cameraWindow2 = CameraWindow(cameraID2)
-            self.cameraWindow2.show()
-
-            #Set geometry relative to screen
-            sg = QtGui.QGuiApplication.primaryScreen().availableGeometry()
-            window_width = sg.width() // 2
-            window_height = int(sg.height() / 1.5)
-            x_position = (sg.width() - window_width) // 2
-            y_position = self.pos().y() - window_height
-            self.cameraWindow2.setGeometry(x_position, y_position, window_width, window_height)
+                    self.cameraWindows[serial] = window
+                else:
+                    self.cameraWindows[serial].show()
             
-        else:
-            self.cameraWindow1.show()
-            self.cameraWindow2.show()
 
 
     def record_camera_window(self):
         self.show_camera_window()
+
+        updatedList = self.checkBoxState()
+
+        for serial, value in updatedList.items():
+            if value is True:
+                if self.cameraWindows[serial] is not None:
+                    params = {}
+                    self.cameraWindows[serial].startRecording(writer_params=params)
+
         # params = {"-vcodec": "libx264", "-crf": 0, "-preset": "fast"}
-        params = {}
-        self.cameraWindow1.startRecording(writer_params=params)
+        # params = {}
+        # self.cameraWindow1.startRecording(writer_params=params)
         
 
 
     def close_camera_window(self):
-        if self.cameraWindow1 is not None:
-            self.cameraWindow1.clearLayout()
-            self.cameraWindow1.deleteLater()
-            self.cameraWindow1 = None
+        updatedList = self.checkBoxState()
 
-        if self.cameraWindow2 is not None:
-            self.cameraWindow2.clearLayout()
-            self.cameraWindow2.deleteLater()
-            self.cameraWindow2 = None
+        for serial, value in updatedList.items():
+            if value is True:
+                if self.cameraWindows[serial] is not None:
+                    self.cameraWindows[serial].clearLayout()
+                    self.cameraWindows[serial].deleteLater()
+                    self.cameraWindows[serial] = None
+
 
 
 
@@ -151,7 +176,7 @@ class CameraWidget(QtWidgets.QWidget):
     @param aspect_ratio - Whether to maintain frame aspect ratio or force into fraame
     """
 
-    def __init__(self, width, height, streamID=0, cameraType="flir", aspect_ratio=False, deque_size=1):
+    def __init__(self, width, height, camera=None, cameraType="flir", aspect_ratio=False, deque_size=1):
         super().__init__()
         
         # Initialize deque used to store frames read from the stream
@@ -173,27 +198,21 @@ class CameraWidget(QtWidgets.QWidget):
         # Create threadpool for video streaming
         self.threadpool = QThreadPool().globalInstance()
 
-        # Create camera wrapper object
-        self.camera_stream_link = streamID
-        match cameraType:
-            case "network":
-                self.camera = NetworkCamera(streamID)
-            case "web":
-                self.camera = WebCamera(streamID)
-            case "flir":
-                self.camera = FLIRCamera(streamID)
+        # Initialize camera object
+        self.camera_type = cameraType
+        self.camera = camera
 
         # Start thread to load camera stream
-        worker = WorkerThread(self.camera.initializeCamera)
+        worker = WorkerThread(self.camera.initializeCamera, FLIRCamera.CameraProperties)
         self.threadpool.start(worker)
         worker.signals.finished.connect(self.startCameraThread)
 
         # Periodically set video frame to display
         self.timer = QTimer()
         self.timer.timeout.connect(self.set_frame)
-        self.timer.start(50)
+        self.timer.start(100)
 
-        print('Started camera: {}'.format(self.camera_stream_link))
+        print('Started camera: {}'.format(self.camera.cameraID))
 
     @pyqtSlot()
     def startCameraThread(self):
@@ -202,7 +221,7 @@ class CameraWidget(QtWidgets.QWidget):
         self.threadpool.start(self.cameraThread)
 
     def stopCameraThread(self):
-        print('Stopped camera: {}'.format(self.camera_stream_link))
+        print('Stopped camera: {}'.format(self.camera.cameraID))
         self.cameraThread.stop()
 
     def startWriter(self, output_params):
@@ -217,8 +236,8 @@ class CameraWidget(QtWidgets.QWidget):
             # Close writer after thread is stopped
             self.writer.close()
         
-        print("Started writer")
-        file_name = datetime.now().strftime('%H,%M,%S')+".mp4"
+        print("Started recording for: {}".format(self.camera.cameraID))
+        file_name = str(self.camera.cameraID) + "_" + datetime.now().strftime('%H,%M,%S') + ".mp4"
         # file_name = "output.mp4"
         self.writer = WriteGear(output_filename=file_name, logging=True, **output_params)
         self.recording = True
@@ -227,7 +246,9 @@ class CameraWidget(QtWidgets.QWidget):
         self.threadpool.start(worker)
 
     def stopWriter(self):
+        print("Stopped recording for: {}".format(self.camera.cameraID))
         self.recording = False
+
 
     def set_frame(self):
         """Sets pixmap image to video frame"""

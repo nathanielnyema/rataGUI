@@ -52,13 +52,16 @@
           <property name="widgetResizable">
            <bool>true</bool>
           </property>
+          <property name="alignment">
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+          </property>
           <widget class="QWidget" name="camList">
            <property name="geometry">
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>198</width>
-             <height>165</height>
+             <width>201</width>
+             <height>174</height>
             </rect>
            </property>
           </widget>
@@ -76,8 +79,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>401</width>
-           <height>191</height>
+           <width>409</width>
+           <height>195</height>
           </rect>
          </property>
         </widget>
@@ -92,13 +95,6 @@
          <enum>QFrame::Raised</enum>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout">
-         <item>
-          <widget class="QPushButton" name="recordButton">
-           <property name="text">
-            <string>Record</string>
-           </property>
-          </widget>
-         </item>
          <item>
           <widget class="QPushButton" name="stopButton">
            <property name="enabled">
@@ -140,6 +136,13 @@
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="QPushButton" name="recordButton">
+           <property name="text">
+            <string>Record</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </item>
@@ -153,7 +156,7 @@
      <x>0</x>
      <y>0</y>
      <width>845</width>
-     <height>24</height>
+     <height>21</height>
     </rect>
    </property>
    <property name="nativeMenuBar">

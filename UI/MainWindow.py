@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'UI/mainWindow.ui'
+# Form implementation generated from reading ui file 'UI\mainWindow.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.0
 #
@@ -29,9 +29,10 @@ class Ui_MainWindow(object):
         self.camListLayout.addWidget(self.camListLabel)
         self.camListArea = QtWidgets.QScrollArea(self.centralwidget)
         self.camListArea.setWidgetResizable(True)
+        self.camListArea.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeading|QtCore.Qt.AlignmentFlag.AlignLeft|QtCore.Qt.AlignmentFlag.AlignTop)
         self.camListArea.setObjectName("camListArea")
         self.camList = QtWidgets.QWidget()
-        self.camList.setGeometry(QtCore.QRect(0, 0, 198, 165))
+        self.camList.setGeometry(QtCore.QRect(0, 0, 201, 174))
         self.camList.setObjectName("camList")
         self.camListArea.setWidget(self.camList)
         self.camListLayout.addWidget(self.camListArea)
@@ -40,7 +41,7 @@ class Ui_MainWindow(object):
         self.deviceInfoArea.setWidgetResizable(True)
         self.deviceInfoArea.setObjectName("deviceInfoArea")
         self.deviceInfoList = QtWidgets.QWidget()
-        self.deviceInfoList.setGeometry(QtCore.QRect(0, 0, 401, 191))
+        self.deviceInfoList.setGeometry(QtCore.QRect(0, 0, 409, 195))
         self.deviceInfoList.setObjectName("deviceInfoList")
         self.deviceInfoArea.setWidget(self.deviceInfoList)
         self.horizontalLayout.addWidget(self.deviceInfoArea)
@@ -50,9 +51,6 @@ class Ui_MainWindow(object):
         self.frame.setObjectName("frame")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.frame)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.recordButton = QtWidgets.QPushButton(self.frame)
-        self.recordButton.setObjectName("recordButton")
-        self.verticalLayout.addWidget(self.recordButton)
         self.stopButton = QtWidgets.QPushButton(self.frame)
         self.stopButton.setEnabled(True)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
@@ -74,6 +72,9 @@ class Ui_MainWindow(object):
         self.displayButton.setSizePolicy(sizePolicy)
         self.displayButton.setObjectName("displayButton")
         self.verticalLayout.addWidget(self.displayButton)
+        self.recordButton = QtWidgets.QPushButton(self.frame)
+        self.recordButton.setObjectName("recordButton")
+        self.verticalLayout.addWidget(self.recordButton)
         self.horizontalLayout.addWidget(self.frame)
         self.horizontalLayout.setStretch(0, 1)
         self.horizontalLayout.setStretch(1, 2)
@@ -81,7 +82,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addLayout(self.horizontalLayout, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 845, 24))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 845, 21))
         self.menubar.setNativeMenuBar(False)
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(self.menubar)
@@ -129,9 +130,9 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.camListLabel.setText(_translate("MainWindow", "Available Cameras"))
-        self.recordButton.setText(_translate("MainWindow", "Record"))
         self.stopButton.setText(_translate("MainWindow", "Stop"))
         self.displayButton.setText(_translate("MainWindow", "Display"))
+        self.recordButton.setText(_translate("MainWindow", "Record"))
         self.menuFile.setTitle(_translate("MainWindow", "File"))
         self.menuEdit.setTitle(_translate("MainWindow", "Edit"))
         self.menuView.setTitle(_translate("MainWindow", "View"))
