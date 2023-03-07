@@ -3,8 +3,10 @@ import numpy as np
 import cv2
 import PySpin
 
-from vidgear.gears import WriteGear
-
+# from vidgear.gears import WriteGear
+import skvideo
+skvideo.setFFmpegPath("C:/PATH_Programs/bin/ffmpeg")
+import skvideo.io
 
 from collections import deque
 from datetime import datetime
@@ -203,7 +205,7 @@ class CameraWidget(QtWidgets.QWidget):
         self.camera = camera
 
         # Start thread to load camera stream
-        worker = WorkerThread(self.camera.initializeCamera, FLIRCamera.CameraProperties)
+        worker = WorkerThread(self.camera.initializeCamera, FLIRCamera.CameraAttributes)
         self.threadpool.start(worker)
         worker.signals.finished.connect(self.startCameraThread)
 

@@ -96,15 +96,8 @@ class CameraThread(QRunnable):
         self._running = False
 
 
-# class DisplayThread(QRunnable):
-#     def __init__(self):
-#         super().__init__()
-#         self._running = True
-
-#     @pyqtSlot()
-#     def run(self):
-
-#         while self._running:
-#             self.timer = QTimer()
-#             self.timer.timeout.connect(self.set_frame)
-#             self.timer.start(10)
+# class WriterThread(QRunanble):
+# 
+    # def __init__(self, camera, deque):
+        # super().__init__()
+        # self.signals = ThreadSig
