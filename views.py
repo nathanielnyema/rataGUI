@@ -5,7 +5,7 @@ import PySpin
 
 # from vidgear.gears import WriteGear
 import skvideo
-skvideo.setFFmpegPath("C:/PATH_Programs/bin/ffmpeg")
+# skvideo.setFFmpegPath("C:/PATH_Programs/bin/ffmpeg.exe")
 import skvideo.io
 
 from collections import deque
@@ -205,14 +205,13 @@ class CameraWidget(QtWidgets.QWidget):
         self.camera = camera
 
         # Start thread to load camera stream
-        worker = WorkerThread(self.camera.initializeCamera, FLIRCamera.CameraAttributes)
+        worker = WorkerThread(self.camera.initializeCamera, FLIRCamera.CameraProperties)
         self.threadpool.start(worker)
         worker.signals.finished.connect(self.startCameraThread)
 
-        # Periodically set video frame to display
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.set_frame)
-        self.timer.start(100)
+        # self.timer = QTimer()
+        # self.timer.timeout.connect(self.set_frame)
+        # self.timer.start(100)
 
         print('Started camera: {}'.format(self.camera.cameraID))
 
@@ -220,6 +219,10 @@ class CameraWidget(QtWidgets.QWidget):
     def startCameraThread(self):
         # Start thread for frame grabbing
         self.cameraThread = CameraThread(self.camera, self.frames)
+        
+        # Periodically set video frame to display
+        self.cameraThread.signals.result.connect(self.set_frame)
+
         self.threadpool.start(self.cameraThread)
 
     def stopCameraThread(self):
@@ -229,19 +232,25 @@ class CameraWidget(QtWidgets.QWidget):
     def startWriter(self, output_params):
         # TODO: implement as custom class
         def save_frames():
-            while self.recording:
+            # Waits until all frames are saved
+            # Alternatively, I could always leave one frame available up until recording stops
+            while self.recording or len(self.frames) > 0:
                 if len(self.frames) == 0:
+                    # print("Warning: No frame available to save")
                     continue
-
-                self.writer.write(self.frames[-1], rgb_mode=True)
+                
+                #Write oldest frame in queue
+                self.writer.writeFrame(self.frames.popleft())
             
             # Close writer after thread is stopped
             self.writer.close()
         
         print("Started recording for: {}".format(self.camera.cameraID))
-        file_name = str(self.camera.cameraID) + "_" + datetime.now().strftime('%H,%M,%S') + ".mp4"
+        file_name = "videos/" + str(self.camera.cameraID) + "_" + datetime.now().strftime('%H,%M,%S') + ".mp4"
         # file_name = "output.mp4"
-        self.writer = WriteGear(output_filename=file_name, logging=True, **output_params)
+        # self.writer = WriteGear(output_filename=file_name, logging=True, **output_params)
+        input_params={'-framerate': str(FLIRCamera.CameraProperties['AcquisitionFrameRate'])} 
+        self.writer = skvideo.io.FFmpegWriter(file_name, inputdict=input_params, outputdict=output_params)
         self.recording = True
 
         worker = WorkerThread(save_frames)
@@ -252,13 +261,10 @@ class CameraWidget(QtWidgets.QWidget):
         self.recording = False
 
 
-    def set_frame(self):
+    def set_frame(self, image):
         """Sets pixmap image to video frame"""
 
-        if self.frames and self.camera._running:
-            # Grab latest frame
-            image = self.frames[-1]
-
+        if self.camera._running:
             # Get image dimensions
             img_h, img_w, num_ch = image.shape
 

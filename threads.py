@@ -66,6 +66,10 @@ class CameraThread(QRunnable):
         self._running = True
         self.stream = camera
         self.frames = deque
+        self.count = 0
+
+        # Controls display frame rate
+        self.DISPLAY_INTERVAL = 5
 
     @pyqtSlot()
     def run(self):
@@ -75,8 +79,11 @@ class CameraThread(QRunnable):
                 if self.stream._running:
                     status, frame = self.stream.readCamera("RGB")
                     if status:
-                        # self.signals.result.emit(frame)
                         self.frames.append(frame)
+                        self.count += 1
+
+                        if self.count % self.DISPLAY_INTERVAL == 0:
+                            self.signals.result.emit(frame)
                     else:
                         self.stream.stopCamera()
                 else:

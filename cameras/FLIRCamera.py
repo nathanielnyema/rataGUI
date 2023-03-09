@@ -11,10 +11,11 @@ class FLIRCamera(BaseCamera):
         "LineSelector" : PySpin.LineSelector_Line2,
         "LineMode" : PySpin.LineMode_Output,
         "LineSource": PySpin.LineSource_ExposureActive,
+        "AcquisitionFrameRateEnable": True,
         "AcquisitionFrameRate" : 30,
     }
 
-    EasySpinProperties = ["AcquisitionFrameRate", ]
+    # EasySpinProperties = ["AcquisitionFrameRate",]
 
     # Global pyspin system variable
     _SYSTEM = None
@@ -46,12 +47,12 @@ class FLIRCamera(BaseCamera):
             # self.stream.set(cv2.CAP_PROP_GAIN, -1)  # -1 sets gain to auto
 
             for prop_name, value in prop_dict.items():
-                # if prop_name == ""
+                # if prop_name == "AcquisitionFrameRate"
 
                 try: 
-                    print(prop_name, value, end="\t")
+                    # print(prop_name, value, end="\t")
                     self.stream.set_pyspin_value(prop_name, value)
-                    print(self.stream.get_pyspin_value(prop_name))
+                    print(prop_name, self.stream.get_pyspin_value(prop_name))
                     print()
                 except Exception as err:
                     print (err)
