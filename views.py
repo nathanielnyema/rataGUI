@@ -44,6 +44,12 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
             if isinstance(widget, CameraWidget):
                 widget.startWriter(writer_params)
 
+    def startDisplay(self):
+        pass
+
+    def stopDisplay(self):
+        pass
+
     def clearLayout(self):
         while self.cameraGrid.count() > 0:
             camWidget = self.cameraGrid.takeAt(0).widget()
@@ -135,6 +141,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.cameraWindows[serial] = window
                 else:
                     self.cameraWindows[serial].show()
+                    self.camera
             
 
 
@@ -150,8 +157,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.cameraWindows[serial].startRecording(writer_params=params)
 
         # params = {"-vcodec": "libx264", "-crf": 0, "-preset": "fast"}
-        # params = {}
-        # self.cameraWindow1.startRecording(writer_params=params)
         
 
 
@@ -260,6 +265,11 @@ class CameraWidget(QtWidgets.QWidget):
         print("Stopped recording for: {}".format(self.camera.cameraID))
         self.recording = False
 
+    def startDisplay(self):
+        self.cameraThread.DISPLAY_INTERVAL = CameraThread.DEFAULT_DISPLAY_INTERVAL
+
+    def stopDisplay(self):
+        self.cameraThread.DISPLAY_INTERVAL = -1
 
     def set_frame(self, image):
         """Sets pixmap image to video frame"""
