@@ -34,7 +34,7 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
         self.cameraGrid.setContentsMargins(0,0,0,0)
         self.setLayout(self.cameraGrid)
 
-
+        #TODO: Implement ability to add multiple camera widgets
         cam0 = CameraWidget(self.window_width, self.window_height, camera, aspect_ratio=True)
         self.cameraGrid.addWidget(cam0)
 
@@ -44,10 +44,36 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
             if isinstance(widget, CameraWidget):
                 widget.startWriter(writer_params)
 
+    def showEvent(self, event):
+        super().showEvent(event)
+
+        widgets = (self.cameraGrid.itemAt(i).widget() for i in range(self.cameraGrid.count())) 
+        for widget in widgets:
+            if isinstance(widget, CameraWidget):
+                widget.startDisplay()
+
+        # if can_exit:
+        event.accept() # let the window close
+        # else:
+        #     event.ignore()
+
+    def closeEvent(self, event):
+        super().closeEvent(event)
+
+        widgets = (self.cameraGrid.itemAt(i).widget() for i in range(self.cameraGrid.count())) 
+        for widget in widgets:
+            if isinstance(widget, CameraWidget):
+                widget.stopDisplay()
+
+        # if can_exit:
+        event.accept() # let the window close
+        # else:
+        #     event.ignore()
+
     def startDisplay(self):
         pass
 
-    def stopDisplay(self):
+    def stopDisplay(self):  
         pass
 
     def clearLayout(self):
@@ -141,7 +167,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.cameraWindows[serial] = window
                 else:
                     self.cameraWindows[serial].show()
-                    self.camera
             
 
 
@@ -208,6 +233,7 @@ class CameraWidget(QtWidgets.QWidget):
         # Initialize camera object
         self.camera_type = cameraType
         self.camera = camera
+        self.cameraThread = CameraThread(self.camera, self.frames)
 
         # Start thread to load camera stream
         worker = WorkerThread(self.camera.initializeCamera, FLIRCamera.CameraProperties)
@@ -222,12 +248,9 @@ class CameraWidget(QtWidgets.QWidget):
 
     @pyqtSlot()
     def startCameraThread(self):
-        # Start thread for frame grabbing
-        self.cameraThread = CameraThread(self.camera, self.frames)
-        
         # Periodically set video frame to display
         self.cameraThread.signals.result.connect(self.set_frame)
-
+        # Start camera thread for frame grabbing
         self.threadpool.start(self.cameraThread)
 
     def stopCameraThread(self):
@@ -236,6 +259,7 @@ class CameraWidget(QtWidgets.QWidget):
 
     def startWriter(self, output_params):
         # TODO: implement as custom class
+        # TODO: implement pause functionality
         def save_frames():
             # Waits until all frames are saved
             # Alternatively, I could always leave one frame available up until recording stops
@@ -257,6 +281,7 @@ class CameraWidget(QtWidgets.QWidget):
         input_params={'-framerate': str(FLIRCamera.CameraProperties['AcquisitionFrameRate'])} 
         self.writer = skvideo.io.FFmpegWriter(file_name, inputdict=input_params, outputdict=output_params)
         self.recording = True
+        self.cameraThread._recording = True
 
         worker = WorkerThread(save_frames)
         self.threadpool.start(worker)
@@ -264,11 +289,14 @@ class CameraWidget(QtWidgets.QWidget):
     def stopWriter(self):
         print("Stopped recording for: {}".format(self.camera.cameraID))
         self.recording = False
+        self.cameraThread._recording = False
 
     def startDisplay(self):
+        # if self.cameraThread is not None:
         self.cameraThread.DISPLAY_INTERVAL = CameraThread.DEFAULT_DISPLAY_INTERVAL
 
     def stopDisplay(self):
+        # if self.cameraThread is not None:
         self.cameraThread.DISPLAY_INTERVAL = -1
 
     def set_frame(self, image):

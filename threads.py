@@ -60,18 +60,20 @@ class WorkerThread(QRunnable):
 
 class CameraThread(QRunnable):
 
-    DEFAULT_DISPLAY_INTERVAL = 5
+    DEFAULT_DISPLAY_INTERVAL = 3
 
     def __init__(self, camera, deque):
         super().__init__()
         self.signals = ThreadSignals()
         self._running = True
+        self._recording = False
+
         self.stream = camera
         self.frames = deque
         self.count = 0
 
         # Controls display frame rate
-        self.DISPLAY_INTERVAL = -1
+        self.DISPLAY_INTERVAL = CameraThread.DEFAULT_DISPLAY_INTERVAL
 
     @pyqtSlot()
     def run(self):
@@ -81,11 +83,18 @@ class CameraThread(QRunnable):
                 if self.stream._running:
                     status, frame = self.stream.readCamera("RGB")
                     if status:
-                        self.frames.append(frame)
                         self.count += 1
 
-                        if self.DISPLAY_INTERVAL > 0 and self.count % self.DISPLAY_INTERVAL == 0:
+                        if self._recording:
+                            self.frames.append(frame)
+
+                            #TODO: Not sure if this slow down is necessary
+                            # if self.DISPLAY_INTERVAL > 0 and self.count % self.DISPLAY_INTERVAL == 0:
+                                # self.signals.result.emit(frame)
+
+                        if self.DISPLAY_INTERVAL > 0:
                             self.signals.result.emit(frame)
+
                     else:
                         self.stream.stopCamera()
                 else:
@@ -105,8 +114,12 @@ class CameraThread(QRunnable):
         self._running = False
 
 
-# class WriterThread(QRunanble):
-# 
-    # def __init__(self, camera, deque):
-        # super().__init__()
-        # self.signals = ThreadSig
+class WriterThread(QRunnable):
+
+    def __init__(self, camera, deque):
+        super().__init__()
+        self.signals = ThreadSignals()
+        self._running = True
+
+        self.frames = deque
+        self.count = 0
