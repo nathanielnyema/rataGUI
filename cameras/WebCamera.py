@@ -10,6 +10,22 @@ class WebCamera(BaseCamera):
         # self.maxFPS = 0
         self.last_frame = None
 
+    @staticmethod
+    def getAllCameras(search = 2):
+        '''Returns dictionary of available web cameras'''
+        cameras = {}
+        for i in range(search):
+            cam = WebCamera(i)
+            cam.initializeCamera()
+            # Try to read a couple frames
+            for _ in range(2):
+                if cam.readCamera()[0]:
+                    cameraName = "Web Camera " + str(i)
+                    cameras[cameraName] = cam
+                    break
+            cam.stopCamera()
+        return cameras
+
     def initializeCamera(self):
         self.stream = cv2.VideoCapture(self.cameraID)
         self._running = True

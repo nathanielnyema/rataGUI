@@ -5,13 +5,14 @@ import cv2
 try:
     import PySpin
     import EasyPySpin
+    from cameras.FLIRCamera import FLIRCamera
     FLIR_DETECTED = True
 except ImportError as e:
     # print('PySpin module not detected')
     FLIR_DETECTED = False
 
 # from vidgear.gears import WriteGear
-import skvideo
+import skvideo.io
 # skvideo.setFFmpegPath("C:/PATH_Programs/bin/ffmpeg.exe")
 
 from collections import deque
@@ -23,7 +24,6 @@ from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal,
 from threads import CameraThread, WorkerThread
 from cameras.WebCamera import WebCamera
 from cameras.NetworkCamera import NetworkCamera
-# from cameras.FLIRCamera import FLIRCamera
 
 class CameraWidget(QtWidgets.QWidget):
     """Independent camera feed
@@ -105,7 +105,7 @@ class CameraWidget(QtWidgets.QWidget):
             self.writer.close()
         
         print("Started recording for: {}".format(self.camera.cameraID))
-        file_name = "videos/" + str(self.camera.cameraID) + "_" + datetime.now().strftime('%H,%M,%S') + ".mp4"
+        file_name = "videos/" + str(self.camera.cameraID) + "_" + datetime.now().strftime('%H-%M-%S') + ".mp4"
         # file_name = "output.mp4"
         # self.writer = WriteGear(output_filename=file_name, logging=True, **output_params)
         # TODO: Modularize parameters

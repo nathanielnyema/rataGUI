@@ -37,6 +37,18 @@ class FLIRCamera(BaseCamera):
     
         return FLIRCamera._SYSTEM.GetCameras()
 
+    @staticmethod
+    def getAllCameras():
+        '''Returns dictionary of all available FLIR cameras'''
+        cameras = {}
+        for cam in FLIRCamera.getCameraList():
+            # print(camera.TLDevice.DeviceSerialNumber.ToString())
+            if cam.TLDevice.DeviceSerialNumber.GetAccessMode() == PySpin.RO:
+                serialNumber = cam.TLDevice.DeviceSerialNumber.ToString()
+                # Create camera wrapper object
+                cameras[serialNumber] = FLIRCamera(serialNumber)
+        return cameras
+
     def __init__(self, cameraID=0):
 
         super().__init__()

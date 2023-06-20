@@ -60,8 +60,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>215</width>
-             <height>524</height>
+             <width>216</width>
+             <height>534</height>
             </rect>
            </property>
           </widget>
@@ -79,8 +79,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>436</width>
-           <height>545</height>
+           <width>438</width>
+           <height>550</height>
           </rect>
          </property>
         </widget>
@@ -156,7 +156,7 @@
      <x>0</x>
      <y>0</y>
      <width>900</width>
-     <height>21</height>
+     <height>18</height>
     </rect>
    </property>
    <property name="nativeMenuBar">

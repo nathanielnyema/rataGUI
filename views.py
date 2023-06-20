@@ -12,7 +12,7 @@ except ImportError as e:
     FLIR_DETECTED = False
 
 from PyQt6 import QtWidgets, QtGui
-# from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
+from PyQt6.QtCore import Qt
 # from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
 
 from UI.MainWindow import Ui_MainWindow
@@ -21,7 +21,7 @@ from UI.CameraWindow import Ui_CameraWindow
 from threads import CameraThread, WorkerThread
 from cameras.WebCamera import WebCamera
 from cameras.NetworkCamera import NetworkCamera
-from cameras.FLIRCamera import FLIRCamera
+from cameraWidget import CameraWidget
 
 class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
     def __init__(self, camera):
@@ -93,20 +93,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Set geometry relative to screen
         sg = QtGui.QGuiApplication.primaryScreen().availableGeometry()
-        window_width = sg.width() // 2
-        window_height = int(sg.height() / 4.4)
-        x_position = (sg.width() - window_width) // 2
-        y_position = sg.height() - window_height
-        self.setGeometry(x_position, y_position, window_width, window_height)
+        x_pos = (sg.width() - self.width()) // 2
+        y_pos = (sg.height() - self.height()) // 2
+        self.move(x_pos, y_pos)
+        # self.setGeometry(x_position, y_position, window_width, window_height)
 
         self.cameras = {}
         self.cameraWindows = {}
 
-        # self.cameraWindow1 = None
-        # self.cameraWindow2 = None
-
         self.populate_available_cameras()
-        # print(self.camList.children())
 
         # Open and show camera feed but don't record
         self.displayButton.clicked.connect(self.show_camera_window)
@@ -120,41 +115,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def populate_available_cameras(self):
         layout = QtWidgets.QVBoxLayout()
-        layout.addStretch()
-
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        
         # Find all FLIR cameras
         if FLIR_DETECTED:
-            camList = FLIRCamera.getCameraList()
-            for camera in camList:
-                # print(camera.TLDevice.DeviceSerialNumber.ToString())
-                if camera.TLDevice.DeviceSerialNumber.GetAccessMode() == PySpin.RO:
-                    serialNumber = camera.TLDevice.DeviceSerialNumber.ToString()
-                    layout.addWidget(QtWidgets.QCheckBox(serialNumber))
-
-                    # Create camera wrapper object
-                    self.cameras[serialNumber] = FLIRCamera(serialNumber)
-                    # print(dir(camera))
-
-                    # False = Don't open, True = To be opened, not None = Already opened
-                    self.cameraWindows[serialNumber] = None
+            flirCams = FLIRCamera.getAllCameras()
+            for serialNumber, camera in flirCams.items():
+                layout.addWidget(QtWidgets.QCheckBox(serialNumber))
+                self.cameras[serialNumber] = camera
+                self.cameraWindows[serialNumber] = None
         
-        # Find web cameras
-        for i in range(2):
-            camera = WebCamera(i)
-            camera.initializeCamera()
-            # Try to read a couple frames
-            for _ in range(2):
-                if camera.readCamera()[0]:
-                    cameraName = "Web Camera " + str(i)
-                    layout.addWidget(QtWidgets.QCheckBox(cameraName))
-                    self.cameras[cameraName] = camera
-                    self.cameraWindows[cameraName] = None
-                    break
-            camera.stopCamera()
-        
-        # self.cameras["Web Camera 2"].initializeCamera()
-        # print(self.cameras)
-        # print(self.cameraWindows)
+        # Find all web cameras
+        webCams = WebCamera.getAllCameras()
+        for name, camera in webCams.items():
+            layout.addWidget(QtWidgets.QCheckBox(name))
+            self.cameras[name] = camera
+            self.cameraWindows[name] = None
 
         self.camList.setLayout(layout)
     
@@ -170,25 +146,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def show_camera_window(self):
         updatedList = self.checkBoxState()
-
-        for serial, value in updatedList.items():
+        sg = QtGui.QGuiApplication.primaryScreen().availableGeometry()
+        screen_width = sg.width()
+        for index, (serial, value) in enumerate(updatedList.items()):
+            print(index, serial, value)
             if value is True:
                 if self.cameraWindows[serial] is None:
                     window = CameraWindow(self.cameras[serial])
+                    x_pos = min(window.width() * index, screen_width - window.width())
+                    y_pos = (window.height() // 2) * (index * window.width() // screen_width)
+                    window.move(x_pos,y_pos)
                     window.show()
-
-                    #Set geometry relative to screen
-                    sg = QtGui.QGuiApplication.primaryScreen().availableGeometry()
-                    window_width = sg.width() // 2
-                    window_height = int(sg.height() / 1.5)
-                    x_position = (sg.width() - window_width) // 2
-                    y_position = self.pos().y() - window_height
-                    window.setGeometry(x_position, y_position, window_width, window_height)
 
                     self.cameraWindows[serial] = window
                 else:
                     self.cameraWindows[serial].show()
-
 
     def record_camera_window(self):
         self.show_camera_window()
