@@ -35,3 +35,6 @@ class WebCamera(BaseCamera):
 
     def getCameraID(self):
         return self.cameraID
+    
+    def isOpened(self):
+        return self.stream != None and self.stream.isOpened()
