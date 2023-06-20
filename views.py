@@ -1,19 +1,27 @@
 import sys
-import PySpin
+import numpy as np
+# import cv2
 
-# from vidgear.gears import WriteGear
-# import skvideo
-# skvideo.setFFmpegPath("C:/PATH_Programs/bin/ffmpeg.exe")
-# import skvideo.io
+try:
+    import PySpin
+    import EasyPySpin
+    FLIR_DETECTED = True
+    from cameras.FLIRCamera import FLIRCamera
+except ImportError as e:
+    print('PySpin module not detected')
+    FLIR_DETECTED = False
 
 from PyQt6 import QtWidgets, QtGui
+# from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
 # from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
 
 from UI.MainWindow import Ui_MainWindow
 from UI.CameraWindow import Ui_CameraWindow
 
+from threads import CameraThread, WorkerThread
+from cameras.WebCamera import WebCamera
+from cameras.NetworkCamera import NetworkCamera
 from cameras.FLIRCamera import FLIRCamera
-from cameraWidget import CameraWidget
 
 class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
     def __init__(self, camera):
@@ -28,7 +36,7 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
         self.setLayout(self.cameraGrid)
 
         #TODO: Implement ability to add multiple camera widgets
-        cam0 = CameraWidget(self.window_width, self.window_height, camera, aspect_ratio=True)
+        cam0 = CameraWidget(self.window_width, self.window_height, camera, type(camera).__name__, aspect_ratio=True)
         self.cameraGrid.addWidget(cam0)
 
     def startRecording(self, writer_params):
@@ -111,23 +119,43 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def populate_available_cameras(self):
-        camList = FLIRCamera.getCameraList()
         layout = QtWidgets.QVBoxLayout()
-
-        for camera in camList:
-            # print(camera.TLDevice.DeviceSerialNumber.ToString())
-            if camera.TLDevice.DeviceSerialNumber.GetAccessMode() == PySpin.RO:
-                serialNumber = camera.TLDevice.DeviceSerialNumber.ToString()
-                layout.addWidget(QtWidgets.QCheckBox(serialNumber))
-
-                # Create camera wrapper object
-                self.cameras[serialNumber] = FLIRCamera(serialNumber)
-                # print(dir(camera))
-
-                # False = Don't open, True = To be opened !None = Already opened
-                self.cameraWindows[serialNumber] = None
-        
         layout.addStretch()
+
+        # Find all FLIR cameras
+        if FLIR_DETECTED:
+            camList = FLIRCamera.getCameraList()
+            for camera in camList:
+                # print(camera.TLDevice.DeviceSerialNumber.ToString())
+                if camera.TLDevice.DeviceSerialNumber.GetAccessMode() == PySpin.RO:
+                    serialNumber = camera.TLDevice.DeviceSerialNumber.ToString()
+                    layout.addWidget(QtWidgets.QCheckBox(serialNumber))
+
+                    # Create camera wrapper object
+                    self.cameras[serialNumber] = FLIRCamera(serialNumber)
+                    # print(dir(camera))
+
+                    # False = Don't open, True = To be opened, not None = Already opened
+                    self.cameraWindows[serialNumber] = None
+        
+        # Find web cameras
+        for i in range(2):
+            camera = WebCamera(i)
+            camera.initializeCamera()
+            # Try to read a couple frames
+            for _ in range(2):
+                if camera.readCamera()[0]:
+                    cameraName = "Web Camera " + str(i)
+                    layout.addWidget(QtWidgets.QCheckBox(cameraName))
+                    self.cameras[cameraName] = camera
+                    self.cameraWindows[cameraName] = None
+                    break
+            camera.stopCamera()
+        
+        # self.cameras["Web Camera 2"].initializeCamera()
+        # print(self.cameras)
+        # print(self.cameraWindows)
+
         self.camList.setLayout(layout)
     
     def checkBoxState(self):

@@ -1,8 +1,14 @@
 from .BaseCamera import BaseCamera
 
 import cv2
-import PySpin
-import EasyPySpin
+
+try:
+    import PySpin
+    import EasyPySpin
+    FLIR_DETECTED = True
+except ImportError as e:
+    print('PySpin module not detected')
+    FLIR_DETECTED = False
 
 
 class FLIRCamera(BaseCamera):

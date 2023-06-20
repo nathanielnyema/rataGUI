@@ -1,9 +1,18 @@
+import sys
 import numpy as np
 import cv2
 
-# import skvideo
+try:
+    import PySpin
+    import EasyPySpin
+    FLIR_DETECTED = True
+except ImportError as e:
+    # print('PySpin module not detected')
+    FLIR_DETECTED = False
+
+# from vidgear.gears import WriteGear
+import skvideo
 # skvideo.setFFmpegPath("C:/PATH_Programs/bin/ffmpeg.exe")
-import skvideo.io
 
 from collections import deque
 from datetime import datetime
@@ -14,19 +23,18 @@ from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal,
 from threads import CameraThread, WorkerThread
 from cameras.WebCamera import WebCamera
 from cameras.NetworkCamera import NetworkCamera
-from cameras.FLIRCamera import FLIRCamera
+# from cameras.FLIRCamera import FLIRCamera
 
 class CameraWidget(QtWidgets.QWidget):
     """Independent camera feed
-    Uses threading to grab IP camera frames in the background
 
     @param width - Width of the video frame
     @param height - Height of the video frame
-    @param stream_link - IP/RTSP/Webcam link
+    @param camera - Camera object to display
     @param aspect_ratio - Whether to maintain frame aspect ratio or force into fraame
     """
 
-    def __init__(self, width, height, camera=None, cameraType="flir", aspect_ratio=False, deque_size=100):
+    def __init__(self, width, height, camera=None, cameraType="FLIRCamera", aspect_ratio=False, deque_size=100):
         super().__init__()
         
         # Initialize deque used to store frames read from the stream
@@ -54,10 +62,14 @@ class CameraWidget(QtWidgets.QWidget):
         self.cameraThread = CameraThread(self.camera, self.frames)
 
         # Start thread to load camera stream
-        worker = WorkerThread(self.camera.initializeCamera, FLIRCamera.CameraProperties)
+        if cameraType == "FLIRCamera":
+            worker = WorkerThread(self.camera.initializeCamera, FLIRCamera.CameraProperties)
+        else:
+            worker = WorkerThread(self.camera.initializeCamera)
         self.threadpool.start(worker)
         worker.signals.finished.connect(self.startCameraThread)
 
+        # Could use separate timer instead
         # self.timer = QTimer()
         # self.timer.timeout.connect(self.set_frame)
         # self.timer.start(100)
@@ -96,7 +108,10 @@ class CameraWidget(QtWidgets.QWidget):
         file_name = "videos/" + str(self.camera.cameraID) + "_" + datetime.now().strftime('%H,%M,%S') + ".mp4"
         # file_name = "output.mp4"
         # self.writer = WriteGear(output_filename=file_name, logging=True, **output_params)
-        input_params={'-framerate': str(FLIRCamera.CameraProperties['AcquisitionFrameRate'])} 
+        # TODO: Modularize parameters
+        input_params = {}
+        if self.camera_type == "FLIRCamera":
+            input_params['-framerate'] = str(FLIRCamera.CameraProperties['AcquisitionFrameRate'])
         self.writer = skvideo.io.FFmpegWriter(file_name, inputdict=input_params, outputdict=output_params)
         self.recording = True
         self.cameraThread._recording = True
