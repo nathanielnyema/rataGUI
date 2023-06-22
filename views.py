@@ -1,10 +1,10 @@
 import sys
 import numpy as np
+import time
 # import cv2
 
 try:
     import PySpin
-    import EasyPySpin
     FLIR_DETECTED = True
     from cameras.FLIRCamera import FLIRCamera
 except ImportError as e:
@@ -31,60 +31,28 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
         self.window_width = self.frameGeometry().width()
         self.window_height = self.frameGeometry().height()
 
-        self.cameraGrid = QtWidgets.QGridLayout()
-        self.cameraGrid.setContentsMargins(0,0,0,0)
-        self.setLayout(self.cameraGrid)
+        self.camera_grid = QtWidgets.QGridLayout()
+        self.camera_grid.setContentsMargins(0,0,0,0)
+        self.setLayout(self.camera_grid)
 
         #TODO: Implement ability to add multiple camera widgets
         cam0 = CameraWidget(self.window_width, self.window_height, camera, type(camera).__name__, aspect_ratio=True)
-        self.cameraGrid.addWidget(cam0)
+        self.camera_grid.addWidget(cam0)
 
     def startRecording(self, writer_params):
-        widgets = (self.cameraGrid.itemAt(i).widget() for i in range(self.cameraGrid.count())) 
+        widgets = (self.camera_grid.itemAt(i).widget() for i in range(self.camera_grid.count())) 
         for widget in widgets:
             if isinstance(widget, CameraWidget):
                 widget.startWriter(writer_params)
 
-    def showEvent(self, event):
-        super().showEvent(event)
-
-        widgets = (self.cameraGrid.itemAt(i).widget() for i in range(self.cameraGrid.count())) 
-        for widget in widgets:
-            if isinstance(widget, CameraWidget):
-                widget.startDisplay()
-
-        # if can_exit:
-        event.accept() # let the window close
-        # else:
-        #     event.ignore()
-
-    def closeEvent(self, event):
-        super().closeEvent(event)
-
-        widgets = (self.cameraGrid.itemAt(i).widget() for i in range(self.cameraGrid.count())) 
-        for widget in widgets:
-            if isinstance(widget, CameraWidget):
-                widget.stopDisplay()
-
-        # if can_exit:
-        event.accept() # let the window close
-        # else:
-        #     event.ignore()
-
-    def startDisplay(self):
-        pass
-
-    def stopDisplay(self):  
-        pass
-
     def clearLayout(self):
-        while self.cameraGrid.count() > 0:
-            camWidget = self.cameraGrid.takeAt(0).widget()
-            if camWidget is not None:
-                if camWidget.recording:
-                    camWidget.stopWriter()
-                camWidget.stopCameraThread()
-                camWidget.deleteLater()
+        while self.camera_grid.count() > 0:
+            cam_widget = self.camera_grid.takeAt(0).widget()
+            if cam_widget is not None:
+                if cam_widget.recording:
+                    cam_widget.stopWriter()
+                cam_widget.stopCameraThread()
+                cam_widget.deleteLater()
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, *args, obj=None, **kwargs):
@@ -99,18 +67,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # self.setGeometry(x_position, y_position, window_width, window_height)
 
         self.cameras = {}
-        self.cameraWindows = {}
+        self.camera_windows = {}
 
         self.populate_available_cameras()
 
         # Open and show camera feed but don't record
-        self.displayButton.clicked.connect(self.show_camera_window)
+        self.display_button.clicked.connect(self.show_camera_window)
 
         # Open, show and record camera feed into video
-        self.recordButton.clicked.connect(self.record_camera_window)
+        self.record_button.clicked.connect(self.record_camera_window)
 
         # Close camera feed (stop recording) and window
-        self.stopButton.clicked.connect(self.close_camera_window)
+        self.stop_button.clicked.connect(self.close_camera_window)
 
 
     def populate_available_cameras(self):
@@ -119,70 +87,79 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         
         # Find all FLIR cameras
         if FLIR_DETECTED:
-            flirCams = FLIRCamera.getAllCameras()
-            for serialNumber, camera in flirCams.items():
-                layout.addWidget(QtWidgets.QCheckBox(serialNumber))
-                self.cameras[serialNumber] = camera
-                self.cameraWindows[serialNumber] = None
+            flir_cams = FLIRCamera.getAllCameras()
+            for serial_number, camera in flir_cams.items():
+                layout.addWidget(QtWidgets.QCheckBox(serial_number))
+                self.cameras[serial_number] = camera
+                self.camera_windows[serial_number] = None
         
         # Find all web cameras
-        webCams = WebCamera.getAllCameras()
-        for name, camera in webCams.items():
+        web_cams = WebCamera.getAllCameras()
+        for name, camera in web_cams.items():
             layout.addWidget(QtWidgets.QCheckBox(name))
             self.cameras[name] = camera
-            self.cameraWindows[name] = None
+            self.camera_windows[name] = None
 
-        self.camList.setLayout(layout)
+        self.cam_list.setLayout(layout)
     
     def checkBoxState(self):
-        updatedList = {}
+        updated_list = {}
 
-        for widget in self.camList.children():
+        for widget in self.cam_list.children():
             if isinstance(widget, QtWidgets.QCheckBox):
-                serialNumber = widget.text()
-                updatedList[serialNumber] = widget.isChecked()
+                serial_number = widget.text()
+                updated_list[serial_number] = widget.isChecked()
         
-        return updatedList
+        return updated_list
 
     def show_camera_window(self):
-        updatedList = self.checkBoxState()
+        updated_list = self.checkBoxState()
         sg = QtGui.QGuiApplication.primaryScreen().availableGeometry()
         screen_width = sg.width()
-        for index, (serial, value) in enumerate(updatedList.items()):
-            print(index, serial, value)
+        for index, (serial, value) in enumerate(updated_list.items()):
             if value is True:
-                if self.cameraWindows[serial] is None:
+                if self.camera_windows[serial] is None:
                     window = CameraWindow(self.cameras[serial])
                     x_pos = min(window.width() * index, screen_width - window.width())
                     y_pos = (window.height() // 2) * (index * window.width() // screen_width)
                     window.move(x_pos,y_pos)
                     window.show()
 
-                    self.cameraWindows[serial] = window
+                    self.camera_windows[serial] = window
                 else:
-                    self.cameraWindows[serial].show()
+                    self.camera_windows[serial].show()
 
     def record_camera_window(self):
         self.show_camera_window()
 
-        updatedList = self.checkBoxState()
+        updated_list = self.checkBoxState()
 
-        for serial, value in updatedList.items():
+        for serial, value in updated_list.items():
             if value is True:
-                if self.cameraWindows[serial] is not None:
+                if self.camera_windows[serial] is not None:
                     params = {}
-                    self.cameraWindows[serial].startRecording(writer_params=params)
+                    self.camera_windows[serial].startRecording(writer_params=params)
 
         # params = {"-vcodec": "libx264", "-crf": 0, "-preset": "fast"}
-        
-
 
     def close_camera_window(self):
-        updatedList = self.checkBoxState()
+        updated_list = self.checkBoxState()
 
-        for serial, value in updatedList.items():
-            if value is True:
-                if self.cameraWindows[serial] is not None:
-                    self.cameraWindows[serial].clearLayout()
-                    self.cameraWindows[serial].deleteLater()
-                    self.cameraWindows[serial] = None
+        for serial, value in updated_list.items():
+            if value is True and self.camera_windows[serial] is not None:
+                self.camera_windows[serial].clearLayout()
+                self.camera_windows[serial].deleteLater()
+                self.camera_windows[serial] = None
+
+    def closeEvent(self, event):        
+        for cam_window in self.camera_windows.values():
+            if cam_window is not None:
+                cam_window.clearLayout()
+                cam_window.deleteLater()
+        # Wait for threads to stop
+        time.sleep(0.5)
+
+        if FLIR_DETECTED and FLIRCamera._SYSTEM is not None:
+            FLIRCamera._SYSTEM.ReleaseInstance()
+
+        event.accept() # let the window close

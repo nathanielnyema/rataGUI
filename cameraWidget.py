@@ -4,7 +4,6 @@ import cv2
 
 try:
     import PySpin
-    import EasyPySpin
     from cameras.FLIRCamera import FLIRCamera
     FLIR_DETECTED = True
 except ImportError as e:
@@ -34,7 +33,7 @@ class CameraWidget(QtWidgets.QWidget):
     @param aspect_ratio - Whether to maintain frame aspect ratio or force into fraame
     """
 
-    def __init__(self, width, height, camera=None, cameraType="FLIRCamera", aspect_ratio=False, deque_size=100):
+    def __init__(self, width, height, camera=None, cameraType="FLIRCamera", aspect_ratio=True, deque_size=100):
         super().__init__()
         
         # Initialize deque used to store frames read from the stream
@@ -59,7 +58,7 @@ class CameraWidget(QtWidgets.QWidget):
         # Initialize camera object
         self.camera_type = cameraType
         self.camera = camera
-        self.cameraThread = CameraThread(self.camera, self.frames)
+        self.camera_thread = CameraThread(self.camera, self.frames)
 
         # Start thread to load camera stream
         if cameraType == "FLIRCamera":
@@ -79,13 +78,13 @@ class CameraWidget(QtWidgets.QWidget):
     @pyqtSlot()
     def startCameraThread(self):
         # Periodically set video frame to display
-        self.cameraThread.signals.result.connect(self.set_frame)
+        self.camera_thread.signals.result.connect(self.set_frame)
         # Start camera thread for frame grabbing
-        self.threadpool.start(self.cameraThread)
+        self.threadpool.start(self.camera_thread)
 
     def stopCameraThread(self):
         print('Stopped camera: {}'.format(self.camera.cameraID))
-        self.cameraThread.stop()
+        self.camera_thread.stop()
 
     def startWriter(self, output_params):
         # TODO: implement as custom class
@@ -114,7 +113,7 @@ class CameraWidget(QtWidgets.QWidget):
             input_params['-framerate'] = str(FLIRCamera.CameraProperties['AcquisitionFrameRate'])
         self.writer = skvideo.io.FFmpegWriter(file_name, inputdict=input_params, outputdict=output_params)
         self.recording = True
-        self.cameraThread._recording = True
+        self.camera_thread._recording = True
 
         worker = WorkerThread(save_frames)
         self.threadpool.start(worker)
@@ -122,15 +121,7 @@ class CameraWidget(QtWidgets.QWidget):
     def stopWriter(self):
         print("Stopped recording for: {}".format(self.camera.cameraID))
         self.recording = False
-        self.cameraThread._recording = False
-
-    def startDisplay(self):
-        # if self.cameraThread is not None:
-        self.cameraThread.DISPLAY_INTERVAL = CameraThread.DEFAULT_DISPLAY_INTERVAL
-
-    def stopDisplay(self):
-        # if self.cameraThread is not None:
-        self.cameraThread.DISPLAY_INTERVAL = -1
+        self.camera_thread._recording = False
 
     def set_frame(self, image):
         """Sets pixmap image to video frame"""
@@ -139,22 +130,13 @@ class CameraWidget(QtWidgets.QWidget):
             # Get image dimensions
             img_h, img_w, num_ch = image.shape
 
-            if self.keep_aspect_ratio:
-                # Keep frame aspect ratio
-                scale_factor = min(self.frame_width / img_w, self.frame_height / img_h)
-                new_width = int(img_w * scale_factor)
-                new_height = int(img_h * scale_factor)
-                self.frame = cv2.resize(image, (new_width, new_height))
-
-            else:
-                # Force resize
-                self.frame = cv2.resize(image, (self.frame_width, self.frame_height), interpolation = cv2.INTER_AREA)
-
-            # Add timestamp to cameras
-            cv2.rectangle(self.frame, (self.frame_width-190,0), (self.frame_width,50), color=(0,0,0), thickness=-1)
-            cv2.putText(self.frame, datetime.now().strftime('%H:%M:%S'), (self.frame_width-185,37), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255,255,255), lineType=cv2.LINE_AA)
+            # TODO: Add timestamp to frame
+            cv2.rectangle(image, (img_w-190,0), (img_w,50), color=(0,0,0), thickness=-1)
+            cv2.putText(image, datetime.now().strftime('%H:%M:%S'), (img_w-185,37), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255,255,255), lineType=cv2.LINE_AA)
 
             # Convert to pixmap and set to video frame
-            self.img = QtGui.QImage(self.frame.data, self.frame.shape[1], self.frame.shape[0], QtGui.QImage.Format.Format_RGB888)
-            self.pixmap = QtGui.QPixmap.fromImage(self.img)
-            self.video_frame.setPixmap(self.pixmap)
+            bytes_per_line = num_ch * img_w
+            qt_image = QtGui.QImage(image.data, img_w, img_h, bytes_per_line, QtGui.QImage.Format.Format_RGB888)
+            qt_image = qt_image.scaled(self.frame_width, self.frame_height, Qt.AspectRatioMode.KeepAspectRatio)
+            pixmap = QtGui.QPixmap.fromImage(qt_image)
+            self.video_frame.setPixmap(pixmap)

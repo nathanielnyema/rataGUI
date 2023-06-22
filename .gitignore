@@ -3,6 +3,7 @@ basic_multicam/
 temp.py
 videos/*
 !videos/.gitkeep 
+tests/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

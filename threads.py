@@ -62,49 +62,46 @@ class CameraThread(QRunnable):
 
     DEFAULT_DISPLAY_INTERVAL = 3
 
-    def __init__(self, camera, deque):
+    def __init__(self, camera, deque, c_space = "RGB"):
         super().__init__()
         self.signals = ThreadSignals()
         self._running = True
         self._recording = False
+        self.color_space = c_space
 
         self.stream = camera
         self.frames = deque
-        self.count = 0
 
         # Controls display frame rate
-        self.DISPLAY_INTERVAL = CameraThread.DEFAULT_DISPLAY_INTERVAL
+        # self.DISPLAY_INTERVAL = CameraThread.DEFAULT_DISPLAY_INTERVAL
 
     @pyqtSlot()
     def run(self):
         
         while self._running:
-            try:
-                if self.stream._running:
-                    status, frame = self.stream.readCamera("RGB")
-                    if status:
-                        self.count += 1
+            if self.stream._running:
+                status, frame = self.stream.readCamera(self.color_space)
+                if status:
+                    # self.count += 1
 
-                        if self._recording:
-                            self.frames.append(frame)
+                    if self._recording:
+                        self.frames.append(frame)
 
-                            #TODO: Not sure if this slow down is necessary
-                            # if self.DISPLAY_INTERVAL > 0 and self.count % self.DISPLAY_INTERVAL == 0:
-                                # self.signals.result.emit(frame)
+                        #TODO: Not sure if this slow down is necessary
+                        # if self.DISPLAY_INTERVAL > 0 and self.count % self.DISPLAY_INTERVAL == 0:
+                            # self.signals.result.emit(frame)
 
-                        if self.DISPLAY_INTERVAL > 0:
-                            self.signals.result.emit(frame)
+                    # if self.DISPLAY_INTERVAL > 0:
+                    self.signals.result.emit(frame)
 
-                    else:
-                        self.stream.stopCamera()
                 else:
-                    print('Attempting to reconnect camera:', str(self.stream.getCameraID()))
-                    self.stream.initializeCamera()
-                    time.sleep(2)
-            except:
-                traceback.print_exc()
-                exctype, value = sys.exc_info()[:2]
-                self.signals.error.emit((exctype, value, traceback.format_exc()))
+                    self.stream.stopCamera()
+            else:
+                print('Attempting to reconnect camera:', str(self.stream.getCameraID()))
+                self.stream.initializeCamera()
+                time.sleep(2)
+                if not self.stream._running: 
+                    break
 
         # Close camera after thread is stopped
         self.stream.stopCamera()
