@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>834</width>
-    <height>528</height>
+    <width>720</width>
+    <height>550</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,7 +20,7 @@
    </size>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout_2" stretch="2,1">
+   <layout class="QVBoxLayout" name="verticalLayout_2" stretch="3,2">
     <property name="leftMargin">
      <number>5</number>
     </property>
@@ -39,6 +39,17 @@
        <layout class="QVBoxLayout" name="pluginListLayout">
         <item>
          <widget class="QLabel" name="pluginListLabel">
+          <property name="font">
+           <font>
+            <pointsize>10</pointsize>
+           </font>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::Box</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
           <property name="text">
            <string>Plugins</string>
           </property>
@@ -52,13 +63,13 @@
           <property name="widgetResizable">
            <bool>true</bool>
           </property>
-          <widget class="QWidget" name="pluginList">
+          <widget class="QWidget" name="plugin_list">
            <property name="geometry">
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>201</width>
-             <height>299</height>
+             <width>172</width>
+             <height>273</height>
             </rect>
            </property>
           </widget>
@@ -83,7 +94,7 @@
      </layout>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="camControl" stretch="2,4,2">
+     <layout class="QHBoxLayout" name="camControl" stretch="3,7,2">
       <property name="sizeConstraint">
        <enum>QLayout::SetMinimumSize</enum>
       </property>
@@ -97,6 +108,17 @@
        <layout class="QVBoxLayout" name="camListLayout">
         <item>
          <widget class="QLabel" name="camListLabel">
+          <property name="font">
+           <font>
+            <pointsize>10</pointsize>
+           </font>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::Box</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
           <property name="text">
            <string>Available Cameras</string>
           </property>
@@ -106,41 +128,77 @@
          </widget>
         </item>
         <item>
-         <widget class="QScrollArea" name="camListArea">
-          <property name="widgetResizable">
-           <bool>true</bool>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-          </property>
-          <widget class="QWidget" name="camList">
-           <property name="geometry">
-            <rect>
-             <x>0</x>
-             <y>0</y>
-             <width>200</width>
-             <height>139</height>
-            </rect>
-           </property>
-          </widget>
-         </widget>
+         <widget class="QListView" name="cam_list"/>
         </item>
        </layout>
       </item>
       <item>
-       <widget class="QScrollArea" name="deviceInfoArea">
-        <property name="widgetResizable">
-         <bool>true</bool>
+       <widget class="QTabWidget" name="camAttributes">
+        <property name="currentIndex">
+         <number>1</number>
         </property>
-        <widget class="QWidget" name="deviceInfoList">
-         <property name="geometry">
-          <rect>
-           <x>0</x>
-           <y>0</y>
-           <width>405</width>
-           <height>155</height>
-          </rect>
-         </property>
+        <widget class="QWidget" name="camPropsTab">
+         <attribute name="title">
+          <string>Properties</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout">
+          <item row="0" column="0">
+           <widget class="QTableWidget" name="cam_props"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="camStatsTab">
+         <attribute name="title">
+          <string>Statistics</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_2">
+          <item row="0" column="0">
+           <widget class="QTableWidget" name="cam_stats">
+            <property name="editTriggers">
+             <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+            <property name="alternatingRowColors">
+             <bool>false</bool>
+            </property>
+            <property name="rowCount">
+             <number>0</number>
+            </property>
+            <attribute name="horizontalHeaderCascadingSectionResizes">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="horizontalHeaderStretchLastSection">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="verticalHeaderShowSortIndicator" stdset="0">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="verticalHeaderStretchLastSection">
+             <bool>false</bool>
+            </attribute>
+            <column>
+             <property name="text">
+              <string>Camera ID</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Frames Acquired</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Frames Dropped</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </widget>
       </item>
@@ -154,15 +212,23 @@
         </property>
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
-          <widget class="QPushButton" name="stopButton">
+          <widget class="QPushButton" name="stop_button">
            <property name="enabled">
             <bool>true</bool>
            </property>
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+            <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>12</pointsize>
+            </font>
+           </property>
+           <property name="mouseTracking">
+            <bool>false</bool>
            </property>
            <property name="autoFillBackground">
             <bool>false</bool>
@@ -182,12 +248,17 @@
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="displayButton">
+          <widget class="QPushButton" name="display_button">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+            <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>12</pointsize>
+            </font>
            </property>
            <property name="text">
             <string>Display</string>
@@ -195,7 +266,18 @@
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="recordButton">
+          <widget class="QPushButton" name="record_button">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>12</pointsize>
+            </font>
+           </property>
            <property name="text">
             <string>Record</string>
            </property>
@@ -213,7 +295,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>834</width>
+     <width>720</width>
      <height>18</height>
     </rect>
    </property>

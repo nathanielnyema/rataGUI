@@ -55,8 +55,10 @@ class FLIRCamera(BaseCamera):
         super().__init__()
         self.cameraID = cameraID
         self._initialized = False
+        self.frames_dropped = 0
         self.last_frame = None
-        self.last_index = 0
+        self.last_index = -1
+        self.frames = 0
 
     def configure_chunk_data(self, nodemap, selected_chucks, enable = True) -> bool:
         """
@@ -64,8 +66,6 @@ class FLIRCamera(BaseCamera):
 
         :param nodemap: Transport layer device nodemap.
         :type nodemap: INodeMap
-        :return: True if successful, False otherwise
-        :rtype: bool
         """
         try:
             result = True
@@ -104,15 +104,15 @@ class FLIRCamera(BaseCamera):
                     # Enable the corresponding chunk data
                     if enable:
                         if chunk_enable.GetValue() is True:
-                            print('{} enabled'.format(chunk_str))
+                            print(f'{chunk_str} enabled for FLIR camera: {self.cameraID}')
                         elif PySpin.IsWritable(chunk_enable):
                             chunk_enable.SetValue(True)
-                            print('{} enabled'.format(chunk_str))
+                            print(f'{chunk_str} enabled for FLIR camera: {self.cameraID}')
                         else:
-                            print('{} not writable'.format(chunk_str))
+                            print(f'{chunk_str} not writable for FLIR cameraa: {self.cameraID}')
                             result = False
                     else:
-                        # Disable the boolean, thus disabling the corresponding chunk data
+                        # Disable the boolean to disable the corresponding chunk data
                         if PySpin.IsWritable(chunk_enable):
                             chunk_enable.SetValue(False)
                         else:
@@ -125,9 +125,10 @@ class FLIRCamera(BaseCamera):
         return result
 
     def initializeCamera(self, prop_dict: dict = {}, drop_frames = True) -> bool:
-        self._running = False
-        cam_list = FLIRCamera.getCameraList()
+        # Reset session variables
+        self.__init__(self.cameraID)
 
+        cam_list = FLIRCamera.getCameraList()
         if cam_list.GetSize() == 0:
             print("No camera available")
             cam_list.Clear()
@@ -183,12 +184,11 @@ class FLIRCamera(BaseCamera):
         chunk_data = img_data.GetChunkData()
         new_index = chunk_data.GetFrameID()
 
-        if self.last_frame is not None:
-            dropped = new_index - self.last_index - 1
-            if dropped > 0:
-                print(f"Dropped {dropped} Frame(s)")
-
+        # Detect dropped frames
+        if self.last_index > 0:
+            self.frames_dropped += new_index - self.last_index - 1
         self.last_index = new_index
+        self.frames += 1
 
         frame = img_data.GetNDArray()
         match colorspace:

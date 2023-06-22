@@ -12,7 +12,7 @@ except ImportError as e:
     FLIR_DETECTED = False
 
 from PyQt6 import QtWidgets, QtGui
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer, QAbstractTableModel
 # from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
 
 from UI.MainWindow import Ui_MainWindow
@@ -54,6 +54,7 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
                 cam_widget.stopCameraThread()
                 cam_widget.deleteLater()
 
+
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, *args, obj=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -62,7 +63,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Set geometry relative to screen
         sg = QtGui.QGuiApplication.primaryScreen().availableGeometry()
         x_pos = (sg.width() - self.width()) // 2
-        y_pos = (sg.height() - self.height()) // 2
+        y_pos = 2 * (sg.height() - self.height()) // 3
         self.move(x_pos, y_pos)
         # self.setGeometry(x_position, y_position, window_width, window_height)
 
@@ -79,6 +80,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Close camera feed (stop recording) and window
         self.stop_button.clicked.connect(self.close_camera_window)
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_camera_stats)
+        self.timer.start(500)
+
+
+    def update_camera_stats(self):
+        self.cam_stats.setRowCount(len(self.cameras))
+        for row, (id, camera) in enumerate(self.cameras.items()):
+            self.cam_stats.setItem(row, 0, QtWidgets.QTableWidgetItem(id))
+            self.cam_stats.setItem(row, 1, QtWidgets.QTableWidgetItem(str(camera.frames)))
+            self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem(str(camera.frames_dropped)))
 
 
     def populate_available_cameras(self):

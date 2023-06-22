@@ -80,10 +80,9 @@ class CameraThread(QRunnable):
         
         while self._running:
             if self.stream._running:
+                # time.sleep(0.1)
                 status, frame = self.stream.readCamera(self.color_space)
                 if status:
-                    # self.count += 1
-
                     if self._recording:
                         self.frames.append(frame)
 
@@ -91,7 +90,6 @@ class CameraThread(QRunnable):
                         # if self.DISPLAY_INTERVAL > 0 and self.count % self.DISPLAY_INTERVAL == 0:
                             # self.signals.result.emit(frame)
 
-                    # if self.DISPLAY_INTERVAL > 0:
                     self.signals.result.emit(frame)
 
                 else:
