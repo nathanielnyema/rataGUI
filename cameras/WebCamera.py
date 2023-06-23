@@ -7,11 +7,10 @@ class WebCamera(BaseCamera):
     def __init__(self, cameraID):
         super().__init__()
         self.cameraID = cameraID
-        # self.maxFPS = 0
         self.last_frame = None
 
     @staticmethod
-    def getAllCameras(search = 2):
+    def getAvailableCameras(search = 2):
         '''Returns dictionary of available web cameras'''
         cameras = {}
         for i in range(search):
@@ -46,8 +45,13 @@ class WebCamera(BaseCamera):
         return ret, self.last_frame
 
     def stopCamera(self):
-        self.stream.release()
-        self._running = False
+        try:
+            self.stream.release()
+            self._running = False
+            return True
+        except Exception as err:
+            print(err)
+            return False
 
     def getCameraID(self):
         return self.cameraID

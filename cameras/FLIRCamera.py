@@ -37,7 +37,7 @@ class FLIRCamera(BaseCamera):
         return FLIRCamera._SYSTEM.GetCameras()
 
     @staticmethod
-    def getAllCameras():
+    def getAvailableCameras():
         '''Returns dictionary of all available FLIR cameras'''
         cameras = {}
         cam_list = FLIRCamera.getCameraList()
@@ -204,15 +204,20 @@ class FLIRCamera(BaseCamera):
         return True, self.last_frame
 
     def stopCamera(self):
-        if self.stream is not None:
-            if self.stream.IsStreaming():
-                self.stream.EndAcquisition()
-            
-            self.stream.DeInit()
-            del self.stream
+        try:
+            if self.stream is not None:
+                if self.stream.IsStreaming():
+                    self.stream.EndAcquisition()
+                
+                self.stream.DeInit()
+                del self.stream
 
-        self._initialized = False
-        self._running = False
+            self._initialized = False
+            self._running = False
+            return True
+        except Exception as err:
+            print(err)
+            return False
 
     def getCameraID(self):
         return self.cameraID
