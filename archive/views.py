@@ -15,13 +15,13 @@ from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QTimer, QAbstractTableModel
 # from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
 
-from UI.MainWindow import Ui_MainWindow
-from UI.CameraWindow import Ui_CameraWindow
+from UI.Ui_MainWindow import Ui_MainWindow
+from UI.Ui_CameraWindow import Ui_CameraWindow
 
 from threads import CameraThread, WorkerThread
 from cameras.WebCamera import WebCamera
 from cameras.NetworkCamera import NetworkCamera
-from cameraWidget import CameraWidget
+from UI.CameraWidget import CameraWidget
 
 class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
     def __init__(self, camera):
@@ -91,8 +91,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for row, (id, camera) in enumerate(self.cameras.items()):
             self.cam_stats.setItem(row, 0, QtWidgets.QTableWidgetItem(id))
             self.cam_stats.setItem(row, 1, QtWidgets.QTableWidgetItem(str(camera.frames)))
-            self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem(str(camera.frames_dropped)))
-
+            if hasattr(camera, "frames_dropped"):
+                self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem(str(camera.frames_dropped)))
+            else:
+                self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem("N/A"))
 
     def populate_available_cameras(self):
         layout = QtWidgets.QVBoxLayout()
@@ -100,14 +102,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         
         # Find all FLIR cameras
         if FLIR_DETECTED:
-            flir_cams = FLIRCamera.getAllCameras()
+            flir_cams = FLIRCamera.getAvailableCameras()
             for serial_number, camera in flir_cams.items():
                 layout.addWidget(QtWidgets.QCheckBox(serial_number))
                 self.cameras[serial_number] = camera
                 self.camera_windows[serial_number] = None
         
         # Find all web cameras
-        web_cams = WebCamera.getAllCameras()
+        web_cams = WebCamera.getAvailableCameras()
         for name, camera in web_cams.items():
             layout.addWidget(QtWidgets.QCheckBox(name))
             self.cameras[name] = camera

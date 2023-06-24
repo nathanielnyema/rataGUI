@@ -8,8 +8,8 @@ import numpy.typing as npt
 
 class BaseCamera(ABC):
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def getAvailableCameras() -> dict[str, Any]:
         pass
     
