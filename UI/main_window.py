@@ -5,7 +5,7 @@ import time
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QTimer
 
-from UI.Ui_MainWindow import Ui_MainWindow
+from UI.design.Ui_MainWindow import Ui_MainWindow
 from UI.camera_window import CameraWindow
 
 
@@ -44,7 +44,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.cam_stats.setRowCount(len(self.cameras))
         for row, camera in enumerate(self.cameras.values()):
             self.cam_stats.setItem(row, 0, QtWidgets.QTableWidgetItem(camera.getName()))
-            self.cam_stats.setItem(row, 1, QtWidgets.QTableWidgetItem(str(camera.frames)))
+            self.cam_stats.setItem(row, 1, QtWidgets.QTableWidgetItem(str(camera.frames_acquired)))
             if hasattr(camera, "frames_dropped"):
                 self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem(str(camera.frames_dropped)))
             else:
@@ -56,28 +56,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         for camera_cls in self.camera_types:
             cam_list = camera_cls.getAvailableCameras()
-            print(camera_cls)
             for cam in cam_list:
                 layout.addWidget(QtWidgets.QCheckBox(cam.cameraID))
                 self.cameras[cam.cameraID] = cam
                 self.camera_windows[cam.cameraID] = None
-
-
-        
-        # # Find all FLIR cameras
-        # if FLIR_DETECTED:
-        #     flir_cams = FLIRCamera.getAvailableCameras()
-        #     for serial_number, camera in flir_cams.items():
-        #         layout.addWidget(QtWidgets.QCheckBox(serial_number))
-        #         self.cameras[serial_number] = camera
-        #         self.camera_windows[serial_number] = None
-        
-        # # Find all web cameras
-        # web_cams = WebCamera.getAvailableCameras()
-        # for name, camera in web_cams.items():
-        #     layout.addWidget(QtWidgets.QCheckBox(name))
-        #     self.cameras[name] = camera
-        #     self.camera_windows[name] = None
 
         self.cam_list.setLayout(layout)
     

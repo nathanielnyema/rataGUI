@@ -5,13 +5,13 @@ import PySpin
 
 class FLIRCamera(BaseCamera):
 
-    # CameraProperties = {
-    #     "LineSelector" : PySpin.LineSelector_Line2,
-    #     "LineMode" : PySpin.LineMode_Output,
-    #     "LineSource": PySpin.LineSource_ExposureActive,
-    #     "AcquisitionFrameRateEnable": True,
-    #     "AcquisitionFrameRate" : 30,
-    # }
+    CameraProperties = {
+        "LineSelector" : PySpin.LineSelector_Line2,
+        "LineMode" : PySpin.LineMode_Output,
+        "LineSource": PySpin.LineSource_ExposureActive,
+        "AcquisitionFrameRateEnable": True,
+        "AcquisitionFrameRate" : 30,
+    }
 
     # EasySpinProperties = ["AcquisitionFrameRate",]
 
@@ -50,14 +50,12 @@ class FLIRCamera(BaseCamera):
         return cameras
 
     def __init__(self, cameraID: str):
-
         super().__init__()
         self.cameraID = cameraID
         self._initialized = False
         self.frames_dropped = 0
         self.last_frame = None
         self.last_index = -1
-        self.frames = 0
 
     def configure_chunk_data(self, nodemap, selected_chucks, enable = True) -> bool:
         """
@@ -149,6 +147,14 @@ class FLIRCamera(BaseCamera):
         else:
             self.stream.TLStream.StreamBufferHandlingMode.SetValue(PySpin.StreamBufferHandlingMode_NewestFirst)
 
+        prop_dict = {
+            "LineSelector" : PySpin.LineSelector_Line2,
+            "LineMode" : PySpin.LineMode_Output,
+            "LineSource": PySpin.LineSource_ExposureActive,
+            "AcquisitionFrameRateEnable": True,
+            "AcquisitionFrameRate" : 30,
+        }
+
         for prop_name, value in prop_dict.items():
             try: 
                 node = getattr(self.stream, prop_name)
@@ -187,7 +193,7 @@ class FLIRCamera(BaseCamera):
         if self.last_index > 0:
             self.frames_dropped += new_index - self.last_index - 1
         self.last_index = new_index
-        self.frames += 1
+        self.frames_acquired += 1
 
         frame = img_data.GetNDArray()
         match colorspace:

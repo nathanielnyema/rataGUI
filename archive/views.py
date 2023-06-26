@@ -15,7 +15,7 @@ from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QTimer, QAbstractTableModel
 # from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
 
-from UI.Ui_MainWindow import Ui_MainWindow
+from UI.design.Ui_MainWindow import Ui_MainWindow
 from UI.UI_CameraWindow import Ui_CameraWindow
 
 from threads import CameraThread, WorkerThread

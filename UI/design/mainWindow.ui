@@ -79,6 +79,9 @@
       </item>
       <item>
        <widget class="QTabWidget" name="plugins">
+        <property name="currentIndex">
+         <number>1</number>
+        </property>
         <widget class="QWidget" name="tab1">
          <attribute name="title">
           <string>Tab 1</string>
@@ -183,7 +186,7 @@
             </attribute>
             <column>
              <property name="text">
-              <string>Camera ID</string>
+              <string>Camera Name</string>
              </property>
             </column>
             <column>

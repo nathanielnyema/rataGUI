@@ -11,7 +11,6 @@ class ThreadSignals(QObject):
     finished = pyqtSignal()
     error = pyqtSignal(tuple)
     result = pyqtSignal(object)
-    # next_frame = pyqtSignal(np.ndarray)
 
 
 class WorkerThread(QRunnable):
@@ -72,9 +71,6 @@ class CameraThread(QRunnable):
         self.stream = camera
         self.frames = deque
 
-        # Controls display frame rate
-        # self.DISPLAY_INTERVAL = CameraThread.DEFAULT_DISPLAY_INTERVAL
-
     @pyqtSlot()
     def run(self):
         
@@ -85,10 +81,6 @@ class CameraThread(QRunnable):
                 if status:
                     if self._recording:
                         self.frames.append(frame)
-
-                        #TODO: Not sure if this slow down is necessary
-                        # if self.DISPLAY_INTERVAL > 0 and self.count % self.DISPLAY_INTERVAL == 0:
-                            # self.signals.result.emit(frame)
 
                     self.signals.result.emit(frame)
 

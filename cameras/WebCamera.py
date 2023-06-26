@@ -32,6 +32,7 @@ class WebCamera(BaseCamera):
     def readCamera(self, colorspace="BGR"):
         ret, frame = self.stream.read()
         if ret:
+            self.frames_acquired += 1
             match colorspace:
                 case "RGB":
                     self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

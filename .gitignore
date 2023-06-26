@@ -4,6 +4,7 @@ temp.py
 videos/*
 !videos/.gitkeep 
 tests/*
+archive/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

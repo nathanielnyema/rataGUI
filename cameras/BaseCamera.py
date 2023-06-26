@@ -11,6 +11,12 @@ class BaseCamera(ABC):
     # Static variable to contain all camera subclasses
     camera_types = []
 
+    # For every class that inherits from the current,
+    # the class name will be added to plugins
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.camera_types.append(cls)
+
     @staticmethod
     @abstractmethod
     def getAvailableCameras() -> dict[str, Any]:
@@ -26,14 +32,8 @@ class BaseCamera(ABC):
         self.stream = None
         self.cameraID = None
         self._running = False
-        self.frames = 0
+        self.frames_acquired = 0
         # TODO: Add required properties
-
-    # For every class that inherits from the current,
-    # the class name will be added to plugins
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        cls.camera_types.append(cls)
 
     @abstractmethod
     def initializeCamera(self) -> bool:

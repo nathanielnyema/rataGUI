@@ -1,7 +1,7 @@
 from PyQt6 import QtWidgets, QtGui
-from PyQt6.QtCore import Qt, QTimer, QAbstractTableModel
+# from PyQt6.QtCore import Qt, QTimer, QAbstractTableModel
 
-from UI.UI_CameraWindow import Ui_CameraWindow
+from UI.design.Ui_CameraWindow import Ui_CameraWindow
 from UI.camera_widget import CameraWidget
 
 

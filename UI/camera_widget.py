@@ -51,10 +51,7 @@ class CameraWidget(QtWidgets.QWidget):
         self.camera_thread = CameraThread(self.camera, self.frames)
 
         # Start thread to load camera stream
-        if cameraType == "FLIRCamera":
-            worker = WorkerThread(self.camera.initializeCamera, FLIRCamera.CameraProperties)
-        else:
-            worker = WorkerThread(self.camera.initializeCamera)
+        worker = WorkerThread(self.camera.initializeCamera)
         self.threadpool.start(worker)
         worker.signals.finished.connect(self.startCameraThread)
 
@@ -99,8 +96,8 @@ class CameraWidget(QtWidgets.QWidget):
         # self.writer = WriteGear(output_filename=file_name, logging=True, **output_params)
         # TODO: Modularize parameters
         input_params = {}
-        if self.camera_type == "FLIRCamera":
-            input_params['-framerate'] = str(FLIRCamera.CameraProperties['AcquisitionFrameRate'])
+        # if self.camera_type == "FLIRCamera":
+        #     input_params['-framerate'] = str(FLIRCamera.CameraProperties['AcquisitionFrameRate'])
         self.writer = skvideo.io.FFmpegWriter(file_name, inputdict=input_params, outputdict=output_params)
         self.recording = True
         self.camera_thread._recording = True
