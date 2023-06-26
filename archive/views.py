@@ -3,25 +3,25 @@ import numpy as np
 import time
 # import cv2
 
-try:
-    import PySpin
-    FLIR_DETECTED = True
-    from cameras.FLIRCamera import FLIRCamera
-except ImportError as e:
-    print('PySpin module not detected')
-    FLIR_DETECTED = False
+# try:
+#     import PySpin
+#     FLIR_DETECTED = True
+#     from cameras.FLIRCamera import FLIRCamera
+# except ImportError as e:
+#     print('PySpin module not detected')
+#     FLIR_DETECTED = False
 
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QTimer, QAbstractTableModel
 # from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
 
 from UI.Ui_MainWindow import Ui_MainWindow
-from UI.Ui_CameraWindow import Ui_CameraWindow
+from UI.UI_CameraWindow import Ui_CameraWindow
 
 from threads import CameraThread, WorkerThread
 from cameras.WebCamera import WebCamera
 from cameras.NetworkCamera import NetworkCamera
-from UI.CameraWidget import CameraWidget
+from UI.camera_widget import CameraWidget
 
 class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
     def __init__(self, camera):

@@ -1,13 +1,17 @@
-from .BaseCamera import BaseCamera
+from cameras import BaseCamera
 
 import cv2
 
 class NetworkCamera(BaseCamera):
 
+    @staticmethod
+    def getAvailableCameras():
+        # Return list of available NetworkCameras for user-specific setup
+        return []
+
     def __init__(self, cameraID):
         super().__init__()
         self.cameraID = cameraID
-        # self._initialized = False
         self.last_frame = None
 
     def initializeCamera(self):
@@ -38,8 +42,4 @@ class NetworkCamera(BaseCamera):
         if self.stream is not None:
             self.stream.release()
 
-        # self._initialized = False
         self._running = False
-
-    def getCameraID(self):
-        return self.cameraID

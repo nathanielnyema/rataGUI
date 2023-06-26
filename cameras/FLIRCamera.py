@@ -1,29 +1,28 @@
-from .BaseCamera import BaseCamera
+from cameras import BaseCamera
 
 import cv2
-
-try:
-    import PySpin
-    FLIR_DETECTED = True
-except ImportError as e:
-    print('PySpin module not detected')
-    FLIR_DETECTED = False
-
+import PySpin
 
 class FLIRCamera(BaseCamera):
 
-    CameraProperties = {
-        "LineSelector" : PySpin.LineSelector_Line2,
-        "LineMode" : PySpin.LineMode_Output,
-        "LineSource": PySpin.LineSource_ExposureActive,
-        "AcquisitionFrameRateEnable": True,
-        "AcquisitionFrameRate" : 30,
-    }
+    # CameraProperties = {
+    #     "LineSelector" : PySpin.LineSelector_Line2,
+    #     "LineMode" : PySpin.LineMode_Output,
+    #     "LineSource": PySpin.LineSource_ExposureActive,
+    #     "AcquisitionFrameRateEnable": True,
+    #     "AcquisitionFrameRate" : 30,
+    # }
 
     # EasySpinProperties = ["AcquisitionFrameRate",]
 
     # Global pyspin system variable
     _SYSTEM = None
+
+    @staticmethod
+    def releaseResources():
+        if FLIRCamera._SYSTEM is not None:
+            FLIRCamera._SYSTEM.ReleaseInstance()
+            del FLIRCamera._SYSTEM
 
     @staticmethod
     def getCameraList():
@@ -38,15 +37,15 @@ class FLIRCamera(BaseCamera):
 
     @staticmethod
     def getAvailableCameras():
-        '''Returns dictionary of all available FLIR cameras'''
-        cameras = {}
+        '''Returns list of all available FLIR cameras'''
+        cameras = []
         cam_list = FLIRCamera.getCameraList()
         for cam in cam_list:
             # print(camera.TLDevice.DeviceSerialNumber.ToString())
             if cam.TLDevice.DeviceSerialNumber.GetAccessMode() == PySpin.RO:
                 serial_number = cam.TLDevice.DeviceSerialNumber.ToString()
                 # Create camera wrapper object
-                cameras[serial_number] = FLIRCamera(serial_number)
+                cameras.append(FLIRCamera(serial_number))
         cam_list.Clear()
         return cameras
 
@@ -218,9 +217,6 @@ class FLIRCamera(BaseCamera):
         except Exception as err:
             print(err)
             return False
-
-    def getCameraID(self):
-        return self.cameraID
 
     def isOpened(self):
         return self._running

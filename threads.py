@@ -95,7 +95,7 @@ class CameraThread(QRunnable):
                 else:
                     self.stream.stopCamera()
             else:
-                print('Attempting to reconnect camera:', str(self.stream.getCameraID()))
+                print('Attempting to reconnect camera:', str(self.stream.cameraID))
                 self.stream.initializeCamera()
                 time.sleep(2)
                 if not self.stream._running: 

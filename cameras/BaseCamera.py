@@ -1,37 +1,44 @@
-"""
-    Abstract camera class with generic functions. All camera models should be subclassed
-    to ensure that all the necessary methods are available to the camera acquistion engine.
-"""
 from abc import ABC, abstractmethod
 from typing import Any
 import numpy.typing as npt
 
 class BaseCamera(ABC):
+    """
+    Abstract camera class with generic functions. All camera models should be subclassed
+    to ensure that all the necessary methods are available to the camera acquistion engine.
+    """
+
+    # Static variable to contain all camera subclasses
+    camera_types = []
 
     @staticmethod
     @abstractmethod
     def getAvailableCameras() -> dict[str, Any]:
         pass
+
+    # Optional method to release static resources upon exiting
+    @staticmethod
+    def releaseResources(self):
+        pass
+
     
-    @abstractmethod
     def __init__(self):
         self.stream = None
+        self.cameraID = None
         self._running = False
         self.frames = 0
-
         # TODO: Add required properties
+
+    # For every class that inherits from the current,
+    # the class name will be added to plugins
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.camera_types.append(cls)
 
     @abstractmethod
     def initializeCamera(self) -> bool:
         """
         Initializes the camera.
-        """
-        pass
-
-    @abstractmethod
-    def getCameraID(self) -> str:
-        """
-        Returns the ID of the camera.
         """
         pass
 
@@ -49,8 +56,15 @@ class BaseCamera(ABC):
         """
         pass
 
+    # defaults to cameraID but can be overriden for custom display name
+    def getName(self) -> str:
+        """
+        Returns the name of the camera
+        """
+        return str(self.cameraID)
+
     def __str__(self):
-        return 'CameraID: {}'.format(self.cameraID)
+        return 'Camera ID: {}'.format(self.cameraID)
 
 
     # def triggerCamera(self):

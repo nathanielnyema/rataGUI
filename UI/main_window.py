@@ -2,24 +2,16 @@ import sys
 import numpy as np
 import time
 
-try:
-    import PySpin
-    FLIR_DETECTED = True
-    from cameras.FLIRCamera import FLIRCamera
-except ImportError as e:
-    print('PySpin module not detected')
-    FLIR_DETECTED = False
-
 from PyQt6 import QtWidgets, QtGui
-from PyQt6.QtCore import Qt, QTimer, QAbstractTableModel
+from PyQt6.QtCore import Qt, QTimer
 
 from UI.Ui_MainWindow import Ui_MainWindow
-from cameras.WebCamera import WebCamera
+from UI.camera_window import CameraWindow
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    def __init__(self, *args, obj=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, camera_types = []):
+        super().__init__()
         self.setupUi(self)
 
         # Set geometry relative to screen
@@ -27,11 +19,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         x_pos = (sg.width() - self.width()) // 2
         y_pos = 2 * (sg.height() - self.height()) // 3
         self.move(x_pos, y_pos)
-        # self.setGeometry(x_position, y_position, window_width, window_height)
 
         self.cameras = {}
         self.camera_windows = {}
 
+        self.camera_types = camera_types
         self.populate_available_cameras()
 
         # Open and show camera feed but don't record
@@ -50,8 +42,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def update_camera_stats(self):
         self.cam_stats.setRowCount(len(self.cameras))
-        for row, (id, camera) in enumerate(self.cameras.items()):
-            self.cam_stats.setItem(row, 0, QtWidgets.QTableWidgetItem(id))
+        for row, camera in enumerate(self.cameras.values()):
+            self.cam_stats.setItem(row, 0, QtWidgets.QTableWidgetItem(camera.getName()))
             self.cam_stats.setItem(row, 1, QtWidgets.QTableWidgetItem(str(camera.frames)))
             if hasattr(camera, "frames_dropped"):
                 self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem(str(camera.frames_dropped)))
@@ -61,21 +53,31 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def populate_available_cameras(self):
         layout = QtWidgets.QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        for camera_cls in self.camera_types:
+            cam_list = camera_cls.getAvailableCameras()
+            print(camera_cls)
+            for cam in cam_list:
+                layout.addWidget(QtWidgets.QCheckBox(cam.cameraID))
+                self.cameras[cam.cameraID] = cam
+                self.camera_windows[cam.cameraID] = None
+
+
         
-        # Find all FLIR cameras
-        if FLIR_DETECTED:
-            flir_cams = FLIRCamera.getAvailableCameras()
-            for serial_number, camera in flir_cams.items():
-                layout.addWidget(QtWidgets.QCheckBox(serial_number))
-                self.cameras[serial_number] = camera
-                self.camera_windows[serial_number] = None
+        # # Find all FLIR cameras
+        # if FLIR_DETECTED:
+        #     flir_cams = FLIRCamera.getAvailableCameras()
+        #     for serial_number, camera in flir_cams.items():
+        #         layout.addWidget(QtWidgets.QCheckBox(serial_number))
+        #         self.cameras[serial_number] = camera
+        #         self.camera_windows[serial_number] = None
         
-        # Find all web cameras
-        web_cams = WebCamera.getAvailableCameras()
-        for name, camera in web_cams.items():
-            layout.addWidget(QtWidgets.QCheckBox(name))
-            self.cameras[name] = camera
-            self.camera_windows[name] = None
+        # # Find all web cameras
+        # web_cams = WebCamera.getAvailableCameras()
+        # for name, camera in web_cams.items():
+        #     layout.addWidget(QtWidgets.QCheckBox(name))
+        #     self.cameras[name] = camera
+        #     self.camera_windows[name] = None
 
         self.cam_list.setLayout(layout)
     
@@ -136,7 +138,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Wait for threads to stop
         time.sleep(0.5)
 
-        if FLIR_DETECTED and FLIRCamera._SYSTEM is not None:
-            FLIRCamera._SYSTEM.ReleaseInstance()
+        # if FLIR_DETECTED and FLIRCamera._SYSTEM is not None:
+        #     FLIRCamera._SYSTEM.ReleaseInstance()
 
         event.accept() # let the window close

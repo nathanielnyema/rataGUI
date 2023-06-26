@@ -1,8 +1,8 @@
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QTimer, QAbstractTableModel
 
-from UI.Ui_CameraWindow import Ui_CameraWindow
-from UI.CameraWidget import CameraWidget
+from UI.UI_CameraWindow import Ui_CameraWindow
+from UI.camera_widget import CameraWidget
 
 
 class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):

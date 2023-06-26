@@ -1,7 +1,8 @@
+from cameras import BaseCamera
+
 import cv2
 import numpy as np
 
-from .BaseCamera import BaseCamera
 
 class WebCamera(BaseCamera):
     def __init__(self, cameraID):
@@ -11,16 +12,15 @@ class WebCamera(BaseCamera):
 
     @staticmethod
     def getAvailableCameras(search = 2):
-        '''Returns dictionary of available web cameras'''
-        cameras = {}
+        '''Returns list of all available web cameras'''
+        cameras = []
         for i in range(search):
             cam = WebCamera(i)
             cam.initializeCamera()
             # Try to read a couple frames
             for _ in range(2):
                 if cam.readCamera()[0]:
-                    cameraName = "Web Camera " + str(i)
-                    cameras[cameraName] = cam
+                    cameras.append(cam)
                     break
             cam.stopCamera()
         return cameras
@@ -52,9 +52,9 @@ class WebCamera(BaseCamera):
         except Exception as err:
             print(err)
             return False
-
-    def getCameraID(self):
-        return self.cameraID
     
     def isOpened(self):
         return self.stream != None and self.stream.isOpened()
+
+    def getName(self):
+        return "Web Camera " + str(self.cameraID)

@@ -2,14 +2,6 @@ import sys
 import numpy as np
 import cv2
 
-try:
-    import PySpin
-    from cameras.FLIRCamera import FLIRCamera
-    FLIR_DETECTED = True
-except ImportError as e:
-    # print('PySpin module not detected')
-    FLIR_DETECTED = False
-
 # from vidgear.gears import WriteGear
 import skvideo.io
 # skvideo.setFFmpegPath("C:/PATH_Programs/bin/ffmpeg.exe")
@@ -21,8 +13,6 @@ from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
 
 from threads import CameraThread, WorkerThread
-from cameras.WebCamera import WebCamera
-from cameras.NetworkCamera import NetworkCamera
 
 class CameraWidget(QtWidgets.QWidget):
     """Independent camera feed
