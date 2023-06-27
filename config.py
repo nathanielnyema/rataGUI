@@ -2,3 +2,5 @@
 
 # Specify which subclasses to use in cameras folder or program defaults to all
 active_camera_types = []
+
+active_plugins = []

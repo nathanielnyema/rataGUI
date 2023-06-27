@@ -10,7 +10,7 @@ from UI.camera_window import CameraWindow
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    def __init__(self, camera_types = []):
+    def __init__(self, camera_types = [], plugins = []):
         super().__init__()
         self.setupUi(self)
 
@@ -26,11 +26,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.camera_types = camera_types
         self.populate_available_cameras()
 
-        # Open and show camera feed but don't record
-        self.display_button.clicked.connect(self.show_camera_window)
+        self.plugins = plugins
+        self.populate_plugin_list()
 
         # Open, show and record camera feed into video
-        self.record_button.clicked.connect(self.record_camera_window)
+        self.start_button.clicked.connect(self.record_camera_window)
+
+        # Open and show camera feed but don't record
+        self.pause_button.clicked.connect(self.show_camera_window)
 
         # Close camera feed (stop recording) and window
         self.stop_button.clicked.connect(self.close_camera_window)
@@ -51,74 +54,101 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem("N/A"))
 
     def populate_available_cameras(self):
-        layout = QtWidgets.QVBoxLayout()
-        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.cam_list.clear()
+        self.cam_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
+        self.cam_list.itemDoubleClicked["QListWidgetItem*"].connect(
+            lambda item: item.setCheckState(Qt.CheckState.Checked 
+                if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked
+            )
+        )
 
         for camera_cls in self.camera_types:
             cam_list = camera_cls.getAvailableCameras()
             for cam in cam_list:
-                layout.addWidget(QtWidgets.QCheckBox(cam.cameraID))
+                # TODO: use name instead and preserve checked state
+                item = QtWidgets.QListWidgetItem(cam.cameraID)
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(Qt.CheckState.Unchecked)
+                self.cam_list.addItem(item)
                 self.cameras[cam.cameraID] = cam
                 self.camera_windows[cam.cameraID] = None
 
-        self.cam_list.setLayout(layout)
-    
-    def checkBoxState(self):
-        updated_list = {}
+    def populate_plugin_list(self):
+        self.plugin_list.clear()
+        self.plugin_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
+        self.plugin_list.itemDoubleClicked["QListWidgetItem*"].connect(
+            lambda item: item.setCheckState(Qt.CheckState.Checked 
+                if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked
+            )
+        )
 
-        for widget in self.cam_list.children():
-            if isinstance(widget, QtWidgets.QCheckBox):
-                serial_number = widget.text()
-                updated_list[serial_number] = widget.isChecked()
-        
-        return updated_list
+        for plugin in self.plugins:
+            item = QtWidgets.QListWidgetItem(plugin.__name__)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Unchecked)
+            self.plugin_list.addItem(item)
+    
+    def checkBoxState(check_list: QtWidgets.QListWidget):
+        check_boxes = {}
+
+        for idx in range(check_list.count()):
+            item = check_list.item(idx)
+            check_boxes[item.text()] = (item.checkState() == Qt.CheckState.Checked)
+
+        return check_boxes
 
     def show_camera_window(self):
-        updated_list = self.checkBoxState()
         sg = QtGui.QGuiApplication.primaryScreen().availableGeometry()
         screen_width = sg.width()
-        for index, (serial, value) in enumerate(updated_list.items()):
-            if value is True:
-                if self.camera_windows[serial] is None:
-                    window = CameraWindow(self.cameras[serial])
-                    x_pos = min(window.width() * index, screen_width - window.width())
-                    y_pos = (window.height() // 2) * (index * window.width() // screen_width)
+
+        for idx in range(self.cam_list.count()):
+            item = self.cam_list.item(idx)
+            if item.checkState() == Qt.CheckState.Checked:
+                camID = item.text()
+                if self.camera_windows[camID] is None:
+                    window = CameraWindow(camera=self.cameras[camID])
+                    x_pos = min(window.width() * idx, screen_width - window.width())
+                    y_pos = (window.height() // 2) * (idx * window.width() // screen_width)
                     window.move(x_pos,y_pos)
                     window.show()
 
-                    self.camera_windows[serial] = window
+                    self.camera_windows[camID] = window
                 else:
-                    self.camera_windows[serial].show()
+                    self.camera_windows[camID].show()
 
     def record_camera_window(self):
         self.show_camera_window()
 
-        updated_list = self.checkBoxState()
-
-        for serial, value in updated_list.items():
-            if value is True:
-                if self.camera_windows[serial] is not None:
-                    params = {}
-                    self.camera_windows[serial].startRecording(writer_params=params)
-
-        # params = {"-vcodec": "libx264", "-crf": 0, "-preset": "fast"}
+        for idx in range(self.cam_list.count()):
+            item = self.cam_list.item(idx)
+            if item.checkState() == Qt.CheckState.Checked:
+                camID = item.text()
+                if self.camera_windows[camID] is not None:
+                    params = {"-vcodec": "libx264", "-crf": "28", "-preset": "ultrafast"}
+                    self.camera_windows[camID].startWriter(output_params=params)
 
     def close_camera_window(self):
-        updated_list = self.checkBoxState()
+        for idx in range(self.cam_list.count()):
+            item = self.cam_list.item(idx)
+            camID = item.text()
+            if item.checkState() == Qt.CheckState.Checked and self.camera_windows[camID] is not None:
+                cam_window = self.camera_windows[camID]
+                self.camera_windows[camID] = None
+                if cam_window.recording:
+                    cam_window.stopWriter()
+                cam_window.stopCameraThread()
+                cam_window.deleteLater()
 
-        for serial, value in updated_list.items():
-            if value is True and self.camera_windows[serial] is not None:
-                self.camera_windows[serial].clearLayout()
-                self.camera_windows[serial].deleteLater()
-                self.camera_windows[serial] = None
-
-    def closeEvent(self, event):        
+    def closeEvent(self, event):
         for cam_window in self.camera_windows.values():
             if cam_window is not None:
-                cam_window.clearLayout()
+                if cam_window.recording:
+                    cam_window.stopWriter()
+                cam_window.stopCameraThread()
                 cam_window.deleteLater()
         # Wait for threads to stop
         time.sleep(0.5)
+
 
         # if FLIR_DETECTED and FLIRCamera._SYSTEM is not None:
         #     FLIRCamera._SYSTEM.ReleaseInstance()

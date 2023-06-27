@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Any
 import numpy.typing as npt
 
+from collections import deque
+
 class BasePlugin(ABC):
     """
     Abstract plugin class with generic functions. All custom plugins should be subclassed
@@ -15,6 +17,11 @@ class BasePlugin(ABC):
     # the class name will be added to plugins
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        cls.camera_types.append(cls)
+        cls.plugins.append(cls)
 
-    
+    def __init__(self, deque_size=100):
+        self.frames = deque(maxlen = deque_size)
+
+    @abstractmethod
+    def start_process(self):
+        pass

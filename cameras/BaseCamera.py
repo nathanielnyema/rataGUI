@@ -27,7 +27,6 @@ class BaseCamera(ABC):
     def releaseResources(self):
         pass
 
-    
     def __init__(self):
         self.stream = None
         self.cameraID = None

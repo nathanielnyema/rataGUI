@@ -30,4 +30,5 @@ if len(active_camera_types) == 0:
                 traceback.print_exc()
 else:
     for camera_type in active_camera_types:
-        pass
+        # TODO
+        pass  
