@@ -24,7 +24,7 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
     @param aspect_ratio - Whether to maintain frame aspect ratio or force into fraame
     """
 
-    def __init__(self, camera=None, aspect_ratio=True, deque_size=100):
+    def __init__(self, camera=None, plugins=[], aspect_ratio=True, deque_size=100):
         super().__init__()
         self.setupUi(self)
         
@@ -57,23 +57,24 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
         self.threadpool.start(worker)
         worker.signals.finished.connect(self.startCameraThread)
 
-        # Could use separate timer instead
-        # self.timer = QTimer()
-        # self.timer.timeout.connect(self.set_frame)
-        # self.timer.start(100)
-
-        print('Started camera: {}'.format(self.camera.cameraID))
+        # Start plugin pipeline
+        self.plugins = plugins
+        self.startPluginPipeline()
 
     @pyqtSlot()
     def startCameraThread(self):
-        # Periodically set video frame to display
-        self.camera_thread.signals.result.connect(self.set_frame)
+        # # Periodically set video frame to display
+        # self.camera_thread.signals.result.connect(self.set_frame)
         # Start camera thread for frame grabbing
         self.threadpool.start(self.camera_thread)
+        print('Started camera: {}'.format(self.camera.cameraID))
 
     def stopCameraThread(self):
         print('Stopped camera: {}'.format(self.camera.cameraID))
         self.camera_thread.stop()
+
+    def startPluginPipeline(self):
+        pass
 
     def startWriter(self, output_params):
         # TODO: implement as custom class

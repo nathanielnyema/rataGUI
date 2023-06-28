@@ -24,7 +24,7 @@ class BaseCamera(ABC):
 
     # Optional method to release static resources upon exiting
     @staticmethod
-    def releaseResources(self):
+    def releaseResources():
         pass
 
     def __init__(self):

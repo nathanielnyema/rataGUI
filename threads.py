@@ -101,12 +101,12 @@ class CameraThread(QRunnable):
         self._running = False
 
 
-class WriterThread(QRunnable):
+# class WriterThread(QRunnable):
 
-    def __init__(self, camera, deque):
-        super().__init__()
-        self.signals = ThreadSignals()
-        self._running = True
+#     def __init__(self, camera, deque):
+#         super().__init__()
+#         self.signals = ThreadSignals()
+#         self._running = True
 
-        self.frames = deque
-        self.count = 0
+#         self.frames = deque
+#         self.count = 0

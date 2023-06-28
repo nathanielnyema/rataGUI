@@ -38,9 +38,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Close camera feed (stop recording) and window
         self.stop_button.clicked.connect(self.close_camera_window)
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_camera_stats)
-        self.timer.start(500)
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(self.update_camera_stats)
+        self.update_timer.start(500)
 
 
     def update_camera_stats(self):
@@ -66,12 +66,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             cam_list = camera_cls.getAvailableCameras()
             for cam in cam_list:
                 # TODO: use name instead and preserve checked state
-                item = QtWidgets.QListWidgetItem(cam.cameraID)
+                item = QtWidgets.QListWidgetItem(cam.getName())
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                 item.setCheckState(Qt.CheckState.Unchecked)
                 self.cam_list.addItem(item)
-                self.cameras[cam.cameraID] = cam
-                self.camera_windows[cam.cameraID] = None
+                self.cameras[cam.getName()] = cam
+                self.camera_windows[cam.getName()] = None
 
     def populate_plugin_list(self):
         self.plugin_list.clear()
@@ -149,8 +149,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Wait for threads to stop
         time.sleep(0.5)
 
-
-        # if FLIR_DETECTED and FLIRCamera._SYSTEM is not None:
-        #     FLIRCamera._SYSTEM.ReleaseInstance()
+        # Release camera-specific resources
+        for cam_type in self.camera_types:
+            cam_type.releaseResources()
 
         event.accept() # let the window close
