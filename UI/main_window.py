@@ -15,28 +15,28 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         # Set geometry relative to screen
-        sg = QtGui.QGuiApplication.primaryScreen().availableGeometry()
-        x_pos = (sg.width() - self.width()) // 2
-        y_pos = 2 * (sg.height() - self.height()) // 3
+        self.screen = QtGui.QGuiApplication.primaryScreen().availableGeometry()
+        x_pos = (self.screen.width() - self.width()) // 2
+        y_pos = 2 * (self.screen.height() - self.height()) // 3
         self.move(x_pos, y_pos)
 
         self.cameras = {}
         self.camera_windows = {}
-
         self.camera_types = camera_types
         self.populate_available_cameras()
 
-        self.plugins = plugins
+        # create class name look-up
+        self.plugins = {p.__name__ : p for p in plugins}
         self.populate_plugin_list()
 
         # Open, show and record camera feed into video
-        self.start_button.clicked.connect(self.record_camera_window)
+        self.start_button.clicked.connect(self.start_camera_pipeline)
 
         # Open and show camera feed but don't record
-        self.pause_button.clicked.connect(self.show_camera_window)
+        self.pause_button.clicked.connect(self.record_camera_window)
 
         # Close camera feed (stop recording) and window
-        self.stop_button.clicked.connect(self.close_camera_window)
+        self.stop_button.clicked.connect(self.stop_camera_pipeline)
 
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.update_camera_stats)
@@ -82,24 +82,45 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             )
         )
 
-        for plugin in self.plugins:
-            item = QtWidgets.QListWidgetItem(plugin.__name__)
+        for name in self.plugins.keys():
+            item = QtWidgets.QListWidgetItem(name)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Unchecked)
             self.plugin_list.addItem(item)
+
+    def populate_plugin_pipeline(self):
+        self.plugin_pipeline.clear()
+        
+        checked_cameras = []
+        for idx in range(self.cam_list.count()):
+            item = self.cam_list.item(idx)
+            if item.checkState() == Qt.CheckState.Checked:
+                camID = item.text()
+                checked_cameras.append(camID)
+        self.plugin_pipeline.setRowCount(len(checked_cameras))
+        self.plugin_pipeline.setVerticalHeaderLabels(checked_cameras)
+
+        checked_plugins = []
+        for idx in range(self.plugin_list.count()):
+            item = self.plugin_list.item(idx)
+            if item.checkState() == Qt.CheckState.Checked:
+                plugin_name = item.text()
+                checked_plugins.append(plugin_name)
+        self.plugin_pipeline.setColumnCount(len(checked_plugins))
+        self.plugin_pipeline.setHorizontalHeaderLabels(checked_plugins)
+
+        for row in range(self.plugin_pipeline.rowCount()):
+            for col in range(self.plugin_pipeline.rowCount()):
+                item = QtWidgets.QTableWidgetItem("Active")
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(Qt.CheckState.Unchecked)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.plugin_pipeline.setItem(row, col, item)
     
-    def checkBoxState(check_list: QtWidgets.QListWidget):
-        check_boxes = {}
 
-        for idx in range(check_list.count()):
-            item = check_list.item(idx)
-            check_boxes[item.text()] = (item.checkState() == Qt.CheckState.Checked)
-
-        return check_boxes
-
-    def show_camera_window(self):
-        sg = QtGui.QGuiApplication.primaryScreen().availableGeometry()
-        screen_width = sg.width()
+    def start_camera_pipeline(self):
+        self.populate_plugin_pipeline()
+        screen_width = self.screen.width()
 
         for idx in range(self.cam_list.count()):
             item = self.cam_list.item(idx)
@@ -117,7 +138,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.camera_windows[camID].show()
 
     def record_camera_window(self):
-        self.show_camera_window()
+        """Depreciated"""
+        self.start_camera_pipeline()
 
         for idx in range(self.cam_list.count()):
             item = self.cam_list.item(idx)
@@ -127,7 +149,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     params = {"-vcodec": "libx264", "-crf": "28", "-preset": "ultrafast"}
                     self.camera_windows[camID].startWriter(output_params=params)
 
-    def close_camera_window(self):
+    def stop_camera_pipeline(self):
         for idx in range(self.cam_list.count()):
             item = self.cam_list.item(idx)
             camID = item.text()

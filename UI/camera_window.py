@@ -63,8 +63,8 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
 
     @pyqtSlot()
     def startCameraThread(self):
-        # # Periodically set video frame to display
-        # self.camera_thread.signals.result.connect(self.set_frame)
+        # Periodically set video frame to display
+        self.camera_thread.signals.result.connect(self.set_frame)
         # Start camera thread for frame grabbing
         self.threadpool.start(self.camera_thread)
         print('Started camera: {}'.format(self.camera.cameraID))
