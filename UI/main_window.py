@@ -88,24 +88,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             item.setCheckState(Qt.CheckState.Unchecked)
             self.plugin_list.addItem(item)
 
+
     def populate_plugin_pipeline(self):
         self.plugin_pipeline.clear()
-        
-        checked_cameras = []
-        for idx in range(self.cam_list.count()):
-            item = self.cam_list.item(idx)
-            if item.checkState() == Qt.CheckState.Checked:
-                camID = item.text()
-                checked_cameras.append(camID)
+
+        checked_cameras = getCheckedItems(self.cam_list)
         self.plugin_pipeline.setRowCount(len(checked_cameras))
         self.plugin_pipeline.setVerticalHeaderLabels(checked_cameras)
 
-        checked_plugins = []
-        for idx in range(self.plugin_list.count()):
-            item = self.plugin_list.item(idx)
-            if item.checkState() == Qt.CheckState.Checked:
-                plugin_name = item.text()
-                checked_plugins.append(plugin_name)
+        checked_plugins = getCheckedItems(self.plugin_list)
         self.plugin_pipeline.setColumnCount(len(checked_plugins))
         self.plugin_pipeline.setHorizontalHeaderLabels(checked_plugins)
 
@@ -116,44 +107,36 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 item.setCheckState(Qt.CheckState.Unchecked)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.plugin_pipeline.setItem(row, col, item)
-    
 
     def start_camera_pipeline(self):
         self.populate_plugin_pipeline()
         screen_width = self.screen.width()
+        checked_plugins = getCheckedItems(self.plugin_list)
 
-        for idx in range(self.cam_list.count()):
-            item = self.cam_list.item(idx)
-            if item.checkState() == Qt.CheckState.Checked:
-                camID = item.text()
-                if self.camera_windows[camID] is None:
-                    window = CameraWindow(camera=self.cameras[camID])
-                    x_pos = min(window.width() * idx, screen_width - window.width())
-                    y_pos = (window.height() // 2) * (idx * window.width() // screen_width)
-                    window.move(x_pos,y_pos)
-                    window.show()
+        for idx, camID in enumerate(getCheckedItems(self.cam_list)):
+            if self.camera_windows[camID] is None:
+                window = CameraWindow(camera=self.cameras[camID], plugins=checked_plugins)
+                x_pos = min(window.width() * idx, screen_width - window.width())
+                y_pos = (window.height() // 2) * (idx * window.width() // screen_width)
+                window.move(x_pos,y_pos)
+                window.show()
 
-                    self.camera_windows[camID] = window
-                else:
-                    self.camera_windows[camID].show()
+                self.camera_windows[camID] = window
+            else:
+                self.camera_windows[camID].show()
 
     def record_camera_window(self):
         """Depreciated"""
         self.start_camera_pipeline()
 
-        for idx in range(self.cam_list.count()):
-            item = self.cam_list.item(idx)
-            if item.checkState() == Qt.CheckState.Checked:
-                camID = item.text()
-                if self.camera_windows[camID] is not None:
-                    params = {"-vcodec": "libx264", "-crf": "28", "-preset": "ultrafast"}
-                    self.camera_windows[camID].startWriter(output_params=params)
+        for camID in getCheckedItems(self.cam_list):
+            if self.camera_windows[camID] is not None:
+                params = {"-vcodec": "libx264", "-crf": "28", "-preset": "ultrafast"}
+                self.camera_windows[camID].startWriter(output_params=params)
 
     def stop_camera_pipeline(self):
-        for idx in range(self.cam_list.count()):
-            item = self.cam_list.item(idx)
-            camID = item.text()
-            if item.checkState() == Qt.CheckState.Checked and self.camera_windows[camID] is not None:
+        for camID in getCheckedItems(self.cam_list):
+            if self.camera_windows[camID] is not None:
                 cam_window = self.camera_windows[camID]
                 self.camera_windows[camID] = None
                 if cam_window.recording:
@@ -176,3 +159,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             cam_type.releaseResources()
 
         event.accept() # let the window close
+
+
+def getCheckedItems(check_list: QtWidgets.QListWidget) -> list[str]:
+    checked = []
+    for idx in range(check_list.count()):
+        item = check_list.item(idx)
+        if item.checkState() == Qt.CheckState.Checked:
+            checked.append(item.text())
+    return checked
