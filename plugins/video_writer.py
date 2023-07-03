@@ -4,8 +4,12 @@ from plugins import BasePlugin
 
 class VideoWriter(BasePlugin):
 
-    def __init__(self, deque_size=100):
-        super().__init__(deque_size)
+    def __init__(self):
+        super().__init__()
+        self.writer = skvideo.io.FFmpegWriter(file_name, inputdict=input_params, outputdict=output_params)
 
-    def start_process(self):
-        print("Video writer started")
+    def execute(self, frame):
+        pass
+
+    def stop(self):
+        print("Video writer stopped")

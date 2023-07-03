@@ -9,13 +9,13 @@ class BaseCamera(ABC):
     """
 
     # Static variable to contain all camera subclasses
-    camera_types = []
+    camera_models = []
 
     # For every class that inherits from the current,
     # the class name will be added to plugins
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        cls.camera_types.append(cls)
+        cls.camera_models.append(cls)
 
     @staticmethod
     @abstractmethod

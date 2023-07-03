@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 import numpy.typing as npt
 
-from collections import deque
+from asyncio import Queue
 
 class BasePlugin(ABC):
     """
@@ -19,9 +19,15 @@ class BasePlugin(ABC):
         super().__init_subclass__(**kwargs)
         cls.plugins.append(cls)
 
-    def __init__(self, deque_size=100):
-        self.frames = deque(maxlen = deque_size)
+    # @abstractmethod (Make cam_window required)
+    def __init__(self):
+        self.in_queue = Queue()
+        self.out_queue = None
 
     @abstractmethod
-    def start_process(self):
+    def execute(self):
+        pass
+
+    @abstractmethod
+    def stop(self):
         pass

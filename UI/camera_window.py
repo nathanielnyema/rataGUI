@@ -1,6 +1,8 @@
 import sys
 import numpy as np
 import cv2
+# import logging
+# import time
 
 # from vidgear.gears import WriteGear
 import skvideo.io
@@ -12,9 +14,13 @@ from datetime import datetime
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
 
-from threads import CameraThread, WorkerThread
+from threads import WorkerThread
 from UI.design.Ui_CameraWindow import Ui_CameraWindow
 
+import asyncio
+# from concurrent.futures import ThreadPoolExecutor
+
+# Change to camera widget
 class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
     """Independent camera feed
 
@@ -24,12 +30,9 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
     @param aspect_ratio - Whether to maintain frame aspect ratio or force into fraame
     """
 
-    def __init__(self, camera=None, plugins=[], aspect_ratio=True, deque_size=100):
+    def __init__(self, camera=None, plugins=[], aspect_ratio=True, queue_size = 100):
         super().__init__()
         self.setupUi(self)
-        
-        # Initialize deque used to store frames read from the stream
-        self.frames = deque(maxlen=deque_size)
 
         # Set widget fields
         self.frame_width = self.frameGeometry().width()
@@ -37,44 +40,70 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
         self.keep_aspect_ratio = aspect_ratio
         self.recording = False
 
-        # Create camera GUI layout
+        # Create camera GUI layout TODO: Make in qt designer
         self.video_frame = QtWidgets.QLabel(self)
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(0,0,0,0)
         self.layout.addWidget(self.video_frame)
         self.setLayout(self.layout)
 
-        # Create threadpool for video streaming
+        # Initialize camera object
+        self.camera = camera
+        self.camera_model = type(camera).__name__
+
+        # Create GUI threadpool
         self.threadpool = QThreadPool().globalInstance()
 
-        # Initialize camera object
-        self.camera_type = type(camera).__name__
-        self.camera = camera
-        self.camera_thread = CameraThread(self.camera, self.frames)
+        # TODO: Instantiate plugins with camera-specific settings
+        self.plugins = [Plugin(self) for Plugin in plugins]
 
         # Start thread to load camera stream
         worker = WorkerThread(self.camera.initializeCamera)
+        worker.signals.finished.connect(self.startPipelineThread)
         self.threadpool.start(worker)
-        worker.signals.finished.connect(self.startCameraThread)
 
-        # Start plugin pipeline
-        self.plugins = plugins
-        self.startPluginPipeline()
+    async def acquire_frames(self):
+        loop = asyncio.get_running_loop()
+        while self.camera._running:
+            status, frame = await loop.run_in_executor(None, self.camera.readCamera)
+            # status, frame = self.camera.readCamera("RGB")
+            if status: 
+                # print("Acquired Frame: " + str(self.camera.frames_acquired))
+                await self.plugins[0].in_queue.put(frame)
+                await asyncio.sleep(0)
+            else:
+                print("Error: camera frame not found ... stopping")
+                self.camera.stopCamera()
+
+    async def startPluginPipeline(self):
+        # Add all plugin processes (pipeline) to async event loop
+        for cur_plugin, next_plugin in zip(self.plugins, self.plugins[1:]):
+            # Connect outputs and inputs of consecutive plugin pairs
+            cur_plugin.out_queue = next_plugin.in_queue
+            asyncio.create_task(plugin_process(next_plugin))
+        # Add terminating plugin
+        asyncio.create_task(plugin_process(self.plugins[-1]))
+
+        # Send frames through pipeline
+        await self.acquire_frames()
+        for plugin in self.plugins:
+            await plugin.in_queue.join()
+
+
+    async def stopPluginPipeline(self):
+        pass
 
     @pyqtSlot()
-    def startCameraThread(self):
-        # Periodically set video frame to display
-        self.camera_thread.signals.result.connect(self.set_frame)
-        # Start camera thread for frame grabbing
-        self.threadpool.start(self.camera_thread)
+    def startPipelineThread(self):
+        assert(len(self.plugins) > 0)
+
         print('Started camera: {}'.format(self.camera.cameraID))
+        self.pipeline_thread = WorkerThread(asyncio.run, self.startPluginPipeline())
+        self.threadpool.start(self.pipeline_thread)
 
     def stopCameraThread(self):
         print('Stopped camera: {}'.format(self.camera.cameraID))
-        self.camera_thread.stop()
-
-    def startPluginPipeline(self):
-        pass
+        self.camera.stopCamera()
 
     def startWriter(self, output_params):
         # TODO: implement as custom class
@@ -113,20 +142,19 @@ class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):
         self.recording = False
         self.camera_thread._recording = False
 
-    def set_frame(self, image):
-        """Sets pixmap image to video frame"""
 
-        if self.camera._running:
-            # Get image dimensions
-            img_h, img_w, num_ch = image.shape
+async def plugin_process(plugin):
+    while True:
+        frame = await plugin.in_queue.get()
 
-            # TODO: Add timestamp to frame
-            cv2.rectangle(image, (img_w-190,0), (img_w,50), color=(0,0,0), thickness=-1)
-            cv2.putText(image, datetime.now().strftime('%H:%M:%S'), (img_w-185,37), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255,255,255), lineType=cv2.LINE_AA)
+        # TODO: Add plugin-specific data
 
-            # Convert to pixmap and set to video frame
-            bytes_per_line = num_ch * img_w
-            qt_image = QtGui.QImage(image.data, img_w, img_h, bytes_per_line, QtGui.QImage.Format.Format_RGB888)
-            qt_image = qt_image.scaled(self.frame_width, self.frame_height, Qt.AspectRatioMode.KeepAspectRatio)
-            pixmap = QtGui.QPixmap.fromImage(qt_image)
-            self.video_frame.setPixmap(pixmap)
+        # TODO: Parallelize with Thread Executor
+
+        # Execute plugin
+        result = plugin.execute(frame)
+        # Load output to 
+        if plugin.out_queue != None:
+            await plugin.out_queue.put(result)
+        
+        plugin.in_queue.task_done()

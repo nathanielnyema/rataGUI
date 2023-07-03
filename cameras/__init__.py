@@ -4,7 +4,7 @@ import traceback
 from .BaseCamera import BaseCamera
 
 from importlib import util
-from config import active_camera_types
+from config import active_camera_models
 
 # Automatically load camera modules
 def load_module(path):
@@ -18,7 +18,7 @@ def load_module(path):
 path = os.path.abspath(__file__)
 dirpath = os.path.dirname(path)
 
-if len(active_camera_types) == 0:
+if len(active_camera_models) == 0:
     for fname in os.listdir(dirpath):
         # Load only "real modules"
         if not fname.startswith('.') and not fname.startswith('__') and fname.endswith('.py'):
@@ -29,6 +29,6 @@ if len(active_camera_types) == 0:
             except Exception:
                 traceback.print_exc()
 else:
-    for camera_type in active_camera_types:
+    for camera_model in active_camera_models:
         # TODO
         pass  

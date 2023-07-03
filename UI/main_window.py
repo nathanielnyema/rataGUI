@@ -10,7 +10,7 @@ from UI.camera_window import CameraWindow
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    def __init__(self, camera_types = [], plugins = []):
+    def __init__(self, camera_models = [], plugins = []):
         super().__init__()
         self.setupUi(self)
 
@@ -22,7 +22,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.cameras = {}
         self.camera_windows = {}
-        self.camera_types = camera_types
+        self.camera_models = camera_models
         self.populate_available_cameras()
 
         # create class name look-up
@@ -62,7 +62,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             )
         )
 
-        for camera_cls in self.camera_types:
+        for camera_cls in self.camera_models:
             cam_list = camera_cls.getAvailableCameras()
             for cam in cam_list:
                 # TODO: use name instead and preserve checked state
@@ -108,12 +108,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.plugin_pipeline.setItem(row, col, item)
 
-    def start_camera_pipeline(self):
-        self.populate_plugin_pipeline()
-        screen_width = self.screen.width()
-        checked_plugins = getCheckedItems(self.plugin_list)
+        return checked_cameras, checked_plugins
 
-        for idx, camID in enumerate(getCheckedItems(self.cam_list)):
+    def start_camera_pipeline(self):
+        checked_cameras, checked_plugin_names = self.populate_plugin_pipeline()
+        # Convert plugin name into corresponding class
+        checked_plugins = [self.plugins[name] for name in checked_plugin_names]
+        screen_width = self.screen.width()
+
+        for idx, camID in enumerate(checked_cameras):
             if self.camera_windows[camID] is None:
                 window = CameraWindow(camera=self.cameras[camID], plugins=checked_plugins)
                 x_pos = min(window.width() * idx, screen_width - window.width())
@@ -139,8 +142,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if self.camera_windows[camID] is not None:
                 cam_window = self.camera_windows[camID]
                 self.camera_windows[camID] = None
-                if cam_window.recording:
-                    cam_window.stopWriter()
+                # if cam_window.recording:
+                #     cam_window.stopWriter()
                 cam_window.stopCameraThread()
                 cam_window.deleteLater()
 
@@ -155,7 +158,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         time.sleep(0.5)
 
         # Release camera-specific resources
-        for cam_type in self.camera_types:
+        for cam_type in self.camera_models:
             cam_type.releaseResources()
 
         event.accept() # let the window close

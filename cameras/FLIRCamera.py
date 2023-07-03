@@ -175,7 +175,7 @@ class FLIRCamera(BaseCamera):
         self.stream.EndAcquisition()
         self._running = False
 
-    def readCamera(self, colorspace="BGR"):
+    def readCamera(self, colorspace="RGB"):
         if not self._running:
             return False, None
 

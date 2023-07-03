@@ -53,60 +53,45 @@ class WorkerThread(QRunnable):
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit((exctype, value, traceback.format_exc()))
         else:
-            self.signals.result.emit(result)  # Return the result of the processing
+            self.signals.result.emit(result)  # Return the result of the process
         finally:
             self.signals.finished.emit()  # Done
 
-class CameraThread(QRunnable):
 
-    DEFAULT_DISPLAY_INTERVAL = 3
+# class CameraThread(QRunnable):
 
-    def __init__(self, camera, deque, c_space = "RGB"):
-        super().__init__()
-        self.signals = ThreadSignals()
-        self._running = True
-        self._recording = False
-        self.color_space = c_space
-
-        self.stream = camera
-        self.frames = deque
-
-    @pyqtSlot()
-    def run(self):
-        
-        while self._running:
-            if self.stream._running:
-                # time.sleep(0.1)
-                status, frame = self.stream.readCamera(self.color_space)
-                if status:
-                    if self._recording:
-                        self.frames.append(frame)
-
-                    self.signals.result.emit(frame)
-
-                else:
-                    self.stream.stopCamera()
-            else:
-                print('Attempting to reconnect camera:', str(self.stream.cameraID))
-                self.stream.initializeCamera()
-                time.sleep(2)
-                if not self.stream._running: 
-                    break
-
-        # Close camera after thread is stopped
-        self.stream.stopCamera()
-
-
-    def stop(self):
-        self._running = False
-
-
-# class WriterThread(QRunnable):
-
-#     def __init__(self, camera, deque):
+#     def __init__(self, camera, queue, c_space = "RGB"):
 #         super().__init__()
 #         self.signals = ThreadSignals()
 #         self._running = True
+#         self._recording = False
+#         self.color_space = c_space
 
-#         self.frames = deque
-#         self.count = 0
+#         self.frames = queue
+#         self.stream = camera
+
+#     @pyqtSlot()
+#     async def run(self):
+#         while self._running:
+#             if self.stream._running:
+#                 # time.sleep(0.1)
+#                 status, frame = self.stream.readCamera(self.color_space)
+#                 if status:
+#                     await self.frames.put(frame)
+
+#                 else:
+#                     print("Error: camera frame not found")
+#                     self.stream.stopCamera()
+#             else:
+#                 print('Attempting to reconnect camera:', str(self.stream.cameraID))
+#                 self.stream.initializeCamera()
+#                 time.sleep(2)
+#                 if not self.stream._running: 
+#                     break
+
+#         # Close camera after thread is stopped
+#         self.stream.stopCamera()
+
+
+#     def stop(self):
+#         self._running = False

@@ -21,6 +21,7 @@ class WebCamera(BaseCamera):
             for _ in range(2):
                 if cam.readCamera()[0]:
                     cameras.append(cam)
+                    cam.frames_acquired = 0
                     break
             cam.stopCamera()
         return cameras
@@ -29,7 +30,7 @@ class WebCamera(BaseCamera):
         self.stream = cv2.VideoCapture(self.cameraID)
         self._running = True
 
-    def readCamera(self, colorspace="BGR"):
+    def readCamera(self, colorspace="RGB"):
         ret, frame = self.stream.read()
         if ret:
             self.frames_acquired += 1

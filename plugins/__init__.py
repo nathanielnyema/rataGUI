@@ -29,6 +29,6 @@ if len(active_plugins) == 0:
             except Exception:
                 traceback.print_exc()
 else:
-    for camera_type in active_plugins:
+    for plugin in active_plugins:
         # TODO
         pass  

@@ -10,7 +10,7 @@ from plugins import BasePlugin
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
-    main_window = MainWindow(camera_types=BaseCamera.camera_types, plugins=BasePlugin.plugins)
+    main_window = MainWindow(camera_models=BaseCamera.camera_models, plugins=BasePlugin.plugins)
     main_window.show()
 
     app.exit(app.exec())
