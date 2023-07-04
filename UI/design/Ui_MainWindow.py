@@ -85,7 +85,7 @@ class Ui_MainWindow(object):
         self.plugin_pipeline.setObjectName("plugin_pipeline")
         self.plugin_pipeline.setColumnCount(0)
         self.plugin_pipeline.setRowCount(0)
-        self.plugin_pipeline.horizontalHeader().setDefaultSectionSize(73)
+        self.plugin_pipeline.horizontalHeader().setDefaultSectionSize(74)
         self.gridLayout_3.addWidget(self.plugin_pipeline, 0, 0, 1, 1)
         self.camAttributes.addTab(self.pluginPipelineTab, "")
         self.camControl.addWidget(self.camAttributes)
@@ -227,7 +227,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuHelp.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.camAttributes.setCurrentIndex(2)
+        self.camAttributes.setCurrentIndex(1)
         self.plugins.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 

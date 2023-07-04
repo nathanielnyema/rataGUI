@@ -49,18 +49,25 @@ class BaseCamera(ABC):
         pass
 
     @abstractmethod
-    def stopCamera(self) -> bool:
+    def closeCamera(self) -> bool:
         """
         Stops the acquisition and closes the connection with the camera.
         """
         pass
 
-    # defaults to cameraID but can be overriden for custom display name
     def getName(self) -> str:
         """
         Returns the name of the camera
         """
+        # returns cameraID by default but can be overriden for custom display name
         return str(self.cameraID)
+
+    def isOpened(self) -> bool:
+        """
+        Returns true if camera has been initialized and is streaming.
+        """
+        # returns _running by default but can be overriden for custom behavior
+        return self._running
 
     def __str__(self):
         return 'Camera ID: {}'.format(self.cameraID)

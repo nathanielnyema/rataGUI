@@ -15,16 +15,15 @@ class ThreadSignals(QObject):
 
 class WorkerThread(QRunnable):
     '''
-    Worker thread
-
-    Inherits from QRunnable to handler worker thread setup, signals and wrap-up.
+    Worker that runs an arbitrary function in QThreadPool.
+    
+    Emits finished, error and result pyqtSignals.
 
     :param callback: The function callback to run on this worker thread. Supplied args and
                      kwargs will be passed through to the runner.
     :type callback: function
     :param args: Arguments to pass to the callback function
     :param kwargs: Keywords to pass to the callback function
-
     '''
 
     def __init__(self, fn, *args, **kwargs):

@@ -39,7 +39,7 @@ class NetworkCamera(BaseCamera):
         
         return ret, self.last_frame
     
-    def stopCamera(self):
+    def closeCamera(self):
         if self.stream is not None:
             self.stream.release()
 

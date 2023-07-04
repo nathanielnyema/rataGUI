@@ -3,6 +3,7 @@ from typing import Any
 import numpy.typing as npt
 
 from asyncio import Queue
+from PyQt6 import QtWidgets
 
 class BasePlugin(ABC):
     """
@@ -19,9 +20,10 @@ class BasePlugin(ABC):
         super().__init_subclass__(**kwargs)
         cls.plugins.append(cls)
 
-    # @abstractmethod (Make cam_window required)
-    def __init__(self):
-        self.in_queue = Queue()
+    @abstractmethod
+    def __init__(self, cam_widget: QtWidgets.QWidget, queue_size):
+        self.active = True
+        self.in_queue = Queue(queue_size)
         self.out_queue = None
 
     @abstractmethod

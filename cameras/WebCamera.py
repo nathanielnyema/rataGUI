@@ -23,7 +23,7 @@ class WebCamera(BaseCamera):
                     cameras.append(cam)
                     cam.frames_acquired = 0
                     break
-            cam.stopCamera()
+            cam.closeCamera()
         return cameras
 
     def initializeCamera(self):
@@ -46,7 +46,7 @@ class WebCamera(BaseCamera):
         
         return ret, self.last_frame
 
-    def stopCamera(self):
+    def closeCamera(self):
         try:
             self.stream.release()
             self._running = False

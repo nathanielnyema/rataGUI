@@ -4,19 +4,23 @@ from plugins import BasePlugin
 
 import cv2
 from datetime import datetime
-from PyQt6 import QtWidgets, QtGui
+from PyQt6 import QtGui
 from PyQt6.QtCore import Qt
 
 class FrameDisplay(BasePlugin):
 
-    def __init__(self, cam_window: QtWidgets.QWidget):
-        super().__init__()
-        self.video_frame = cam_window.video_frame
-        self.frame_width = cam_window.frame_width
-        self.frame_height = cam_window.frame_height
+    def __init__(self, cam_widget, queue_size=0):
+        super().__init__(cam_widget, queue_size)
+        
+        print("Started FrameDisplay for: {}".format(cam_widget.camera.cameraID))
+        self.video_frame = cam_widget.video_frame
+        self.frame_width = cam_widget.frame_width
+        self.frame_height = cam_widget.frame_height
 
     def execute(self, frame):
         """Sets pixmap image to video frame"""
+        # print("frame displayed")
+
         # Get image dimensions
         img_h, img_w, num_ch = frame.shape
 
@@ -33,6 +37,9 @@ class FrameDisplay(BasePlugin):
         qt_image = qt_image.scaled(self.frame_width, self.frame_height, Qt.AspectRatioMode.KeepAspectRatio)
         pixmap = QtGui.QPixmap.fromImage(qt_image)
         self.video_frame.setPixmap(pixmap)
+        
+        return frame
 
     def stop(self):
         print("Frame display stopped")
+        self.active = False

@@ -52,7 +52,7 @@ class FLIRCamera(BaseCamera):
     def __init__(self, cameraID: str):
         super().__init__()
         self.cameraID = cameraID
-        self._initialized = False
+        self.initialized = False
         self.frames_dropped = 0
         self.last_frame = None
         self.last_index = -1
@@ -171,7 +171,7 @@ class FLIRCamera(BaseCamera):
         self.stream.BeginAcquisition()
         self._running = True
 
-    def endStream(self):
+    def stopStream(self):
         self.stream.EndAcquisition()
         self._running = False
 
@@ -208,16 +208,16 @@ class FLIRCamera(BaseCamera):
         img_data.Release()
         return True, self.last_frame
 
-    def stopCamera(self):
+    def closeCamera(self):
         try:
             if self.stream is not None:
                 if self.stream.IsStreaming():
-                    self.stream.EndAcquisition()
+                    self.stopStream()
                 
                 self.stream.DeInit()
                 del self.stream
 
-            self._initialized = False
+            self.initialized = False
             self._running = False
             return True
         except Exception as err:
