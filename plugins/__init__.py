@@ -1,3 +1,9 @@
+"""
+Loads plugin modules listed in config.py (defaults to all plugins if none are specified) 
+
+Stores utility functions available to every plugin in folder
+"""
+
 import os
 import traceback
 
@@ -14,8 +20,27 @@ def load_module(path):
     spec.loader.exec_module(module)
     return module
 
+# Asynchronous execution loop for an arbitrary plugin 
+async def plugin_process(plugin):
+    while True:
+        frame = await plugin.in_queue.get()
+
+        # TODO: Add plugin-specific data
+
+        # TODO: Parallelize with Thread Executor
+
+        # Execute plugin
+        if plugin.active:
+            result = plugin.execute(frame)
+        # Send output to next plugin
+        if plugin.out_queue != None:
+            await plugin.out_queue.put(result)
+        
+        plugin.in_queue.task_done()
+
+
 # Get current path
-path = os.path.abspath(__file__)
+path = os.path.relpath(__file__)
 dirpath = os.path.dirname(path)
 
 if len(active_plugins) == 0:

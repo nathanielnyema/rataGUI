@@ -56,7 +56,7 @@ class WebCamera(BaseCamera):
             return False
     
     def isOpened(self):
-        return self.stream != None and self.stream.isOpened()
+        return self._running
 
     def getName(self):
         return "Web Camera " + str(self.cameraID)

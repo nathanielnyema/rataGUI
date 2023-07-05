@@ -15,7 +15,7 @@ def load_module(path):
     return module
 
 # Get current path
-path = os.path.abspath(__file__)
+path = os.path.relpath(__file__)
 dirpath = os.path.dirname(path)
 
 if len(active_camera_models) == 0:

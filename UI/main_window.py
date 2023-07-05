@@ -33,7 +33,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.start_button.clicked.connect(self.start_camera_widgets)
 
         # Open and show camera feed but don't record
-        # self.pause_button.clicked.connect(self.record_camera_window)
+        self.pause_button.clicked.connect(self.pause_camera_widgets)
 
         # Close camera feed (stop recording) and window
         self.stop_button.clicked.connect(self.stop_camera_widgets)
@@ -118,26 +118,24 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         screen_width = self.screen.width()
         for idx, camID in enumerate(checked_cameras):
-            if self.camera_widgets[camID] is None:
+            cam_widget = self.camera_widgets[camID]
+            if cam_widget is None: # Create new window
                 window = CameraWidget(camera=self.cameras[camID], plugins=checked_plugins)
                 x_pos = min(window.width() * idx, screen_width - window.width())
                 y_pos = (window.height() // 2) * (idx * window.width() // screen_width)
                 window.move(x_pos,y_pos)
-                window.show()
                 self.camera_widgets[camID] = window
-            else:
-                self.camera_widgets[camID].show()
+
+            elif cam_widget.paused: # Toggle paused window to resume
+                cam_widget.paused = False
+
+            self.camera_widgets[camID].show()
 
     def pause_camera_widgets(self):
-        pass
-    # def record_camera_window(self):
-    #     """Depreciated"""
-    #     self.start_camera_pipeline()
-
-    #     for camID in get_checked_items(self.cam_list):
-    #         if self.camera_widgets[camID] is not None:
-    #             params = {"-vcodec": "libx264", "-crf": "28", "-preset": "ultrafast"}
-    #             self.camera_widgets[camID].startWriter(output_params=params)
+        for camID in get_checked_items(self.cam_list):
+            cam_widget = self.camera_widgets[camID]
+            if cam_widget is not None:
+                cam_widget.paused = True
 
     def stop_camera_widgets(self):
         for camID in get_checked_items(self.cam_list):

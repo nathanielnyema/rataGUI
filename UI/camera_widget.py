@@ -1,10 +1,10 @@
-import sys
-import numpy as np
-import cv2
+# import sys
+# import numpy as np
+# import cv2
+import time
 # import logging
-# import time
 
-from collections import deque
+from plugins import plugin_process
 
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
@@ -14,23 +14,6 @@ from UI.design.Ui_CameraWidget import Ui_CameraWidget
 
 import asyncio
 # from concurrent.futures import ThreadPoolExecutor
-
-async def plugin_process(plugin):
-    while True:
-        frame = await plugin.in_queue.get()
-
-        # TODO: Add plugin-specific data
-
-        # TODO: Parallelize with Thread Executor
-
-        # Execute plugin
-        if plugin.active:
-            result = plugin.execute(frame)
-        # Send output to next plugin
-        if plugin.out_queue != None:
-            await plugin.out_queue.put(result)
-        
-        plugin.in_queue.task_done()
 
 # Change to camera widget
 class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
@@ -42,21 +25,13 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     @param aspect_ratio - whether to maintain frame aspect ratio or force into fraame
     """
 
-    def __init__(self, camera=None, plugins=[], aspect_ratio=True):
+    def __init__(self, camera=None, plugins=[]):
         super().__init__()
         self.setupUi(self)
 
         # Set widget fields
         self.frame_width = self.frameGeometry().width()
         self.frame_height = self.frameGeometry().height()
-        self.keep_aspect_ratio = aspect_ratio
-
-        # # Create camera GUI layout TODO: Make in qt designer
-        # self.video_frame = QtWidgets.QLabel(self)
-        # self.layout = QtWidgets.QVBoxLayout()
-        # self.layout.setContentsMargins(0,0,0,0)
-        # self.layout.addWidget(self.video_frame)
-        # self.setLayout(self.layout)
 
         # Initialize camera object
         self.camera = camera
@@ -67,27 +42,29 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 
         # TODO: Instantiate plugins with camera-specific settings
         self.plugins = [Plugin(self) for Plugin in plugins]
+        self.paused = False
+        # self.keep_aspect_ratio = aspect_ratio
 
         # Start thread to load camera stream and start pipeline
         self.pipeline_thread = WorkerThread(self.start_camera_pipeline)
-
-        # worker = WorkerThread(self.camera.initializeCamera)
-        # worker.signals.finished.connect(self.start_camera_pipeline)
         self.threadpool.start(self.pipeline_thread)
 
     async def acquire_frames(self):
         loop = asyncio.get_running_loop()
         while self.camera.isOpened():
-            status, frame = await loop.run_in_executor(None, self.camera.readCamera)
-            # status, frame = self.camera.readCamera("RGB")
-            if status: 
-                # print("Acquired Frame: " + str(self.camera.frames_acquired))
-                # Send acquired frame to first plugin process in pipeline
-                await self.plugins[0].in_queue.put(frame)
+            
+            if not self.paused:
+                status, frame = await loop.run_in_executor(None, self.camera.readCamera)
+                # status, frame = self.camera.readCamera("RGB")
+                if status: 
+                    # Send acquired frame to first plugin process in pipeline
+                    await self.plugins[0].in_queue.put(frame)
+                    await asyncio.sleep(0)
+                else:
+                    print("Error: camera frame not found ... stopping")
+                    break
+            else: # Pass to next coroutine
                 await asyncio.sleep(0)
-            else:
-                print("Error: camera frame not found ... stopping")
-                break
 
         # Close camera if camera stops streaming
         self.camera.closeCamera()
@@ -114,7 +91,6 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     def start_camera_pipeline(self):
         print('Started camera: {}'.format(self.camera.cameraID))
         self.camera.initializeCamera()
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         asyncio.run(self.process_plugin_pipeline())
 
     def close_camera_pipeline(self):
