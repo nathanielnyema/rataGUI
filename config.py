@@ -1,6 +1,7 @@
 
 
 # Specify which subclasses to use in cameras folder or program defaults to all
-active_camera_models = []
+enabled_camera_models = []
 
-active_plugins = []
+# Specify which subclasses to use in plugins folder or program defaults to all
+enabled_plugins = []

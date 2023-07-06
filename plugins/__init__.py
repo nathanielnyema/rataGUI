@@ -10,7 +10,7 @@ import traceback
 from .base_plugin import BasePlugin
 
 from importlib import util
-from config import active_plugins
+from config import enabled_plugins
 
 # Automatically load plugin modules
 def load_module(path):
@@ -43,7 +43,7 @@ async def plugin_process(plugin):
 path = os.path.relpath(__file__)
 dirpath = os.path.dirname(path)
 
-if len(active_plugins) == 0:
+if len(enabled_plugins) == 0:
     for fname in os.listdir(dirpath):
         # Load only "real modules"
         if not fname.startswith('.') and not fname.startswith('__') and fname.endswith('.py'):
@@ -54,6 +54,6 @@ if len(active_plugins) == 0:
             except Exception:
                 traceback.print_exc()
 else:
-    for plugin in active_plugins:
+    for plugin in enabled_plugins:
         # TODO
         pass  

@@ -7,6 +7,7 @@ from PyQt6.QtCore import Qt, QTimer
 
 from UI.design.Ui_MainWindow import Ui_MainWindow
 from UI.camera_widget import CameraWidget
+from UI.tab_widget import VerticalTabWidget
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
@@ -25,22 +26,23 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.camera_models = camera_models
         self.populate_available_cameras()
 
-        # create class name look-up
+        # Create class name look-up
         self.plugins = {p.__name__ : p for p in plugins}
         self.populate_plugin_list()
 
-        # Open, show and record camera feed into video
+        # Create camera widget and start pipeline 
         self.start_button.clicked.connect(self.start_camera_widgets)
         self.start_button.setStyleSheet("background-color: darkgreen; color: white; font-weight: bold")
 
-        # Open and show camera feed but don't record
+        # Pause camera and plugin pipeline
         self.pause_button.clicked.connect(self.pause_camera_widgets)
         self.pause_button.setStyleSheet("background-color: grey; color: white; font-weight: bold")
 
-        # Close camera feed (stop recording) and window
+        # Close camera, stop pipeline and delete widget
         self.stop_button.clicked.connect(self.stop_camera_widgets)
         self.stop_button.setStyleSheet("background-color: darkred; color: white; font-weight: bold")
 
+        # Update camera stats occasionally
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.update_camera_stats)
         self.update_timer.start(500)
@@ -70,7 +72,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 # TODO: use name instead and preserve checked state
                 item = QtWidgets.QListWidgetItem(cam.getName())
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-                item.setCheckState(Qt.CheckState.Unchecked)
+                item.setCheckState(Qt.CheckState.Checked)
                 self.cam_list.addItem(item)
                 self.cameras[cam.getName()] = cam
                 self.camera_widgets[cam.getName()] = None
@@ -87,31 +89,60 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for name in self.plugins.keys():
             item = QtWidgets.QListWidgetItem(name)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            item.setCheckState(Qt.CheckState.Unchecked)
+            item.setCheckState(Qt.CheckState.Checked)
             self.plugin_list.addItem(item)
 
     def populate_plugin_pipeline(self):
         self.plugin_pipeline.clear()
 
-        # Don't rely on checked state
+        self.plugin_pipeline.setRowCount(len(self.camera_widgets))
+        # self.plugin_pipeline.setVerticalHeaderLabels(self.camera_widgets.keys())
 
-        checked_cameras = [item.text() for item in  get_checked_items(self.cam_list)]
-        self.plugin_pipeline.setRowCount(len(checked_cameras))
-        self.plugin_pipeline.setVerticalHeaderLabels(checked_cameras)
+        self.plugin_pipeline.setColumnCount(len(self.plugins))
+        # self.plugin_pipeline.setHorizontalHeaderLabels(self.plugins)
 
-        checked_plugins = [item.text() for item in get_checked_items(self.plugin_list)]
-        self.plugin_pipeline.setColumnCount(len(checked_plugins))
-        self.plugin_pipeline.setHorizontalHeaderLabels(checked_plugins)
+        # for row, widget in enumerate(self.camera_widgets.values()):
+        #     if widget is not None:
+        #         for col, plugin in enumerate()
 
-        for row in range(self.plugin_pipeline.rowCount()):
-            for col in range(self.plugin_pipeline.rowCount()):
-                item = QtWidgets.QTableWidgetItem("Active")
-                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-                item.setCheckState(Qt.CheckState.Unchecked)
-                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.plugin_pipeline.setItem(row, col, item)
+        active_camera_names = []
+        plugin_names = []
+        for row, (camID, widget) in enumerate(self.camera_widgets.items()):
+            if widget is not None:
+                active_camera_names.append(camID)
+                for col, plugin in enumerate(widget.plugins):
+                    item = QtWidgets.QTableWidgetItem()
+                    item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    self.plugin_pipeline.setItem(row, col, item)
+                    if plugin.active:
+                        item.setText("Active")
+                        item.setCheckState(Qt.CheckState.Checked)
+                        
+                    else:
+                        item.setText("Paused")
+                        item.setCheckState(Qt.CheckState.Unchecked)
 
+                    if row == 0:
+                        plugin_names.append(type(plugin).__name__)
+        
+        # Re-adjust table to size
+        self.plugin_pipeline.setRowCount(len(active_camera_names))
+        self.plugin_pipeline.setVerticalHeaderLabels(active_camera_names)
+        self.plugin_pipeline.setColumnCount(len(plugin_names))
+        self.plugin_pipeline.setHorizontalHeaderLabels(plugin_names)
+
+        # self.plugin_pipeline.cellChanged.connect()
         self.plugin_pipeline.resizeColumnsToContents()
+
+    def pause_camera_plugin(self, row, column):
+        # self.cameras
+        pass
+
+
+    def populate_camera_properties(self):
+        pass
+
 
     def start_camera_widgets(self):
         checked_camera_items = get_checked_items(self.cam_list)
@@ -126,20 +157,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for idx, cam_item in enumerate(checked_camera_items):
             camID = cam_item.text()
             cam_widget = self.camera_widgets[camID]
-            if cam_widget is None: # Create new window
-                window = CameraWidget(camera=self.cameras[camID], plugins=checked_plugins)
-                x_pos = min(window.width() * idx, screen_width - window.width())
-                y_pos = (window.height() // 2) * (idx * window.width() // screen_width)
-                window.move(x_pos,y_pos)
-                self.camera_widgets[camID] = window
+            if cam_widget is None: # Create new widget
+                widget = CameraWidget(camera=self.cameras[camID], plugins=checked_plugins)
+                x_pos = min(widget.width() * idx, screen_width - widget.width())
+                y_pos = (widget.height() // 2) * (idx * widget.width() // screen_width)
+                widget.move(x_pos,y_pos)
+                self.camera_widgets[camID] = widget
                 cam_item.setBackground(QtGui.QColorConstants.Green)
 
-            elif cam_widget.paused: # Toggle paused window to resume
+            elif cam_widget.paused: # Toggle paused widget to resume
                 cam_widget.paused = False
                 cam_item.setBackground(QtGui.QColorConstants.Green)
 
             self.camera_widgets[camID].show()
-            self.populate_plugin_pipeline()
+
+        self.populate_plugin_pipeline()
 
     def pause_camera_widgets(self):
         for cam_item in get_checked_items(self.cam_list):
