@@ -26,11 +26,11 @@ class WorkerThread(QRunnable):
     :param kwargs: Keywords to pass to the callback function
     '''
 
-    def __init__(self, fn, *args, **kwargs):
+    def __init__(self, func, *args, **kwargs):
         super().__init__()
 
         # Store constructor arguments (re-used for processing)
-        self.fn = fn
+        self.func = func
         self.args = args
         self.kwargs = kwargs
         self.signals = ThreadSignals()
@@ -46,7 +46,7 @@ class WorkerThread(QRunnable):
 
         # Retrieve args/kwargs here; and fire processing using them
         try:
-            result = self.fn(*self.args, **self.kwargs)
+            result = self.func(*self.args, **self.kwargs)
         except:
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]

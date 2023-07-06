@@ -31,12 +31,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Open, show and record camera feed into video
         self.start_button.clicked.connect(self.start_camera_widgets)
+        self.start_button.setStyleSheet("background-color: darkgreen; color: white; font-weight: bold")
 
         # Open and show camera feed but don't record
         self.pause_button.clicked.connect(self.pause_camera_widgets)
+        self.pause_button.setStyleSheet("background-color: grey; color: white; font-weight: bold")
 
         # Close camera feed (stop recording) and window
         self.stop_button.clicked.connect(self.stop_camera_widgets)
+        self.stop_button.setStyleSheet("background-color: darkred; color: white; font-weight: bold")
 
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.update_camera_stats)
@@ -90,11 +93,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def populate_plugin_pipeline(self):
         self.plugin_pipeline.clear()
 
-        checked_cameras = get_checked_items(self.cam_list)
+        # Don't rely on checked state
+
+        checked_cameras = [item.text() for item in  get_checked_items(self.cam_list)]
         self.plugin_pipeline.setRowCount(len(checked_cameras))
         self.plugin_pipeline.setVerticalHeaderLabels(checked_cameras)
 
-        checked_plugins = get_checked_items(self.plugin_list)
+        checked_plugins = [item.text() for item in get_checked_items(self.plugin_list)]
         self.plugin_pipeline.setColumnCount(len(checked_plugins))
         self.plugin_pipeline.setHorizontalHeaderLabels(checked_plugins)
 
@@ -106,18 +111,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.plugin_pipeline.setItem(row, col, item)
 
-        return checked_cameras, checked_plugins
+        self.plugin_pipeline.resizeColumnsToContents()
 
     def start_camera_widgets(self):
-        checked_cameras, checked_plugin_names = self.populate_plugin_pipeline()
-        # Convert plugin name into corresponding class
-        checked_plugins = [self.plugins[name] for name in checked_plugin_names]
+        checked_camera_items = get_checked_items(self.cam_list)
+        checked_plugin_items = get_checked_items(self.plugin_list)
+        # Convert plugin items into corresponding class
+        checked_plugins = [self.plugins[item.text()] for item in checked_plugin_items]
         if len(checked_plugins) == 0:
             print("At least one plugin must be selected")
             return
 
         screen_width = self.screen.width()
-        for idx, camID in enumerate(checked_cameras):
+        for idx, cam_item in enumerate(checked_camera_items):
+            camID = cam_item.text()
             cam_widget = self.camera_widgets[camID]
             if cam_widget is None: # Create new window
                 window = CameraWidget(camera=self.cameras[camID], plugins=checked_plugins)
@@ -125,24 +132,31 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 y_pos = (window.height() // 2) * (idx * window.width() // screen_width)
                 window.move(x_pos,y_pos)
                 self.camera_widgets[camID] = window
+                cam_item.setBackground(QtGui.QColorConstants.Green)
 
             elif cam_widget.paused: # Toggle paused window to resume
                 cam_widget.paused = False
+                cam_item.setBackground(QtGui.QColorConstants.Green)
 
             self.camera_widgets[camID].show()
+            self.populate_plugin_pipeline()
 
     def pause_camera_widgets(self):
-        for camID in get_checked_items(self.cam_list):
+        for cam_item in get_checked_items(self.cam_list):
+            camID = cam_item.text()
             cam_widget = self.camera_widgets[camID]
             if cam_widget is not None:
                 cam_widget.paused = True
+                cam_item.setBackground(QtGui.QColorConstants.Yellow)
 
     def stop_camera_widgets(self):
-        for camID in get_checked_items(self.cam_list):
+        for cam_item in get_checked_items(self.cam_list):
+            camID = cam_item.text()
             cam_widget = self.camera_widgets[camID]
             if cam_widget is not None:
                 self.camera_widgets[camID] = None
                 cam_widget.close_widget()
+                cam_item.setBackground(QtGui.QColorConstants.White)
 
     def closeEvent(self, event):
         for cam_widget in self.camera_widgets.values():
@@ -158,10 +172,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         event.accept() # let the window close
 
 
-def get_checked_items(check_list: QtWidgets.QListWidget) -> list[str]:
+def get_checked_items(check_list: QtWidgets.QListWidget) -> list:
     checked = []
     for idx in range(check_list.count()):
         item = check_list.item(idx)
         if item.checkState() == Qt.CheckState.Checked:
-            checked.append(item.text())
+            checked.append(item)
     return checked

@@ -12,7 +12,7 @@ from .base_plugin import BasePlugin
 from importlib import util
 from config import active_plugins
 
-# Automatically load camera modules
+# Automatically load plugin modules
 def load_module(path):
     name = os.path.split(path)[-1]
     spec = util.spec_from_file_location(name, path)
