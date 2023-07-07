@@ -58,6 +58,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem("N/A"))
 
+    def populate_camera_properties(self):
+        for plugin in self.plugins:
+            # self.plugin
+            pass
+
     def populate_available_cameras(self):
         self.cam_list.clear()
         self.cam_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
@@ -118,7 +123,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     if plugin.active:
                         item.setText("Active")
                         item.setCheckState(Qt.CheckState.Checked)
-                        
+
                     else:
                         item.setText("Paused")
                         item.setCheckState(Qt.CheckState.Unchecked)
@@ -137,10 +142,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def pause_camera_plugin(self, row, column):
         # self.cameras
-        pass
-
-
-    def populate_camera_properties(self):
         pass
 
 

@@ -34,6 +34,8 @@ class TabBar(QTabBar):
             painter.translate(center*-1)
             painter.drawControl(QStyle.CE_TabBarTabLabel, style_option)
             painter.restore()
+        
+        event.accept()
 
 
 class VerticalTabWidget(QTabWidget):
