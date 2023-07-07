@@ -6,7 +6,7 @@ RataGUI is written entirely in Python and runs on all major platforms. To get st
 
 ## Conda Environment
 ```
-conda env create -f rataGUI.yml
+conda env create -f rataGUI.yaml
 ```
 
 ## Pip Environment
@@ -17,6 +17,6 @@ pip install -r requirements.txt
 ```
 
 ## Install Spinnaker SDK (optional)
-To use RataGUI with Spinnaker cameras, 
+To use RataGUI with Spinnaker cameras, follow the instructions [here] (https://www.flir.com/products/spinnaker-sdk/) to install the Spinnaker SDK for your specific Python version. 
 
 # Custom Camera Models

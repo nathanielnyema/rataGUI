@@ -179,7 +179,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             cam_widget = self.camera_widgets[camID]
             if cam_widget is not None:
                 cam_widget.paused = True
-                cam_item.setBackground(QtGui.QColorConstants.Yellow)
+                cam_item.setBackground(QtGui.QColorConstants.LightGray)
 
     def stop_camera_widgets(self):
         for cam_item in get_checked_items(self.cam_list):
