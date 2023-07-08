@@ -7,9 +7,7 @@ class TabBar(QTabBar):
 
     def tabSizeHint(self, index):
         s = QTabBar.tabSizeHint(self, index)
-        if s.width() < s.height():
-            s.transpose()
-        s.scale(s.width() * 2, s.height() * 2, Qt.KeepAspectRatio)
+        s.transpose()
         return s
 
     # Make text visible adequately
@@ -19,11 +17,11 @@ class TabBar(QTabBar):
 
         for i in range(self.count()):
             self.initStyleOption(style_option, i)
-            painter.drawControl(QStyle.CE_TabBarTabShape, style_option)
+            painter.drawControl(QStyle.ControlElement.CE_TabBarTabShape, style_option)
             painter.save()
 
             s = style_option.rect.size()
-            s.scale(s.width() * 2, s.height() * 2, Qt.KeepAspectRatio)
+            s.transpose()
             rect = QRect(QPoint(), s)
             rect.moveCenter(style_option.rect.center())
             style_option.rect = rect
@@ -31,15 +29,15 @@ class TabBar(QTabBar):
             center = self.tabRect(i).center()
             painter.translate(center)
             painter.rotate(90)
-            painter.translate(center*-1)
-            painter.drawControl(QStyle.CE_TabBarTabLabel, style_option)
+            painter.translate(-center)
+            painter.drawControl(QStyle.ControlElement.CE_TabBarTabLabel, style_option)
             painter.restore()
         
         event.accept()
 
 
 class VerticalTabWidget(QTabWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.setTabBar(TabBar(self))
-        self.setTabPosition(QTabWidget.West)
+        self.setTabPosition(QTabWidget.TabPosition.West)

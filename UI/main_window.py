@@ -1,13 +1,12 @@
 import sys
-import numpy as np
 import time
+from pyqtconfig import ConfigManager
 
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QTimer
 
 from UI.design.Ui_MainWindow import Ui_MainWindow
 from UI.camera_widget import CameraWidget
-from UI.tab_widget import VerticalTabWidget
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
@@ -21,15 +20,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         y_pos = 2 * (self.screen.height() - self.height()) // 3
         self.move(x_pos, y_pos)
 
+        # Create name look-ups for cameras, widgets, and configs
         self.cameras = {}
         self.camera_widgets = {}
         self.camera_models = camera_models
         self.populate_available_cameras()
+        self.populate_camera_properties()
+        self.camera_configs = {name : ConfigManager for name in self.cameras.keys()}
 
-        # Create class name look-up
+        # Create name look-ups for plugin classes and configs
         self.plugins = {p.__name__ : p for p in plugins}
+        self.plugin_configs = {p.__name__ : ConfigManager() for p in plugins}
         self.populate_plugin_list()
-
+        self.populate_plugin_settings()
+        
         # Create camera widget and start pipeline 
         self.start_button.clicked.connect(self.start_camera_widgets)
         self.start_button.setStyleSheet("background-color: darkgreen; color: white; font-weight: bold")
@@ -58,10 +62,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem("N/A"))
 
-    def populate_camera_properties(self):
-        for plugin in self.plugins:
-            # self.plugin
-            pass
+    def update_plugin_stats(self):
+        pass
 
     def populate_available_cameras(self):
         self.cam_list.clear()
@@ -79,8 +81,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                 item.setCheckState(Qt.CheckState.Checked)
                 self.cam_list.addItem(item)
-                self.cameras[cam.getName()] = cam
-                self.camera_widgets[cam.getName()] = None
+                if cam.getName() not in self.cameras.keys():
+                    self.cameras[cam.getName()] = cam
+                    self.camera_widgets[cam.getName()] = None
+    
+    def populate_camera_properties(self):
+        for camID in self.cameras.keys():
+            label = QtWidgets.QLabel(camID)
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.cam_props.addTab(label, str(camID))
 
     def populate_plugin_list(self):
         self.plugin_list.clear()
@@ -96,6 +105,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Checked)
             self.plugin_list.addItem(item)
+
+    def populate_plugin_settings(self):
+        for name, cls in self.plugins.items():
+            pass
+
+    
 
     def populate_plugin_pipeline(self):
         self.plugin_pipeline.clear()
@@ -141,7 +156,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.plugin_pipeline.resizeColumnsToContents()
 
     def pause_camera_plugin(self, row, column):
-        # self.cameras
         pass
 
 

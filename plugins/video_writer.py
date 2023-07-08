@@ -9,6 +9,10 @@ import skvideo.io
 
 class VideoWriter(BasePlugin):
 
+    CONFIG = {
+        'vcodec': 'libx264',
+    }
+
     def __init__(self, cam_widget, queue_size=0, input_params={}, output_params={}):
         super().__init__(cam_widget, queue_size)
         print("Started VideoWriter for: {}".format(cam_widget.camera.cameraID))

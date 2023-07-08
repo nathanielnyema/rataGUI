@@ -9,6 +9,10 @@ from PyQt6.QtCore import Qt
 
 class FrameDisplay(BasePlugin):
 
+    CONFIG = {
+        'show_timestamp': True,
+    }
+
     def __init__(self, cam_widget, queue_size=0):
         super().__init__(cam_widget, queue_size)
         

@@ -2,11 +2,11 @@ from cameras import BaseCamera
 
 import cv2
 
-class NetworkCamera(BaseCamera):
+class TemplateCamera(BaseCamera):
 
     @staticmethod
     def getAvailableCameras():
-        # Return list of available NetworkCameras for user-specific setup
+        # Return list of available camera objects for custom model
         return []
 
     def __init__(self, cameraID):

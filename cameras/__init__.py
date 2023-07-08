@@ -18,17 +18,13 @@ def load_module(path):
 path = os.path.relpath(__file__)
 dirpath = os.path.dirname(path)
 
-if len(enabled_camera_models) == 0:
-    for fname in os.listdir(dirpath):
-        # Load only "real modules"
-        if not fname.startswith('.') and not fname.startswith('__') and fname.endswith('.py'):
+for fname in os.listdir(dirpath):
+    # Load only "real modules"
+    if not fname.startswith('.') and not fname.startswith('__') and fname.endswith('.py'):
+        if len(enabled_camera_models) == 0 or fname in enabled_camera_models:
             try:
                 load_module(os.path.join(dirpath, fname))
             except ModuleNotFoundError:
                 print(f"Unable to load camera module {fname}")
             except Exception:
                 traceback.print_exc()
-else:
-    for camera_model in enabled_camera_models:
-        # TODO
-        pass  

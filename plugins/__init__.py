@@ -43,17 +43,13 @@ async def plugin_process(plugin):
 path = os.path.relpath(__file__)
 dirpath = os.path.dirname(path)
 
-if len(enabled_plugins) == 0:
-    for fname in os.listdir(dirpath):
-        # Load only "real modules"
-        if not fname.startswith('.') and not fname.startswith('__') and fname.endswith('.py'):
+for fname in os.listdir(dirpath):
+    # Load only "real modules"
+    if not fname.startswith('.') and not fname.startswith('__') and fname.endswith('.py'):
+        if len(enabled_plugins) == 0 or fname in enabled_plugins:
             try:
                 load_module(os.path.join(dirpath, fname))
             except ModuleNotFoundError:
                 print(f"Unable to load plugin module {fname}")
             except Exception:
                 traceback.print_exc()
-else:
-    for plugin in enabled_plugins:
-        # TODO
-        pass  

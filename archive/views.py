@@ -20,7 +20,7 @@ from UI.UI_CameraWindow import Ui_CameraWindow
 
 from threads import CameraThread, WorkerThread
 from cameras.WebCamera import WebCamera
-from cameras.NetworkCamera import NetworkCamera
+from cameras.TemplateCamera import NetworkCamera
 from UI.camera_widget import CameraWidget
 
 class CameraWindow(QtWidgets.QWidget, Ui_CameraWindow):

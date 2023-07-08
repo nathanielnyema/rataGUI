@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'UI/design/mainWindow.ui'
+# Form implementation generated from reading ui file './UI/design/mainWindow.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.0
 #
@@ -44,11 +44,8 @@ class Ui_MainWindow(object):
         self.camPropsTab.setObjectName("camPropsTab")
         self.gridLayout = QtWidgets.QGridLayout(self.camPropsTab)
         self.gridLayout.setObjectName("gridLayout")
-        self.cam_props = QtWidgets.QTableWidget(self.camPropsTab)
-        self.cam_props.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        self.cam_props = VerticalTabWidget(self.camPropsTab)
         self.cam_props.setObjectName("cam_props")
-        self.cam_props.setColumnCount(0)
-        self.cam_props.setRowCount(0)
         self.gridLayout.addWidget(self.cam_props, 0, 0, 1, 1)
         self.camAttributes.addTab(self.camPropsTab, "")
         self.camStatsTab = QtWidgets.QWidget()
@@ -117,14 +114,14 @@ class Ui_MainWindow(object):
         self.plugin_list.setObjectName("plugin_list")
         self.pluginListLayout.addWidget(self.plugin_list)
         self.pluginControl.addLayout(self.pluginListLayout)
-        self.plugins = QtWidgets.QTabWidget(self.centralwidget)
+        self.plugin_settings = QtWidgets.QTabWidget(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.plugins.sizePolicy().hasHeightForWidth())
-        self.plugins.setSizePolicy(sizePolicy)
-        self.plugins.setObjectName("plugins")
-        self.pluginControl.addWidget(self.plugins)
+        sizePolicy.setHeightForWidth(self.plugin_settings.sizePolicy().hasHeightForWidth())
+        self.plugin_settings.setSizePolicy(sizePolicy)
+        self.plugin_settings.setObjectName("plugin_settings")
+        self.pluginControl.addWidget(self.plugin_settings)
         self.frame = QtWidgets.QFrame(self.centralwidget)
         self.frame.setFrameShape(QtWidgets.QFrame.Shape.Box)
         self.frame.setFrameShadow(QtWidgets.QFrame.Shadow.Plain)
@@ -228,8 +225,8 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuHelp.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.camAttributes.setCurrentIndex(1)
-        self.plugins.setCurrentIndex(-1)
+        self.camAttributes.setCurrentIndex(0)
+        self.plugin_settings.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -261,3 +258,14 @@ class Ui_MainWindow(object):
         self.actionNew.setText(_translate("MainWindow", "New"))
         self.actionOpen.setText(_translate("MainWindow", "Open"))
         self.actionSave.setText(_translate("MainWindow", "Save"))
+from UI.vtab_widget import VerticalTabWidget
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+    sys.exit(app.exec())
