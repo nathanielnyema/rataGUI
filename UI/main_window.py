@@ -1,6 +1,6 @@
 import sys
 import time
-from pyqtconfig import ConfigManager
+from pyqtconfig import ConfigManager, build_config_layout
 
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QTimer
@@ -20,13 +20,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         y_pos = 2 * (self.screen.height() - self.height()) // 3
         self.move(x_pos, y_pos)
 
-        # Create name look-ups for cameras, widgets, and configs
+        # Create ID look-ups for cameras, widgets, and configs
         self.cameras = {}
         self.camera_widgets = {}
         self.camera_models = camera_models
         self.populate_available_cameras()
+
+        self.camera_configs = {id : ConfigManager() for id in self.cameras.keys()}
         self.populate_camera_properties()
-        self.camera_configs = {name : ConfigManager for name in self.cameras.keys()}
 
         # Create name look-ups for plugin classes and configs
         self.plugins = {p.__name__ : p for p in plugins}
@@ -54,16 +55,32 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def update_camera_stats(self):
         self.cam_stats.setRowCount(len(self.cameras))
-        for row, camera in enumerate(self.cameras.values()):
-            self.cam_stats.setItem(row, 0, QtWidgets.QTableWidgetItem(camera.getName()))
+        # self.cam_stats.setColumnCount(3 + len(self.plugins))
+        for row, (name, camera)  in enumerate(self.cameras.items()):
+            # self.cam_stats.item(row, 0).setText(camera.getName())
+            # self.cam_stats.item(row, 1).setText(str(camera.frames_acquired))
+            self.cam_stats.setItem(row, 0, QtWidgets.QTableWidgetItem(name))
             self.cam_stats.setItem(row, 1, QtWidgets.QTableWidgetItem(str(camera.frames_acquired)))
             if hasattr(camera, "frames_dropped"):
+                # self.cam_stats.item(row, 2).setText(str(camera.frames_dropped))
                 self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem(str(camera.frames_dropped)))
             else:
+                # self.cam_stats.item(row, 2).setText("N/A")
                 self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem("N/A"))
 
-    def update_plugin_stats(self):
-        pass
+            widget = self.camera_widgets[name]
+            if widget is not None:
+                for col, plugin in enumerate(widget.plugins):
+                    if row == 0: # Only set header once
+                        header_item = QtWidgets.QTableWidgetItem(type(plugin).__name__ + " Queue")
+                        self.cam_stats.setHorizontalHeaderItem(3+col, header_item)
+
+                    self.cam_stats.setItem(row, 3+col, QtWidgets.QTableWidgetItem(str(plugin.in_queue.qsize())))
+        
+        self.cam_stats.resizeColumnsToContents()
+    
+    # def update_plugin_stats(self):
+    #     pass
 
     def populate_available_cameras(self):
         self.cam_list.clear()
@@ -73,6 +90,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked
             )
         )
+
         for camera_cls in self.camera_models:
             cam_list = camera_cls.getAvailableCameras()
             for cam in cam_list:
@@ -86,10 +104,31 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.camera_widgets[cam.getName()] = None
     
     def populate_camera_properties(self):
-        for camID in self.cameras.keys():
+        for camID, config in self.camera_configs.items():
             label = QtWidgets.QLabel(camID)
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.cam_props.addTab(label, str(camID))
+            # tab = QtWidgets.QLabel('camID')
+            # cls = self.cameras[camID].__class__
+            # tab = QtWidgets.QWidget()
+            # if hasattr(cls, "DEFAULT_PROPS"):
+            #     config.set_defaults(cls.DEFAULT_PROPS)
+            #     for key, value in cls.DEFAULT_PROPS.items():
+            #         match value:
+            #             case bool():
+            #                 widget = QtWidgets.QCheckBox()
+            #             case str():
+            #                 widget = QtWidgets.QLineEdit()
+            #             case int():
+            #                 widget = QtWidgets.QSpinBox()
+            #             case list():
+            #                 pass
+            #         config.add_handler(key, widget)
+            #         print("test")
+            
+            # layout = build_config_layout(config)
+            # tab.setLayout(layout)
+            # self.cam_props.addTab(tab, str(camID))
 
     def populate_plugin_list(self):
         self.plugin_list.clear()
@@ -107,9 +146,27 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.plugin_list.addItem(item)
 
     def populate_plugin_settings(self):
-        for name, cls in self.plugins.items():
-            pass
+        for name, config in self.plugin_configs.items():
+            cls = self.plugins[name]
+            tab = QtWidgets.QWidget()
+            if hasattr(cls, "DEFAULT_CONFIG"):
+                config.set_defaults(cls.DEFAULT_CONFIG)
 
+                for key, value in cls.DEFAULT_CONFIG.items():
+                    match value:
+                        case bool():
+                            widget = QtWidgets.QCheckBox()
+                        case str():
+                            widget = QtWidgets.QLineEdit()
+                        case int():
+                            widget = QtWidgets.QSpinBox()
+                        case list():
+                            pass
+                    config.add_handler(key, widget)
+            
+            layout = build_config_layout(config)
+            tab.setLayout(layout)
+            self.plugin_settings.addTab(tab, name)
     
 
     def populate_plugin_pipeline(self):
@@ -147,9 +204,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         plugin_names.append(type(plugin).__name__)
         
         # Re-adjust table to size
-        self.plugin_pipeline.setRowCount(len(active_camera_names))
+        # self.plugin_pipeline.setRowCount(len(active_camera_names))
         self.plugin_pipeline.setVerticalHeaderLabels(active_camera_names)
-        self.plugin_pipeline.setColumnCount(len(plugin_names))
+        # self.plugin_pipeline.setColumnCount(len(plugin_names))
         self.plugin_pipeline.setHorizontalHeaderLabels(plugin_names)
 
         # self.plugin_pipeline.cellChanged.connect()

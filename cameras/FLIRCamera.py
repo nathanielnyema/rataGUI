@@ -5,15 +5,13 @@ import PySpin
 
 class FLIRCamera(BaseCamera):
 
-    CameraProperties = {
+    DEFAULT_PROPS = {
         "LineSelector" : PySpin.LineSelector_Line2,
         "LineMode" : PySpin.LineMode_Output,
         "LineSource": PySpin.LineSource_ExposureActive,
         "AcquisitionFrameRateEnable": True,
         "AcquisitionFrameRate" : 30,
     }
-
-    # EasySpinProperties = ["AcquisitionFrameRate",]
 
     # Global pyspin system variable
     _SYSTEM = None
@@ -147,15 +145,7 @@ class FLIRCamera(BaseCamera):
         else:
             self.stream.TLStream.StreamBufferHandlingMode.SetValue(PySpin.StreamBufferHandlingMode_NewestFirst)
 
-        prop_dict = {
-            "LineSelector" : PySpin.LineSelector_Line2,
-            "LineMode" : PySpin.LineMode_Output,
-            "LineSource": PySpin.LineSource_ExposureActive,
-            "AcquisitionFrameRateEnable": True,
-            "AcquisitionFrameRate" : 30,
-        }
-
-        for prop_name, value in prop_dict.items():
+        for prop_name, value in FLIRCamera.PROPS.items():
             try: 
                 node = getattr(self.stream, prop_name)
                 node.SetValue(value)

@@ -6,7 +6,7 @@ RataGUI is written entirely in Python and runs on all major platforms. To get st
 
 ## Conda Environment
 ```
-conda env create -f rataGUI.yaml
+conda env create --file rataGUI.yaml
 conda activate rataGUI
 ```
 
@@ -25,8 +25,7 @@ pip install <PATH-TO-SPINNAKER-WHEEL-FILE>.whl
 ```
 
 # Custom Camera Models
-RataGUI's modular framework makes adding another camera model an easy and straightfoward process. Simply edit the provided TemplateCamera.py class with the required basic functionality
-to fit your specific camera model use-case. These functions enable the acquisition engine to find, initialize, extract frames from the camera and properly closing it. 
+RataGUI's modular framework makes adding another camera model an easy and straightfoward process. Simply edit the provided TemplateCamera.py class with the required basic functionality to fit your specific camera model use-case. These functions enable the acquisition engine to find, initialize, read frames and properly close the camera.
 
 # Custom Plugins
 

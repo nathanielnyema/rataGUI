@@ -5,6 +5,12 @@ import numpy as np
 
 
 class WebCamera(BaseCamera):
+
+    PROPS = {
+        "FPS": 30,
+    }
+
+
     def __init__(self, cameraID):
         super().__init__()
         self.cameraID = cameraID

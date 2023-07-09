@@ -9,7 +9,7 @@ from PyQt6.QtCore import Qt
 
 class FrameDisplay(BasePlugin):
 
-    CONFIG = {
+    DEFAULT_CONFIG = {
         'show_timestamp': True,
     }
 

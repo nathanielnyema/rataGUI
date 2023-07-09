@@ -9,8 +9,11 @@ import skvideo.io
 
 class VideoWriter(BasePlugin):
 
-    CONFIG = {
+    DEFAULT_CONFIG = {
         'vcodec': 'libx264',
+        'framerate': 30,
+        'speed (preset)': "fast",
+        "quality (0-51)": 28,
     }
 
     def __init__(self, cam_widget, queue_size=0, input_params={}, output_params={}):
