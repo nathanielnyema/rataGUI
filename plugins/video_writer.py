@@ -32,7 +32,7 @@ class VideoWriter(BasePlugin):
         #                         "-preset": "fast", 
         #                         "-crf": "32", 
         #                     }
-        self.output_params = {'-vcodec': 'libx264', '-crf': '32', '-pix_fmt': 'rgb24'}
+        self.output_params = {'-vcodec': 'libx264', '-crf': '8', '-pix_fmt': 'rgb24'}
 
         file_name = "videos/" + str(cam_widget.camera.cameraID) + "_" + datetime.now().strftime('%H-%M-%S') + ".mp4"
         self.writer = skvideo.io.FFmpegWriter(file_name, inputdict=self.input_params, outputdict=self.output_params)

@@ -32,12 +32,10 @@ class TabBar(QTabBar):
             painter.translate(-center)
             painter.drawControl(QStyle.ControlElement.CE_TabBarTabLabel, style_option)
             painter.restore()
-        
-        event.accept()
 
 
 class VerticalTabWidget(QTabWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.setTabBar(TabBar(self))
         self.setTabPosition(QTabWidget.TabPosition.West)

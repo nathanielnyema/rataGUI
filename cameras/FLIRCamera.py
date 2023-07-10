@@ -145,7 +145,7 @@ class FLIRCamera(BaseCamera):
         else:
             self.stream.TLStream.StreamBufferHandlingMode.SetValue(PySpin.StreamBufferHandlingMode_NewestFirst)
 
-        for prop_name, value in FLIRCamera.PROPS.items():
+        for prop_name, value in FLIRCamera.DEFAULT_PROPS.items():
             try: 
                 node = getattr(self.stream, prop_name)
                 node.SetValue(value)

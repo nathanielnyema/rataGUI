@@ -55,7 +55,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def update_camera_stats(self):
         self.cam_stats.setRowCount(len(self.cameras))
-        # self.cam_stats.setColumnCount(3 + len(self.plugins))
+        self.cam_stats.setColumnCount(3 + len(self.plugins))
         for row, (name, camera)  in enumerate(self.cameras.items()):
             # self.cam_stats.item(row, 0).setText(camera.getName())
             # self.cam_stats.item(row, 1).setText(str(camera.frames_acquired))
@@ -105,30 +105,26 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     
     def populate_camera_properties(self):
         for camID, config in self.camera_configs.items():
-            label = QtWidgets.QLabel(camID)
-            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.cam_props.addTab(label, str(camID))
-            # tab = QtWidgets.QLabel('camID')
-            # cls = self.cameras[camID].__class__
-            # tab = QtWidgets.QWidget()
-            # if hasattr(cls, "DEFAULT_PROPS"):
-            #     config.set_defaults(cls.DEFAULT_PROPS)
-            #     for key, value in cls.DEFAULT_PROPS.items():
-            #         match value:
-            #             case bool():
-            #                 widget = QtWidgets.QCheckBox()
-            #             case str():
-            #                 widget = QtWidgets.QLineEdit()
-            #             case int():
-            #                 widget = QtWidgets.QSpinBox()
-            #             case list():
-            #                 pass
-            #         config.add_handler(key, widget)
-            #         print("test")
+            tab = QtWidgets.QLabel('camID')
+            cls = self.cameras[camID].__class__
+            tab = QtWidgets.QWidget()
+            if hasattr(cls, "DEFAULT_PROPS"):
+                config.set_defaults(cls.DEFAULT_PROPS)
+                for key, value in cls.DEFAULT_PROPS.items():
+                    match value:
+                        case bool():
+                            widget = QtWidgets.QCheckBox()
+                        case str():
+                            widget = QtWidgets.QLineEdit()
+                        case int():
+                            widget = QtWidgets.QSpinBox()
+                        case list():
+                            pass
+                    config.add_handler(key, widget)
             
-            # layout = build_config_layout(config)
-            # tab.setLayout(layout)
-            # self.cam_props.addTab(tab, str(camID))
+            layout = build_config_layout(config)
+            tab.setLayout(layout)
+            self.cam_props.addTab(tab, str(camID))
 
     def populate_plugin_list(self):
         self.plugin_list.clear()
@@ -204,9 +200,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         plugin_names.append(type(plugin).__name__)
         
         # Re-adjust table to size
-        # self.plugin_pipeline.setRowCount(len(active_camera_names))
+        self.plugin_pipeline.setRowCount(len(active_camera_names))
         self.plugin_pipeline.setVerticalHeaderLabels(active_camera_names)
-        # self.plugin_pipeline.setColumnCount(len(plugin_names))
+        self.plugin_pipeline.setColumnCount(len(plugin_names))
         self.plugin_pipeline.setHorizontalHeaderLabels(plugin_names)
 
         # self.plugin_pipeline.cellChanged.connect()
