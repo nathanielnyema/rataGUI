@@ -169,42 +169,43 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.plugin_pipeline.clear()
 
         self.plugin_pipeline.setRowCount(len(self.camera_widgets))
-        # self.plugin_pipeline.setVerticalHeaderLabels(self.camera_widgets.keys())
+        self.plugin_pipeline.setVerticalHeaderLabels(self.camera_widgets.keys())
 
-        self.plugin_pipeline.setColumnCount(len(self.plugins))
-        # self.plugin_pipeline.setHorizontalHeaderLabels(self.plugins)
+        self.plugin_pipeline.setColumnCount(len(self.plugins.keys()))
+        self.plugin_pipeline.setHorizontalHeaderLabels(self.plugins.keys())
 
-        # for row, widget in enumerate(self.camera_widgets.values()):
-        #     if widget is not None:
-        #         for col, plugin in enumerate()
+        checked_camera_names = [c.text() for c in get_checked_items(self.cam_list)]
+        checked_plugin_names = [p.text() for p in get_checked_items(self.plugin_list)]
 
-        active_camera_names = []
-        plugin_names = []
         for row, (camID, widget) in enumerate(self.camera_widgets.items()):
-            if widget is not None:
-                active_camera_names.append(camID)
-                for col, plugin in enumerate(widget.plugins):
-                    item = QtWidgets.QTableWidgetItem()
-                    item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                    self.plugin_pipeline.setItem(row, col, item)
-                    if plugin.active:
-                        item.setText("Active")
-                        item.setCheckState(Qt.CheckState.Checked)
+            for col, plugin_name in enumerate(self.plugins.keys()):
+                item = QtWidgets.QTableWidgetItem()
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.plugin_pipeline.setItem(row, col, item)
 
+                if widget is not None: # Active
+                    enabled_plugins = {type(plugin).__name__: plugin.active for plugin in widget.plugins}
+                    plugin_active = enabled_plugins.get(plugin_name)
+                    if plugin_active == None:
+                        item.setText("Inactive")
+                    elif plugin_active:
+                        item.setText("Active")
+                        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                        item.setCheckState(Qt.CheckState.Checked)
                     else:
                         item.setText("Paused")
+                        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                         item.setCheckState(Qt.CheckState.Unchecked)
-
-                    if row == 0:
-                        plugin_names.append(type(plugin).__name__)
+                elif camID in checked_camera_names: # Enabled
+                    if plugin_name in checked_plugin_names:
+                        item.setText("Enabled")
+                        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                        item.setCheckState(Qt.CheckState.Checked)
+                    else:
+                        item.setText("Disabled")
+                else:
+                    item.setText("Disabled")
         
-        # Re-adjust table to size
-        self.plugin_pipeline.setRowCount(len(active_camera_names))
-        self.plugin_pipeline.setVerticalHeaderLabels(active_camera_names)
-        self.plugin_pipeline.setColumnCount(len(plugin_names))
-        self.plugin_pipeline.setHorizontalHeaderLabels(plugin_names)
-
         # self.plugin_pipeline.cellChanged.connect()
         self.plugin_pipeline.resizeColumnsToContents()
 
