@@ -6,11 +6,20 @@ import PySpin
 class FLIRCamera(BaseCamera):
 
     DEFAULT_PROPS = {
+        "Limit framerate": True,
+        "Framerate" : 30,
+        "Buffer size mode" : ["Manual", "Auto"], # Defaults to first item
+        "Buffer size": 20,
         "LineSelector" : PySpin.LineSelector_Line2,
         "LineMode" : PySpin.LineMode_Output,
         "LineSource": PySpin.LineSource_ExposureActive,
-        "AcquisitionFrameRateEnable": True,
-        "AcquisitionFrameRate" : 30,
+    }
+
+    DISPLAY_PROP_MAP = {
+        "Framerate": "AcquisitionFrameRate",
+        "Limit framerate": "AcquisitionFrameRateEnable",
+        "Buffer size mode": "StreamBufferCountMode",
+        "Buffer size": "StreamBufferCountManual",
     }
 
     # Global pyspin system variable
@@ -145,8 +154,10 @@ class FLIRCamera(BaseCamera):
         else:
             self.stream.TLStream.StreamBufferHandlingMode.SetValue(PySpin.StreamBufferHandlingMode_NewestFirst)
 
-        for prop_name, value in FLIRCamera.DEFAULT_PROPS.items():
+        for name, value in FLIRCamera.DEFAULT_PROPS.items():
+            prop_name = FLIRCamera.DISPLAY_PROP_MAP[name]
             try: 
+                print(dir(self.stream))
                 node = getattr(self.stream, prop_name)
                 node.SetValue(value)
             except Exception as err:

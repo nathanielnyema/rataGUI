@@ -23,7 +23,9 @@ class FrameDisplay(BasePlugin):
 
     def execute(self, frame):
         """Sets pixmap image to video frame"""
-        # print("frame displayed")
+        print("frame displayed")
+
+        # print(self.in_queue.qsize())
 
         # Get image dimensions
         img_h, img_w, num_ch = frame.shape

@@ -39,3 +39,4 @@ class VerticalTabWidget(QTabWidget):
         super().__init__(*args, **kwargs)
         self.setTabBar(TabBar(self))
         self.setTabPosition(QTabWidget.TabPosition.West)
+        self.setStyleSheet("QTabBar::tab:!selected{ background: lightgray; }")

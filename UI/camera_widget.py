@@ -42,7 +42,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 
         # TODO: Instantiate plugins with camera-specific settings
         self.plugins = [Plugin(self) for Plugin in plugins]
-        self.paused = False
+        self.active = True
         # self.keep_aspect_ratio = aspect_ratio
 
         # Start thread to load camera stream and start pipeline
@@ -53,7 +53,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         loop = asyncio.get_running_loop()
         while self.camera.isOpened():
             
-            if not self.paused:
+            if self.active:
                 status, frame = await loop.run_in_executor(None, self.camera.readCamera)
                 # status, frame = self.camera.readCamera("RGB")
                 if status: 
@@ -83,7 +83,6 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         for plugin in self.plugins:
             await plugin.in_queue.join()
         
-
 
     def stop_plugin_pipeline(self):
         for plugin in self.plugins:

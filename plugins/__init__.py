@@ -28,7 +28,7 @@ async def plugin_process(plugin):
         # TODO: Add plugin-specific data
 
         # TODO: Parallelize with Thread Executor
-
+        
         # Execute plugin
         if plugin.active:
             result = plugin.execute(frame)
