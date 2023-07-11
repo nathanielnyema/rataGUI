@@ -1,12 +1,11 @@
-from datetime import datetime
-
-from plugins import BasePlugin
+from plugins import *
 
 import skvideo
 # skvideo.setFFmpegPath("C:/media-autobuild_suite/local64/bin-video")
 import skvideo.io
 import time
 
+from datetime import datetime
 
 class VideoWriter(BasePlugin):
 

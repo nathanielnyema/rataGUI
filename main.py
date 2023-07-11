@@ -2,12 +2,13 @@ import os
 import sys
 
 from PyQt6.QtWidgets import QApplication
-from UI.main_window import MainWindow
+from interface.main_window import MainWindow
 
 from cameras import BaseCamera
 from plugins import BasePlugin
 
 if __name__ == '__main__':
+    QApplication.setStyle('Fusion')
     app = QApplication(sys.argv)
     
     # Sort to ensure consistent ordering between operating systems

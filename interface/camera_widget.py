@@ -10,7 +10,7 @@ from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
 
 from threads import WorkerThread
-from UI.design.Ui_CameraWidget import Ui_CameraWidget
+from interface.design.Ui_CameraWidget import Ui_CameraWidget
 
 import asyncio
 # from concurrent.futures import ThreadPoolExecutor

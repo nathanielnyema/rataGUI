@@ -1,13 +1,12 @@
 import sys
 import time
-from math import ceil
 from pyqtconfig import ConfigManager
 
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QTimer
 
-from UI.design.Ui_MainWindow import Ui_MainWindow
-from UI.camera_widget import CameraWidget
+from interface.design.Ui_MainWindow import Ui_MainWindow
+from interface.camera_widget import CameraWidget
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):

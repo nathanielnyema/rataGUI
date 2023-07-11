@@ -1,6 +1,4 @@
-from UI.design.Ui_FrameDisplay import Ui_FrameDisplay
-
-from plugins import BasePlugin
+from plugins import *
 
 import cv2
 from datetime import datetime
@@ -13,7 +11,7 @@ class FrameDisplay(BasePlugin):
         'show_timestamp': True,
     }
 
-    def __init__(self, cam_widget, queue_size=0):
+    def __init__(self, cam_widget, config: ConfigManager=None, queue_size=0):
         super().__init__(cam_widget, queue_size)
         
         print("Started FrameDisplay for: {}".format(cam_widget.camera.cameraID))

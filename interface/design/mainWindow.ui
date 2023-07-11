@@ -419,7 +419,7 @@
   <customwidget>
    <class>VerticalTabWidget</class>
    <extends>QTabWidget</extends>
-   <header>UI.vtab_widget</header>
+   <header>interface.vtab_widget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

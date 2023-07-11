@@ -4,10 +4,12 @@ Loads plugin modules listed in config.py (defaults to all plugins if none are sp
 Stores utility functions available to every plugin in folder
 """
 
+__all__ = ['ConfigManager', 'BasePlugin']
+from pyqtconfig import ConfigManager
+from .base_plugin import BasePlugin
+
 import os
 import traceback
-
-from .base_plugin import BasePlugin
 
 from importlib import util
 from config import enabled_plugins

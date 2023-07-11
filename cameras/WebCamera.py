@@ -19,18 +19,20 @@ class WebCamera(BaseCamera):
     @staticmethod
     def getAvailableCameras(search = 2):
         '''Returns list of all available web cameras'''
-        cameras = []
-        for i in range(search):
-            cam = WebCamera(i)
-            cam.initializeCamera()
-            # Try to read a couple frames
-            for _ in range(2):
-                if cam.readCamera()[0]:
-                    cameras.append(cam)
-                    cam.frames_acquired = 0
-                    break
-            cam.closeCamera()
-        return cameras
+        # cameras = []
+        # for i in range(search):
+        #     cam = WebCamera(i)
+        #     cam.initializeCamera()
+        #     # Try to read a couple frames
+        #     for _ in range(2):
+        #         if cam.readCamera()[0]:
+        #             cameras.append(cam)
+        #             cam.frames_acquired = 0
+        #             break
+        #     cam.closeCamera()
+        # return cameraså
+
+        return [WebCamera(0)]
 
     def initializeCamera(self):
         self.stream = cv2.VideoCapture(self.cameraID)
