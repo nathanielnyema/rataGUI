@@ -25,7 +25,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     @param aspect_ratio - whether to maintain frame aspect ratio or force into fraame
     """
 
-    def __init__(self, camera=None, plugins=[]):
+    def __init__(self, camera=None, cam_config=None, plugins=[]):
         super().__init__()
         self.setupUi(self)
 
@@ -36,14 +36,14 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         # Initialize camera object
         self.camera = camera
         self.camera_model = type(camera).__name__
+        self.camera_config = cam_config
 
         # Create GUI threadpool
         self.threadpool = QThreadPool().globalInstance()
 
         # TODO: Instantiate plugins with camera-specific settings
-        self.plugins = [Plugin(self) for Plugin in plugins]
+        self.plugins = [Plugin(self, config) for Plugin, config in plugins]
         self.active = True
-        # self.keep_aspect_ratio = aspect_ratio
 
         # Start thread to load camera stream and start pipeline
         self.pipeline_thread = WorkerThread(self.start_camera_pipeline)
@@ -91,7 +91,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     @pyqtSlot()
     def start_camera_pipeline(self):
         print('Started camera: {}'.format(self.camera.cameraID))
-        self.camera.initializeCamera()
+        self.camera.initializeCamera(self.camera_config)
         asyncio.run(self.process_plugin_pipeline())
 
     def close_camera_pipeline(self):

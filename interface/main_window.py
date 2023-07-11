@@ -10,15 +10,20 @@ from interface.camera_widget import CameraWidget
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    def __init__(self, camera_models = [], plugins = []):
+    def __init__(self, camera_models = [], plugins = [], dark_mode=True):
         super().__init__()
         self.setupUi(self)
 
         # Set geometry relative to screen
         self.screen = QtGui.QGuiApplication.primaryScreen().availableGeometry()
         x_pos = (self.screen.width() - self.width()) // 2
-        y_pos = 2 * (self.screen.height() - self.height()) // 3
+        y_pos = (self.screen.height() - self.height()) // 3
         self.move(x_pos, y_pos)
+
+        # Configure color scheme
+        if dark_mode:
+            self.active_color = QtGui.QColorConstants.DarkMagenta
+            # self._color
 
         # Create ID look-ups for cameras, widgets, and configs
         self.cameras = {}
@@ -109,26 +114,33 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             tab = QtWidgets.QWidget()
             if hasattr(cls, "DEFAULT_PROPS"):
                 config.set_defaults(cls.DEFAULT_PROPS)
-                for key, value in cls.DEFAULT_PROPS.items():
-                    if isinstance(value, bool):
+                for key, setting in cls.DEFAULT_PROPS.items():
+                    mapper = (lambda x: x, lambda x: x)
+                    if isinstance(setting, bool):
                         widget = QtWidgets.QCheckBox()
-                    elif isinstance(value, str):
+                    elif isinstance(setting, str):
                         widget = QtWidgets.QLineEdit()
-                    elif isinstance(value, int):
+                    elif isinstance(setting, int):
                         widget = QtWidgets.QSpinBox()
-                    elif isinstance(value, list):
+                    elif isinstance(setting, list):
                         widget = QtWidgets.QComboBox()
-                        widget.addItems(value)
-                        config.set_default(key, value[0])
+                        widget.addItems(setting)
+                        config.set_default(key, setting[0]) # Default to first value
+                    elif isinstance(setting, dict):
+                        widget = QtWidgets.QComboBox()
+                        options = list(setting.keys())
+                        widget.addItems(options)
+                        config.set_default(key, setting[options[0]]) # Default to first value
+                        mapper = setting
 
-                    config.add_handler(key, widget)
+                    config.add_handler(key, widget, mapper)
             
             layout = make_config_layout(config)
             # layout.setSpacing(0)
             # layout.addStretch()
             layout.insertStretch(1, 1)
             tab.setLayout(layout)
-            self.cam_props.addTab(tab, str(camID))
+            self.cam_props.insertTab(0, tab, str(camID))
 
 
     def populate_camera_stats(self):
@@ -180,7 +192,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     config.add_handler(key, widget)
             
             layout = make_config_layout(config)
-            layout.insertStretch(1, 5)
+            layout.insertStretch(1, 1)
             tab.setLayout(layout)
             self.plugin_settings.addTab(tab, name)
     
@@ -289,12 +301,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     plugin_name = self.plugin_pipeline.horizontalHeaderItem(col).text()
                     item = self.plugin_pipeline.item(row, col)
                     if item.text() == "Enabled":
-                        enabled_plugins.append(self.plugins[plugin_name])
+                        enabled_plugins.append((self.plugins[plugin_name], self.plugin_configs[plugin_name]))
                 if len(enabled_plugins) == 0:
                     print("At least one plugin must be selected")
                     break
-
-                widget = CameraWidget(camera=self.cameras[camID], plugins=enabled_plugins)
+                
+                config = self.camera_configs[camID].as_dict()
+                widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins)
                 x_pos = min(widget.width() * row, screen_width - widget.width())
                 y_pos = (widget.height() // 2) * (row * widget.width() // screen_width)
                 widget.move(x_pos,y_pos)
@@ -364,7 +377,7 @@ def make_config_layout(config, cols=2):
     h_layout = QtWidgets.QHBoxLayout()
     forms = [QtWidgets.QFormLayout() for _ in range(cols)]
     for form in forms:
-        h_layout.addLayout(form, 3)
+        h_layout.addLayout(form, 4)
 
     num_items = len(config.get_visible_keys())
     for i, key in enumerate(config.get_visible_keys()):

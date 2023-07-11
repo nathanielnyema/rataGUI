@@ -1,8 +1,8 @@
 from plugins import *
 
-import skvideo
-# skvideo.setFFmpegPath("C:/media-autobuild_suite/local64/bin-video")
-import skvideo.io
+from skvideo import setFFmpegPath
+# setFFmpegPath("C:/media-autobuild_suite/local64/bin-video")
+from skvideo.io import FFmpegWriter
 import time
 
 from datetime import datetime
@@ -10,17 +10,22 @@ from datetime import datetime
 class VideoWriter(BasePlugin):
 
     DEFAULT_CONFIG = {
-        'vcodec': 'libx265',
+        'vcodec': 'libx264',
         'framerate': 30,
         'speed (preset)': ["medium", "fast", "veryfast", "ultrafast", "slow", "slower", "veryslow"], # Defaults to first item
-        "quality (0-51)": 28,
+        "quality (0-51)": 32,
     }
 
-    def __init__(self, cam_widget, queue_size=0, input_params={}, output_params={}):
-        super().__init__(cam_widget, queue_size)
+    def __init__(self, cam_widget, config: ConfigManager = None, queue_size=0):
+        super().__init__(cam_widget, config, queue_size)
         print("Started VideoWriter for: {}".format(cam_widget.camera.cameraID))
-        self.input_params = input_params
-        self.output_params = output_params
+        self.input_params = {}
+        self.output_params = {
+            '-vcodec': config.get('vcodec'),
+            '-framerate': str(config.get('framerate')),
+            '-preset': config.get('speed (preset)'),
+            '-crf': str(config.get('quality (0-51)')),
+        }
 
         # self.output_params = {
         #                         # "-hwaccel": "cuda",
@@ -32,14 +37,14 @@ class VideoWriter(BasePlugin):
         #                         "-preset": "fast", 
         #                         "-crf": "32", 
         #                     }
-        self.output_params = {'-vcodec': 'libx264', '-crf': '32', '-pix_fmt': 'rgb24'}
+        # self.output_params = {'-vcodec': 'libx264', '-crf': '32', '-pix_fmt': 'rgb24'}
 
         file_name = "videos/" + str(cam_widget.camera.cameraID) + "_" + datetime.now().strftime('%H-%M-%S') + ".mp4"
-        self.writer = skvideo.io.FFmpegWriter(file_name, inputdict=self.input_params, outputdict=self.output_params)
+        self.writer = FFmpegWriter(file_name, inputdict=self.input_params, outputdict=self.output_params)
 
     def execute(self, frame):
-        print("frame saved")
-        time.sleep(1.0)
+        # print("frame saved")
+        # time.sleep(1.0)
         self.writer.writeFrame(frame)
 
         return frame

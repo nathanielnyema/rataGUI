@@ -1,4 +1,4 @@
-from cameras import BaseCamera
+from cameras import *
 
 import cv2
 import numpy as np

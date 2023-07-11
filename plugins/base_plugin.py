@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Any
-import numpy.typing as npt
 
 from asyncio import Queue
-from PyQt6 import QtWidgets
+from PyQt6.QtWidgets import QWidget
+from pyqtconfig import ConfigManager
 
 class BasePlugin(ABC):
     """
@@ -21,8 +20,9 @@ class BasePlugin(ABC):
         cls.plugins.append(cls)
 
     @abstractmethod
-    def __init__(self, cam_widget: QtWidgets.QWidget, queue_size):
+    def __init__(self, cam_widget: QWidget, config: ConfigManager, queue_size=0):
         self.active = True
+        self.config = config
         self.in_queue = Queue(queue_size)
         self.out_queue = None
 

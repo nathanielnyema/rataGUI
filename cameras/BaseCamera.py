@@ -35,7 +35,7 @@ class BaseCamera(ABC):
         # TODO: Add required properties
 
     @abstractmethod
-    def initializeCamera(self) -> bool:
+    def initializeCamera(self, prop_config: dict) -> bool:
         """
         Initializes the camera.
         """

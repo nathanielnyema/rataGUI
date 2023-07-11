@@ -1,6 +1,8 @@
 import os
 import traceback
 
+__all__ = ['ConfigManager', 'BaseCamera']
+from pyqtconfig import ConfigManager
 from .BaseCamera import BaseCamera
 
 from importlib import util

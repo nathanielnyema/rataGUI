@@ -8,20 +8,22 @@ from PyQt6.QtCore import Qt
 class FrameDisplay(BasePlugin):
 
     DEFAULT_CONFIG = {
-        'show_timestamp': True,
+        'show timestamp': True,
+        'keep aspect ratio': True,
     }
 
-    def __init__(self, cam_widget, config: ConfigManager=None, queue_size=0):
-        super().__init__(cam_widget, queue_size)
+    def __init__(self, cam_widget, config: ConfigManager = None, queue_size=0):
+        super().__init__(cam_widget, config, queue_size)
         
         print("Started FrameDisplay for: {}".format(cam_widget.camera.cameraID))
         self.video_frame = cam_widget.video_frame
         self.frame_width = cam_widget.frame_width
         self.frame_height = cam_widget.frame_height
 
+
     def execute(self, frame):
         """Sets pixmap image to video frame"""
-        print("frame displayed")
+        # print("frame displayed")
 
         # print(self.in_queue.qsize())
 

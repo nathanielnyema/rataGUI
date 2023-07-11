@@ -1,4 +1,4 @@
-from cameras import BaseCamera
+from cameras import *
 
 import cv2
 import PySpin
@@ -8,8 +8,10 @@ class FLIRCamera(BaseCamera):
     DEFAULT_PROPS = {
         "Limit framerate": True,
         "Framerate" : 30,
-        "Buffer size mode" : ["Manual", "Auto"], # Defaults to first item
-        "Buffer size": 20,
+        # "Buffer size mode" : ["Manual", "Auto"], # Defaults to first item
+        # "Buffer size": 20,
+        "Buffer handling mode" : {"NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,
+                                 "NewestFirst": PySpin.StreamBufferHandlingMode_NewestFirst},  # Defaults to first item
         "LineSelector" : PySpin.LineSelector_Line2,
         "LineMode" : PySpin.LineMode_Output,
         "LineSource": PySpin.LineSource_ExposureActive,
@@ -18,8 +20,9 @@ class FLIRCamera(BaseCamera):
     DISPLAY_PROP_MAP = {
         "Framerate": "AcquisitionFrameRate",
         "Limit framerate": "AcquisitionFrameRateEnable",
-        "Buffer size mode": "StreamBufferCountMode",
-        "Buffer size": "StreamBufferCountManual",
+        # "Buffer size mode": "StreamBufferCountMode",
+        # "Buffer size": "StreamBufferCountManual",
+        "Buffer handling mode": "TLStream.StreamBufferHandlingMode",
     }
 
     # Global pyspin system variable
@@ -128,7 +131,7 @@ class FLIRCamera(BaseCamera):
 
         return result
 
-    def initializeCamera(self, prop_dict: dict = {}, drop_frames = True) -> bool:
+    def initializeCamera(self, prop_config: dict = {}) -> bool:
         # Reset session variables
         self.__init__(self.cameraID)
 
@@ -149,20 +152,22 @@ class FLIRCamera(BaseCamera):
         enabled_chunks = ["FrameID", "Timestamp"] # ExposureTime, PixelFormat
         self.configure_chunk_data(nodemap, enabled_chunks)
 
-        if drop_frames:
-            self.stream.TLStream.StreamBufferHandlingMode.SetValue(PySpin.StreamBufferHandlingMode_NewestOnly)
-        else:
-            self.stream.TLStream.StreamBufferHandlingMode.SetValue(PySpin.StreamBufferHandlingMode_NewestFirst)
+        for name, value in prop_config.items():
+            prop_name = FLIRCamera.DISPLAY_PROP_MAP.get(name)
+            if prop_name is None:
+                prop_name = name
 
-        for name, value in FLIRCamera.DEFAULT_PROPS.items():
-            prop_name = FLIRCamera.DISPLAY_PROP_MAP[name]
-            try: 
-                print(dir(self.stream))
-                node = getattr(self.stream, prop_name)
+            try:
+                # Recursively access QuickSpin API
+                node = self.stream
+                for attr in prop_name.split('.'):
+                    node = getattr(node, attr)
+
                 node.SetValue(value)
             except Exception as err:
                 print(err)
-                return False
+                return False  
+                
         self.initialized = True
         self.startStream()
 
