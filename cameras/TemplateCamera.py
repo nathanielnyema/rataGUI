@@ -1,4 +1,4 @@
-from cameras import *
+from cameras import BaseCamera
 
 import cv2
 
@@ -14,7 +14,7 @@ class TemplateCamera(BaseCamera):
         self.cameraID = cameraID
         self.last_frame = None
 
-    def initializeCamera(self):
+    def initializeCamera(self, config = dict()):
         cap = cv2.VideoCapture(self.cameraID)
         if cap.isOpened():
             self._running = True

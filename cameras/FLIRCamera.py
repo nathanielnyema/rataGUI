@@ -1,4 +1,4 @@
-from cameras import *
+from cameras import BaseCamera
 
 import cv2
 import PySpin
@@ -127,7 +127,7 @@ class FLIRCamera(BaseCamera):
 
         return result
 
-    def initializeCamera(self, prop_config: dict = {}) -> bool:
+    def initializeCamera(self, prop_config = dict()) -> bool:
         # Reset session variables
         self.__init__(self.cameraID)
 

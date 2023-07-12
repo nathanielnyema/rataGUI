@@ -1,4 +1,4 @@
-from cameras import *
+from cameras import BaseCamera
 
 import cv2
 import numpy as np
@@ -34,7 +34,7 @@ class WebCamera(BaseCamera):
 
         return [WebCamera(0)]
 
-    def initializeCamera(self):
+    def initializeCamera(self, config = dict()):
         self.stream = cv2.VideoCapture(self.cameraID)
         self._running = True
 

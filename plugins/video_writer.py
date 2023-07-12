@@ -1,4 +1,4 @@
-from plugins import *
+from plugins import BasePlugin, ConfigManager
 
 from skvideo import setFFmpegPath
 # setFFmpegPath("C:/media-autobuild_suite/local64/bin-video")
@@ -10,7 +10,7 @@ from datetime import datetime
 class VideoWriter(BasePlugin):
 
     DEFAULT_CONFIG = {
-        'vcodec': ['libx264', 'libx265',],
+        'vcodec': ['libx264', 'libx265', 'huffyuv'],
         'framerate': 30,
         'speed (preset)': ["medium", "fast", "veryfast", "ultrafast", "slow", "slower", "veryslow"], # Defaults to first item
         'quality (0-51)': 32,
@@ -22,7 +22,7 @@ class VideoWriter(BasePlugin):
         'quality (0-51)': 'crf',
     }
 
-    def __init__(self, cam_widget, config: ConfigManager = None, queue_size=0):
+    def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
         print("Started VideoWriter for: {}".format(cam_widget.camera.cameraID))
         self.input_params = {}
@@ -33,18 +33,12 @@ class VideoWriter(BasePlugin):
                 prop_name = name
 
             if prop_name == "filename":
-                file_name = value
                 if value == "": # default value
                     file_name = str(cam_widget.camera.cameraID) + "_" + datetime.now().strftime('%H-%M-%S')
+                else:
+                    file_name = value
             else:
                 self.output_params['-'+prop_name] = str(value)
-
-        # self.output_params = {
-        #     '-vcodec': config.get('vcodec'),
-        #     '-framerate': str(config.get('framerate')),
-        #     '-preset': config.get('speed (preset)'),
-        #     '-crf': str(config.get('quality (0-51)')),
-        # }
 
         # self.output_params = {
         #                         # "-hwaccel": "cuda",
@@ -57,9 +51,14 @@ class VideoWriter(BasePlugin):
         #                         "-crf": "32", 
         #                     }
         # self.output_params = {'-vcodec': 'libx264', '-crf': '32', '-pix_fmt': 'rgb24'}
-        extension = ".mp4"
+    
+        if self.output_params.get("-vcodec") in ['libx264', 'libx265']:
+            extension = ".mp4"
+        elif self.output_params.get("-vcodec") in ['huffyuv']: # lossless
+            extension = ".avi"
+
         file_path = "videos/" + file_name + extension
-        self.writer = FFmpegWriter(file_name, inputdict=self.input_params, outputdict=self.output_params)
+        self.writer = FFmpegWriter(file_path, inputdict=self.input_params, outputdict=self.output_params)
 
     def execute(self, frame):
         # print("frame saved")

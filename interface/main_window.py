@@ -63,7 +63,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Update camera stats occasionally
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.update_camera_stats)
-        self.update_timer.start(250)
+        self.update_timer.start(500)
 
 
     def update_camera_stats(self):
@@ -74,17 +74,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.cam_stats.item(row, 2).setText(str(camera.frames_dropped))
             else:
                 self.cam_stats.item(row, 2).setText("N/A")
-
-            # widget = self.camera_widgets[name]
-            # if widget is not None:
-            #     for col, plugin in enumerate(widget.plugins):
-            #         if row == 0: # Only set header once
-            #             header_item = QtWidgets.QTableWidgetItem(type(plugin).__name__ + " Queue")
-            #             self.cam_stats.setHorizontalHeaderItem(3+col, header_item)
-
-            #         self.cam_stats.setItem(row, 3+col, QtWidgets.QTableWidgetItem(str(plugin.in_queue.qsize())))
-        
-        # self.cam_stats.resizeColumnsToContents()
     
     # def update_plugin_stats(self):
     #     pass
@@ -376,38 +365,23 @@ def get_checked_items(check_list: QtWidgets.QListWidget) -> list:
 
 def make_config_layout(config, cols=2):
     """
-    Generate a layout based on the input ConfigManager. The layout consists of a user specified number of columns of
-    QFormLayout. In each row of the QFormLayout, the label is the config dict key, and the field is the config handler
-    for that key.
+    Generate a QHBoxLayout based on the input ConfigManager where each column is a QFormLayout
+    For each row, the label is the config dict key, and the field is the config handler for that key.
 
     :param config: ConfigManager
     :param cols: Number of columns to use
     :return: QHBoxLayout
     """
-    h_layout = QtWidgets.QHBoxLayout()
+    layout = QtWidgets.QHBoxLayout()
     forms = [QtWidgets.QFormLayout() for _ in range(cols)]
     for form in forms:
-        h_layout.addLayout(form, 4)
+        layout.addLayout(form, 4)
 
-    num_items = len(config.get_visible_keys())
     for i, key in enumerate(config.get_visible_keys()):
-        # Find which column to put the setting in. Columns are filled equally, with remainder to the left. Each column
-        # is filled before proceeding to the next.
         f_index = i % cols
-
-        # Get the handler widget for the key
-        if key in config.handlers:
-            # If we've already defined a handler, use that
-            input_widget = config.handlers[key]
-        else:
-            # Otherwise, try to add a handler. If it fails, skip this row
-            config.add_handler(key)
-            if key not in config.handlers:
-                continue
-            else:
-                input_widget = config.handlers[key]
+        handler = config.handlers[key]
 
         label = QtWidgets.QLabel(key)
-        forms[f_index].addRow(label, input_widget)
+        forms[f_index].addRow(label, handler)
 
-    return h_layout
+    return layout
