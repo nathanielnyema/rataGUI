@@ -17,13 +17,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Set geometry relative to screen
         self.screen = QtGui.QGuiApplication.primaryScreen().availableGeometry()
         x_pos = (self.screen.width() - self.width()) // 2
-        y_pos = (self.screen.height() - self.height()) // 3
+        y_pos = 3 * (self.screen.height() - self.height()) // 4
         self.move(x_pos, y_pos)
 
         # Configure color scheme
         if dark_mode:
             self.active_color = QtGui.QColorConstants.DarkMagenta
-            # self._color
+            self.paused_color = QtGui.QColorConstants.DarkGray
+            self.inactive_color = QtGui.QColorConstants.Black
+        else:
+            self.active_color = QtGui.QColorConstants.Green
+            self.paused_color = QtGui.QColorConstants.LightGray
+            self.inactive_color = QtGui.QColorConstants.DarkGray
 
         # Create ID look-ups for cameras, widgets, and configs
         self.cameras = {}
@@ -79,7 +84,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             #         self.cam_stats.setItem(row, 3+col, QtWidgets.QTableWidgetItem(str(plugin.in_queue.qsize())))
         
-        self.cam_stats.resizeColumnsToContents()
+        # self.cam_stats.resizeColumnsToContents()
     
     # def update_plugin_stats(self):
     #     pass
@@ -105,6 +110,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 if cam.getName() not in self.cameras.keys():
                     self.cameras[cam.getName()] = cam
                     self.camera_widgets[cam.getName()] = None
+        
+        # Ensure consistent ordering throughout interface
+        self.cameras = dict(sorted(self.cameras.items()))
+        self.camera_widgets = dict(sorted(self.camera_widgets.items()))
     
 
     def populate_camera_properties(self):
@@ -140,7 +149,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             # layout.addStretch()
             layout.insertStretch(1, 1)
             tab.setLayout(layout)
-            self.cam_props.insertTab(0, tab, str(camID))
+            self.cam_props.addTab(tab, str(camID))
 
 
     def populate_camera_stats(self):
@@ -153,6 +162,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem(str(camera.frames_dropped)))
             else:
                 self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem("N/A"))
+
+        self.cam_stats.resizeColumnsToContents()
 
 
     def populate_plugin_list(self):
@@ -228,31 +239,31 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
                     if not widget.active:
                          item.setText("Paused")
-                         item.setBackground(QtGui.QColorConstants.LightGray)
+                         item.setBackground(self.paused_color)
                     elif plugin_active == None:
                         item.setText("Inactive")
-                        item.setBackground(QtGui.QColorConstants.DarkGray)
+                        item.setBackground(self.inactive_color)
                     elif plugin_active:
                         item.setText("Active")
                         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                         item.setCheckState(Qt.CheckState.Checked)
-                        item.setBackground(QtGui.QColorConstants.Green)
+                        item.setBackground(self.active_color)
                     else:
                         item.setText("Paused")
                         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                         item.setCheckState(Qt.CheckState.Unchecked)
-                        item.setBackground(QtGui.QColorConstants.LightGray)
+                        item.setBackground(self.paused_color)
                 elif camID in checked_camera_names: # Enabled
                     if plugin_name in checked_plugin_names:
                         item.setText("Enabled")
                         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                         item.setCheckState(Qt.CheckState.Checked)
                     else:
-                        item.setText("Disabled")
-                        item.setBackground(QtGui.QColorConstants.DarkGray)
+                        item.setText("")
+                        item.setBackground(self.inactive_color)
                 else:
-                    item.setText("Disabled")
-                    item.setBackground(QtGui.QColorConstants.DarkGray)
+                    item.setText("")
+                    item.setBackground(self.inactive_color)
         
         self.plugin_pipeline.itemChanged.connect(self.toggle_camera_plugin)
         self.plugin_pipeline.resizeColumnsToContents()
@@ -265,20 +276,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if item.checkState() == Qt.CheckState.Checked:
             if item.text() == "Paused":
                 item.setText("Active")
-                item.setBackground(QtGui.QColorConstants.Green)
+                item.setBackground(self.active_color)
                 widget = self.camera_widgets[camID]
                 for plugin in widget.plugins: # Find plugin by name
                     if isinstance(plugin, self.plugins[plugin_name]):
                         plugin.active = True
                         break
             elif item.text() == "Disabled":
-                item.setText("Enabled") 
-                item.setBackground(QtGui.QColorConstants.White) # Reset to default color
+                item.setText("Enabled")
+                item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
 
         elif item.checkState() == Qt.CheckState.Unchecked:
             if item.text() == "Active":
                 item.setText("Paused")
-                item.setBackground(QtGui.QColorConstants.LightGray)
+                item.setBackground(self.paused_color)
                 widget = self.camera_widgets[camID]
                 for plugin in widget.plugins: # Find plugin by name
                     if isinstance(plugin, self.plugins[plugin_name]):
@@ -286,15 +297,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         break
             elif item.text() == "Enabled":
                 item.setText("Disabled")
-                item.setBackground(QtGui.QColorConstants.DarkGray)
+                item.setBackground(self.inactive_color)
 
 
-    def start_camera_widgets(self):        
+    def start_camera_widgets(self):
         screen_width = self.screen.width()
         for row in range(self.plugin_pipeline.rowCount()):
             camID = self.plugin_pipeline.verticalHeaderItem(row).text()
             widget = self.camera_widgets[camID]
-
             if widget is None: # Create new widget
                 enabled_plugins = []
                 for col in range(self.plugin_pipeline.columnCount()):
@@ -303,8 +313,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     if item.text() == "Enabled":
                         enabled_plugins.append((self.plugins[plugin_name], self.plugin_configs[plugin_name]))
                 if len(enabled_plugins) == 0:
-                    print("At least one plugin must be selected")
-                    break
+                    # print("At least one plugin must be selected")
+                    continue
                 
                 config = self.camera_configs[camID].as_dict()
                 widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins)
@@ -312,11 +322,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 y_pos = (widget.height() // 2) * (row * widget.width() // screen_width)
                 widget.move(x_pos,y_pos)
                 self.camera_widgets[camID] = widget
-                self.cam_list.item(row).setBackground(QtGui.QColorConstants.Green)
+                self.cam_list.item(row).setBackground(self.active_color)
                 self.camera_widgets[camID].show()
             elif not widget.active: # Toggle paused widget to resume
                 widget.active = True
-                widget.setBackground(QtGui.QColorConstants.Green)
+                self.cam_list.item(row).setBackground(self.active_color)
                 self.camera_widgets[camID].show()
 
         self.populate_plugin_pipeline()
@@ -328,7 +338,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             cam_widget = self.camera_widgets[camID]
             if cam_widget is not None:
                 cam_widget.active = False
-                cam_item.setBackground(QtGui.QColorConstants.LightGray)
+                cam_item.setBackground(self.paused_color)
 
 
     def stop_camera_widgets(self):
@@ -338,7 +348,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if cam_widget is not None:
                 self.camera_widgets[camID] = None
                 cam_widget.close_widget()
-                cam_item.setBackground(QtGui.QColorConstants.White)
+                cam_item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
 
 
     def closeEvent(self, event):
@@ -346,7 +356,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if cam_widget is not None:
                 cam_widget.close_widget()
         # Wait for threads to stop TODO: More sophisticated way to wait for threads to stop
-        time.sleep(0.5)
+        time.sleep(0.42)
 
         # Release camera-specific resources
         for cam_type in self.camera_models:

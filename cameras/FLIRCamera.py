@@ -8,10 +8,8 @@ class FLIRCamera(BaseCamera):
     DEFAULT_PROPS = {
         "Limit framerate": True,
         "Framerate" : 30,
-        # "Buffer size mode" : ["Manual", "Auto"], # Defaults to first item
-        # "Buffer size": 20,
-        "Buffer handling mode" : {"NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,
-                                 "NewestFirst": PySpin.StreamBufferHandlingMode_NewestFirst},  # Defaults to first item
+        "Buffer handling mode" : {"OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
+                                 "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,},  # Defaults to first item
         "LineSelector" : PySpin.LineSelector_Line2,
         "LineMode" : PySpin.LineMode_Output,
         "LineSource": PySpin.LineSource_ExposureActive,
@@ -20,8 +18,6 @@ class FLIRCamera(BaseCamera):
     DISPLAY_PROP_MAP = {
         "Framerate": "AcquisitionFrameRate",
         "Limit framerate": "AcquisitionFrameRateEnable",
-        # "Buffer size mode": "StreamBufferCountMode",
-        # "Buffer size": "StreamBufferCountManual",
         "Buffer handling mode": "TLStream.StreamBufferHandlingMode",
     }
 
@@ -167,7 +163,7 @@ class FLIRCamera(BaseCamera):
             except Exception as err:
                 print(err)
                 return False  
-                
+
         self.initialized = True
         self.startStream()
 
@@ -196,7 +192,9 @@ class FLIRCamera(BaseCamera):
         new_index = chunk_data.GetFrameID()
 
         # Detect dropped frames
-        if self.last_index > 0:
+        if self.last_index >= 0:
+            if new_index - self.last_index - 1 < 0:
+                print(self.frames_dropped, new_index, self.last_index)
             self.frames_dropped += new_index - self.last_index - 1
         self.last_index = new_index
         self.frames_acquired += 1
