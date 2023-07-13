@@ -51,6 +51,7 @@ class VideoWriter(BasePlugin):
         elif self.output_params.get("-vcodec") in ['huffyuv']: # lossless
             extension = ".avi"
         
+        os.makedirs(self.save_dir, exist_ok=True)
         self.file_path = os.path.join(self.save_dir, file_name + extension)
         count = 1
         while os.path.exists(self.file_path): # file already exists -> add copy

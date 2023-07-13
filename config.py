@@ -11,3 +11,6 @@ enabled_plugins = []
 
 # Specify paths to video files for VideoReader
 video_file_paths = []
+
+# Save and restore settings between sessions
+restore_settings = True

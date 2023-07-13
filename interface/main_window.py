@@ -1,13 +1,15 @@
 import os
 # import sys
 import time
-from pyqtconfig import ConfigManager
+import json
 
+from pyqtconfig import ConfigManager
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QTimer
 
 from interface.design.Ui_MainWindow import Ui_MainWindow
 from interface.camera_widget import CameraWidget
+from config import restore_settings
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
@@ -48,6 +50,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.plugin_configs = {p.__name__ : ConfigManager() for p in plugins}
         self.populate_plugin_settings()
         self.populate_plugin_pipeline()
+
+        if restore_settings: 
+            self.restore_session() # Load config from session 
         
         # Create camera widget and start pipeline 
         self.start_button.clicked.connect(self.start_camera_widgets)
@@ -67,7 +72,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_timer.start(500)
 
 
-    def update_camera_stats(self):
+    def update_camera_stats(self): # Save stats?
         for row, camera in enumerate(self.cameras.values()):
             self.cam_stats.item(row, 0).setText(camera.getName())
             self.cam_stats.item(row, 1).setText(str(camera.frames_acquired))
@@ -341,17 +346,50 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 cam_item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
 
 
+    def save_session(self):
+        save_dir = os.path.join(os.getcwd(), 'session')
+        os.makedirs(save_dir, exist_ok=True)
+        cam_settings = {}
+        for camID, config in self.camera_configs.items():
+            cam_settings[camID] = config.as_dict()
+        with open(os.path.join(save_dir, "camera_settings.json"), 'w') as file:
+            json.dump(cam_settings, file, indent=2)
+
+        plugin_settings = {}
+        for name, config in self.plugin_configs.items():
+            plugin_settings[name] = config.as_dict()
+        with open(os.path.join(save_dir, "plugin_settings.json"), 'w') as file:
+            json.dump(plugin_settings, file, indent=2)
+
+        ui_settings = {}
+        ui_settings["checked_cameras"] = [c.text() for c in get_checked_items(self.cam_list)]
+        ui_settings["checked_plugins"] = [p.text() for p in get_checked_items(self.plugin_list)]
+        ui_settings["window_width"] = self.size().width()
+        ui_settings["window_height"] = self.size().height()
+        ui_settings["window_x"] = self.pos().x()
+        ui_settings["window_y"] = self.pos().y()
+        with open(os.path.join(save_dir, "interface_settings.json"), 'w') as file:
+            json.dump(ui_settings, file, indent=2)
+
+    def restore_session(self):
+        save_dir = os.path.join(os.getcwd(), 'session')
+        cam_config_path = os.path.join(save_dir, "camera_settings.json")
+        with open(cam_config_path, 'r') as file:
+            cam_config = json.load(file)
+        for name, config in self.camera_configs.items():
+            pass
+        
+
     def closeEvent(self, event):
         for cam_widget in self.camera_widgets.values():
             if cam_widget is not None:
                 cam_widget.close_widget()
 
-        # Save session configuration to json file
-        # os.makedirs(os.path.join(os.getcwd(), 'session'), exist_ok=True)
-        # for name, config 
+        # Save session configuration as json files
+        self.save_session()
 
-        # Wait for threads to stop TODO: More sophisticated way to wait for threads to stop
-        time.sleep(0.21)
+        # # Wait for threads to stop TODO: More sophisticated way to wait for threads to stop
+        # time.sleep(0.21)
 
         # Release camera-specific resources
         for cam_type in self.camera_models:
