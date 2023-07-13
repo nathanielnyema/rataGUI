@@ -41,7 +41,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         # Create GUI threadpool
         self.threadpool = QThreadPool().globalInstance()
 
-        # TODO: Instantiate plugins with camera-specific settings
+        # Instantiate plugins with camera-specific settings
         self.plugins = [Plugin(self, config) for Plugin, config in plugins]
         self.active = True
 
@@ -82,11 +82,14 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         await self.acquire_frames()
         for plugin in self.plugins:
             await plugin.in_queue.join()
-        
 
     def stop_plugin_pipeline(self):
         for plugin in self.plugins:
             plugin.active = False
+
+    def close_plugin_pipeline(self):
+        for plugin in self.plugins:
+            plugin.close()
 
     @pyqtSlot()
     def start_camera_pipeline(self):
@@ -103,5 +106,6 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     def close_widget(self):
         self.close_camera_pipeline()
         # Wait for thread to finish and queues to empty
+        self.pipeline_thread.signals.finished.connect(self.close_plugin_pipeline)
         self.pipeline_thread.signals.finished.connect(self.deleteLater)
 

@@ -8,7 +8,7 @@ class FLIRCamera(BaseCamera):
     DEFAULT_PROPS = {
         "Limit framerate": True,
         "Framerate" : 30,
-        "Buffer handling mode" : {"OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
+        "Buffer mode" : {"OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
                                  "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,},  # Defaults to first item
         "LineSelector" : PySpin.LineSelector_Line2,
         "LineMode" : PySpin.LineMode_Output,
@@ -18,7 +18,7 @@ class FLIRCamera(BaseCamera):
     DISPLAY_PROP_MAP = {
         "Framerate": "AcquisitionFrameRate",
         "Limit framerate": "AcquisitionFrameRateEnable",
-        "Buffer handling mode": "TLStream.StreamBufferHandlingMode",
+        "Buffer mode": "TLStream.StreamBufferHandlingMode",
     }
 
     # Global pyspin system variable
@@ -137,14 +137,14 @@ class FLIRCamera(BaseCamera):
             cam_list.Clear()
             return False
         
-        self.stream = cam_list.GetBySerial(self.cameraID)
+        self._stream = cam_list.GetBySerial(self.cameraID)
         cam_list.Clear()
 
         # Initialize stream
-        if not self.stream.IsInitialized():
-            self.stream.Init()
+        if not self._stream.IsInitialized():
+            self._stream.Init()
 
-        nodemap = self.stream.GetNodeMap()
+        nodemap = self._stream.GetNodeMap()
         enabled_chunks = ["FrameID", "Timestamp"] # ExposureTime, PixelFormat
         self.configure_chunk_data(nodemap, enabled_chunks)
 
@@ -155,7 +155,7 @@ class FLIRCamera(BaseCamera):
 
             try:
                 # Recursively access QuickSpin API
-                node = self.stream
+                node = self._stream
                 for attr in prop_name.split('.'):
                     node = getattr(node, attr)
 
@@ -170,18 +170,18 @@ class FLIRCamera(BaseCamera):
         return True
 
     def startStream(self):
-        self.stream.BeginAcquisition()
+        self._stream.BeginAcquisition()
         self._running = True
 
     def stopStream(self):
-        self.stream.EndAcquisition()
+        self._stream.EndAcquisition()
         self._running = False
 
     def readCamera(self, colorspace="RGB"):
         if not self._running:
             return False, None
 
-        img_data = self.stream.GetNextImage()
+        img_data = self._stream.GetNextImage()
         if img_data.IsIncomplete():
             print('Image incomplete with image status %d ...' % img_data.GetImageStatus())
             img_data.Release()
@@ -214,12 +214,12 @@ class FLIRCamera(BaseCamera):
 
     def closeCamera(self):
         try:
-            if self.stream is not None:
-                if self.stream.IsStreaming():
+            if self._stream is not None:
+                if self._stream.IsStreaming():
                     self.stopStream()
                 
-                self.stream.DeInit()
-                del self.stream
+                self._stream.DeInit()
+                del self._stream
 
             self.initialized = False
             self._running = False
@@ -230,8 +230,3 @@ class FLIRCamera(BaseCamera):
 
     def isOpened(self):
         return self._running
-
-
-# EnumerationCount - Camera_EnumerationCount_get(self)
-# TransferQueueOverflowCount
-# GetCounterValue

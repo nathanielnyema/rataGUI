@@ -28,8 +28,8 @@ class BaseCamera(ABC):
         pass
 
     def __init__(self):
-        self.stream = None
-        self.cameraID = None
+        self._stream = None
+        self.cameraID = ""
         self._running = False
         self.frames_acquired = 0
         # TODO: Add required properties

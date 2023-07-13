@@ -1,4 +1,5 @@
-import sys
+import os
+# import sys
 import time
 from pyqtconfig import ConfigManager
 
@@ -344,8 +345,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for cam_widget in self.camera_widgets.values():
             if cam_widget is not None:
                 cam_widget.close_widget()
+
+        # Save session configuration to json file
+        # os.makedirs(os.path.join(os.getcwd(), 'session'), exist_ok=True)
+        # for name, config 
+
         # Wait for threads to stop TODO: More sophisticated way to wait for threads to stop
-        time.sleep(0.42)
+        time.sleep(0.21)
 
         # Release camera-specific resources
         for cam_type in self.camera_models:
@@ -373,6 +379,10 @@ def make_config_layout(config, cols=2):
     :return: QHBoxLayout
     """
     layout = QtWidgets.QHBoxLayout()
+
+    if len(config.get_visible_keys()) <= 4:
+        cols = 1
+
     forms = [QtWidgets.QFormLayout() for _ in range(cols)]
     for form in forms:
         layout.addLayout(form, 4)

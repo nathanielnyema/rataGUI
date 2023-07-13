@@ -35,11 +35,11 @@ class WebCamera(BaseCamera):
         return [WebCamera(0)]
 
     def initializeCamera(self, config = dict()):
-        self.stream = cv2.VideoCapture(self.cameraID)
+        self._stream = cv2.VideoCapture(self.cameraID)
         self._running = True
 
     def readCamera(self, colorspace="RGB"):
-        ret, frame = self.stream.read()
+        ret, frame = self._stream.read()
         if ret:
             self.frames_acquired += 1
             match colorspace:
@@ -49,14 +49,14 @@ class WebCamera(BaseCamera):
                     self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
                 case "GRAY":
                     self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                case other: # Not necessary
+                case other:
                     self.last_frame = frame
         
         return ret, self.last_frame
 
     def closeCamera(self):
         try:
-            self.stream.release()
+            self._stream.release()
             self._running = False
             return True
         except Exception as err:

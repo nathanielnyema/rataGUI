@@ -31,5 +31,5 @@ class BasePlugin(ABC):
         pass
 
     @abstractmethod
-    def stop(self):
+    def close(self):
         pass

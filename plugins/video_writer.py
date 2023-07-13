@@ -1,9 +1,8 @@
 from plugins import BasePlugin, ConfigManager
 
-from skvideo import setFFmpegPath
-# setFFmpegPath("C:/media-autobuild_suite/local64/bin-video")
+import os
+import cv2
 from skvideo.io import FFmpegWriter
-import time
 
 from datetime import datetime
 
@@ -12,14 +11,18 @@ class VideoWriter(BasePlugin):
     DEFAULT_CONFIG = {
         'vcodec': ['libx264', 'libx265', 'huffyuv'],
         'framerate': 30,
-        'speed (preset)': ["medium", "fast", "veryfast", "ultrafast", "slow", "slower", "veryslow"], # Defaults to first item
+        'speed (preset)': ["fast", "veryfast", "ultrafast", "medium", "slow", "slower", "veryslow"], # Defaults to first item
         'quality (0-51)': 32,
+        'pixel format': ['rgb8', 'rgb4', 'rgb24', 'yuv420p', 'gray', 'monow'],
+        'show timestamp': False,
+        'save directory': "videos",
         'filename': "",
     }
 
     DISPLAY_CONFIG_MAP = {
         'speed (preset)': 'preset',
         'quality (0-51)': 'crf',
+        'pixel format': 'pix_fmt',
     }
 
     def __init__(self, cam_widget, config, queue_size=0):
@@ -27,18 +30,55 @@ class VideoWriter(BasePlugin):
         print("Started VideoWriter for: {}".format(cam_widget.camera.cameraID))
         self.input_params = {}
         self.output_params = {}
+
         for name, value in config.as_dict().items():
             prop_name = VideoWriter.DISPLAY_CONFIG_MAP.get(name)
             if prop_name is None:
                 prop_name = name
 
-            if prop_name == "filename":
+            if prop_name == "save directory":
+                self.save_dir = os.path.normpath(value)
+            elif prop_name == "filename":
                 if value == "": # default value
                     file_name = str(cam_widget.camera.cameraID) + "_" + datetime.now().strftime('%H-%M-%S')
                 else:
                     file_name = value
-            else:
+            elif prop_name != "show timestamp":
                 self.output_params['-'+prop_name] = str(value)
+    
+        if self.output_params.get("-vcodec") in ['libx264', 'libx265']:
+            extension = ".mp4"
+        elif self.output_params.get("-vcodec") in ['huffyuv']: # lossless
+            extension = ".avi"
+        
+        self.file_path = os.path.join(self.save_dir, file_name + extension)
+        count = 1
+        while os.path.exists(self.file_path): # file already exists -> add copy
+            self.file_path = os.path.join(self.save_dir, file_name + f" ({count})" + extension)
+            count += 1
+
+        print(str(self.file_path))
+        self.writer = FFmpegWriter(str(self.file_path), inputdict=self.input_params, outputdict=self.output_params)
+
+    def execute(self, frame):
+        # print("frame saved")
+
+        img_h, img_w, num_ch = frame.shape
+
+        if self.config.get('show timestamp'):
+            cv2.rectangle(frame, (img_w-190,0), (img_w,50), color=(0,0,0), thickness=-1)
+            cv2.putText(frame, datetime.now().strftime('%H:%M:%S'), (img_w-185,37), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255,255,255), lineType=cv2.LINE_AA)
+
+        self.writer.writeFrame(frame)
+
+        return frame
+
+    def close(self):
+        print("Video writer closed")
+        self.active = False
+        self.writer.close()
+
+
 
         # self.output_params = {
         #                         # "-hwaccel": "cuda",
@@ -51,27 +91,6 @@ class VideoWriter(BasePlugin):
         #                         "-crf": "32", 
         #                     }
         # self.output_params = {'-vcodec': 'libx264', '-crf': '32', '-pix_fmt': 'rgb24'}
-    
-        if self.output_params.get("-vcodec") in ['libx264', 'libx265']:
-            extension = ".mp4"
-        elif self.output_params.get("-vcodec") in ['huffyuv']: # lossless
-            extension = ".avi"
-
-        file_path = "videos/" + file_name + extension
-        self.writer = FFmpegWriter(file_path, inputdict=self.input_params, outputdict=self.output_params)
-
-    def execute(self, frame):
-        # print("frame saved")
-        # time.sleep(1.0)
-        self.writer.writeFrame(frame)
-
-        return frame
-
-    def stop(self):
-        print("Video writer stopped")
-        self.active = False
-        self.writer.close()
-
 
 # import subprocess as sp
 

@@ -8,8 +8,8 @@ from PyQt6.QtCore import Qt
 class FrameDisplay(BasePlugin):
 
     DEFAULT_CONFIG = {
-        'Show Timestamp': True,
-        'Keep Aspect Ratio': True,
+        'Show timestamp': True,
+        'Keep aspect ratio': True,
     }
 
     def __init__(self, cam_widget, config, queue_size=0):
@@ -30,15 +30,14 @@ class FrameDisplay(BasePlugin):
         # Get image dimensions
         img_h, img_w, num_ch = frame.shape
 
-        # TODO: Add timestamp to frame
-        if self.config.get('Show Timestamp'):
+        if self.config.get('Show timestamp'):
             cv2.rectangle(frame, (img_w-190,0), (img_w,50), color=(0,0,0), thickness=-1)
             cv2.putText(frame, datetime.now().strftime('%H:%M:%S'), (img_w-185,37), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255,255,255), lineType=cv2.LINE_AA)
 
         # Convert to pixmap and set to video frame
         bytes_per_line = num_ch * img_w
         qt_image = QtGui.QImage(frame.data, img_w, img_h, bytes_per_line, QtGui.QImage.Format.Format_RGB888)
-        if self.config.get('Keep Aspect Ratio'):
+        if self.config.get('Keep aspect ratio'):
             qt_image = qt_image.scaled(self.frame_width, self.frame_height, Qt.AspectRatioMode.KeepAspectRatio)
         else: 
             qt_image = qt_image.scaled(self.frame_width, self.frame_height, Qt.AspectRatioMode.IgnoreAspectRatio)
@@ -48,6 +47,6 @@ class FrameDisplay(BasePlugin):
         
         return frame
 
-    def stop(self):
-        print("Frame display stopped")
+    def close(self):
+        print("Frame display closed")
         self.active = False
