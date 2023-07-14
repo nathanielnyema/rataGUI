@@ -9,8 +9,9 @@ from PyQt6.QtCore import Qt, QTimer
 
 from interface.design.Ui_MainWindow import Ui_MainWindow
 from interface.camera_widget import CameraWidget
-from config import restore_settings
+from config import restore_session
 
+import psutil
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, camera_models = [], plugins = [], dark_mode=True):
@@ -37,7 +38,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.cameras = {}
         self.camera_widgets = {}
         self.camera_models = camera_models
-        self.populate_available_cameras()
+        self.populate_camera_list()
 
         self.camera_configs = {id : ConfigManager() for id in self.cameras.keys()}
         self.populate_camera_properties()
@@ -51,8 +52,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.populate_plugin_settings()
         self.populate_plugin_pipeline()
 
-        if restore_settings: 
-            self.restore_session() # Load config from session 
+        if restore_session: self.restore_session() # Load config from session 
         
         # Create camera widget and start pipeline 
         self.start_button.clicked.connect(self.start_camera_widgets)
@@ -71,6 +71,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_timer.timeout.connect(self.update_camera_stats)
         self.update_timer.start(500)
 
+        self.logging_timer = QTimer()
+        self.logging_timer.timeout.connect(self.log_computer_stats)
+        self.logging_timer.start(30000)
+
+    def log_computer_stats(self):
+        process = psutil.Process(os.getpid())
+        cpu = process.cpu_times()
+        mem = process.memory_info().rss / float(2 ** 20)
+        with open("log.txt", "a") as f:
+            print("CPU (user): "+str(cpu.user)+"\tCPU (sys): "+str(cpu.system)+"\tRAM: "+str(mem), file=f)
 
     def update_camera_stats(self): # Save stats?
         for row, camera in enumerate(self.cameras.values()):
@@ -84,7 +94,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     # def update_plugin_stats(self):
     #     pass
 
-    def populate_available_cameras(self):
+    def populate_camera_list(self):
         self.cam_list.clear()
         self.cam_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
         self.cam_list.itemChanged.connect(self.populate_plugin_pipeline)
@@ -100,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 # TODO: use name instead and preserve checked state
                 item = QtWidgets.QListWidgetItem(cam.getName())
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-                item.setCheckState(Qt.CheckState.Checked)
+                item.setCheckState(Qt.CheckState.Unchecked)
                 self.cam_list.addItem(item)
                 if cam.getName() not in self.cameras.keys():
                     self.cameras[cam.getName()] = cam
@@ -174,7 +184,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for name in self.plugins.keys():
             item = QtWidgets.QListWidgetItem(name)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            item.setCheckState(Qt.CheckState.Checked)
+            item.setCheckState(Qt.CheckState.Unchecked)
             self.plugin_list.addItem(item)
 
     def populate_plugin_settings(self):
@@ -374,10 +384,44 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def restore_session(self):
         save_dir = os.path.join(os.getcwd(), 'session')
         cam_config_path = os.path.join(save_dir, "camera_settings.json")
-        with open(cam_config_path, 'r') as file:
-            cam_config = json.load(file)
-        for name, config in self.camera_configs.items():
-            pass
+        if os.path.exists(cam_config_path): 
+            with open(cam_config_path, 'r') as file:
+                saved_configs = json.load(file)
+            for camID, config in self.camera_configs.items():
+                if camID in saved_configs.keys():
+                    config.set_many(saved_configs[camID])
+        else:
+            print("No saved camera settings ... using defaults")
+
+        plugin_config_path = os.path.join(save_dir, "plugin_settings.json")
+        if os.path.exists(plugin_config_path): 
+            with open(plugin_config_path, 'r') as file:
+                saved_configs = json.load(file)
+            for name, config in self.plugin_configs.items():
+                if name in saved_configs.keys():
+                    config.set_many(saved_configs[name])
+        else:
+            print("No saved plugin settings ... using defaults")
+
+        ui_config_path = os.path.join(save_dir, "interface_settings.json")
+        if os.path.exists(ui_config_path): 
+            with open(ui_config_path, 'r') as file:
+                saved_configs = json.load(file)
+
+            for idx in range(self.cam_list.count()):
+                item = self.cam_list.item(idx)
+                if item.text() in saved_configs["checked_cameras"]:
+                    item.setCheckState(Qt.CheckState.Checked)
+
+            for idx in range(self.plugin_list.count()):
+                item = self.plugin_list.item(idx)
+                if item.text() in saved_configs["checked_plugins"]:
+                    item.setCheckState(Qt.CheckState.Checked)
+
+            self.resize(saved_configs["window_width"], saved_configs["window_height"])
+            self.move(saved_configs["window_x"], saved_configs["window_y"])
+        else:
+            print("No saved interface settings ... using defaults")
         
 
     def closeEvent(self, event):
@@ -388,8 +432,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Save session configuration as json files
         self.save_session()
 
-        # # Wait for threads to stop TODO: More sophisticated way to wait for threads to stop
-        # time.sleep(0.21)
+        # Wait for threads to stop TODO: More sophisticated way to wait for threads to stop
+        time.sleep(0.21)
 
         # Release camera-specific resources
         for cam_type in self.camera_models:

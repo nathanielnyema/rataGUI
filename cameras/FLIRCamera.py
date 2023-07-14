@@ -181,36 +181,39 @@ class FLIRCamera(BaseCamera):
         if not self._running:
             return False, None
 
-        img_data = self._stream.GetNextImage()
-        if img_data.IsIncomplete():
-            print('Image incomplete with image status %d ...' % img_data.GetImageStatus())
+        try:
+            img_data = self._stream.GetNextImage()
+            if img_data.IsIncomplete():
+                print('Image incomplete with image status %d ...' % img_data.GetImageStatus())
+                return False, None
+
+            # Parse image metadata
+            chunk_data = img_data.GetChunkData()
+            new_index = chunk_data.GetFrameID()
+
+            # Detect dropped frames
+            if self.last_index >= 0:
+                if new_index - self.last_index - 1 < 0:
+                    print(self.frames_dropped, new_index, self.last_index)
+                self.frames_dropped += new_index - self.last_index - 1
+            self.last_index = new_index
+            self.frames_acquired += 1
+
+            frame = img_data.GetNDArray()
+            match colorspace:
+                case "BGR":
+                    self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2BGR)
+                case "RGB":
+                    self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2RGB)
+                case "GRAY":
+                    self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2GRAY)
+
+            # Release image from camera buffer
             img_data.Release()
-            return False, None
-
-        # Parse image metadata
-        chunk_data = img_data.GetChunkData()
-        new_index = chunk_data.GetFrameID()
-
-        # Detect dropped frames
-        if self.last_index >= 0:
-            if new_index - self.last_index - 1 < 0:
-                print(self.frames_dropped, new_index, self.last_index)
-            self.frames_dropped += new_index - self.last_index - 1
-        self.last_index = new_index
-        self.frames_acquired += 1
-
-        frame = img_data.GetNDArray()
-        match colorspace:
-            case "BGR":
-                self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2BGR)
-            case "RGB":
-                self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2RGB)
-            case "GRAY":
-                self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2GRAY)
-
-        # Release image from camera buffer
-        img_data.Release()
-        return True, self.last_frame
+            return True, self.last_frame
+        except PySpin.SpinnakerException as ex:
+            print('Error: %s' % ex)
+            return False
 
     def closeCamera(self):
         try:

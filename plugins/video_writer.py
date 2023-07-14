@@ -14,7 +14,7 @@ class VideoWriter(BasePlugin):
         'speed (preset)': ["fast", "veryfast", "ultrafast", "medium", "slow", "slower", "veryslow"], # Defaults to first item
         'quality (0-51)': 32,
         'pixel format': ['rgb8', 'rgb4', 'rgb24', 'yuv420p', 'gray', 'monow'],
-        'show timestamp': False,
+        'save timestamp': False,
         'save directory': "videos",
         'filename': "",
     }
@@ -43,7 +43,7 @@ class VideoWriter(BasePlugin):
                     file_name = str(cam_widget.camera.cameraID) + "_" + datetime.now().strftime('%H-%M-%S')
                 else:
                     file_name = value
-            elif prop_name != "show timestamp":
+            elif prop_name != "save timestamp":
                 self.output_params['-'+prop_name] = str(value)
     
         if self.output_params.get("-vcodec") in ['libx264', 'libx265']:
@@ -66,7 +66,7 @@ class VideoWriter(BasePlugin):
 
         img_h, img_w, num_ch = frame.shape
 
-        if self.config.get('show timestamp'):
+        if self.config.get('save timestamp'):
             cv2.rectangle(frame, (img_w-190,0), (img_w,50), color=(0,0,0), thickness=-1)
             cv2.putText(frame, datetime.now().strftime('%H:%M:%S'), (img_w-185,37), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255,255,255), lineType=cv2.LINE_AA)
 

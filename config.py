@@ -13,4 +13,4 @@ enabled_plugins = []
 video_file_paths = []
 
 # Save and restore settings between sessions
-restore_settings = True
+restore_session = True
