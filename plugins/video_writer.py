@@ -1,19 +1,27 @@
 from plugins import BasePlugin, ConfigManager
+# from config import FFMPEG_BINARY
 
 import os
 import cv2
+import warnings
+import numpy as np
 from skvideo.io import FFmpegWriter
 
 from datetime import datetime
+from shutil import which
 
 class VideoWriter(BasePlugin):
+    """
+    
+    :param aspect_ratio: Whether to maintain frame aspect ratio or force into frame
+    """
 
     DEFAULT_CONFIG = {
-        'vcodec': ['libx264', 'libx265', 'huffyuv'],
+        'vcodec': ['libx264', 'libx265', 'huffyuv', 'rawvideo'],
         'framerate': 30,
         'speed (preset)': ["fast", "veryfast", "ultrafast", "medium", "slow", "slower", "veryslow"], # Defaults to first item
         'quality (0-51)': 32,
-        'pixel format': ['rgb8', 'rgb4', 'rgb24', 'yuv420p', 'gray', 'monow'],
+        'pixel format': ['yuv420p', 'rgb8', 'rgb4', 'rgb24', 'gray', 'monow'],
         'save timestamp': False,
         'save directory': "videos",
         'filename': "",
@@ -49,7 +57,7 @@ class VideoWriter(BasePlugin):
         if self.output_params.get("-vcodec") in ['libx264', 'libx265']:
             extension = ".mp4"
         elif self.output_params.get("-vcodec") in ['huffyuv']: # lossless
-            extension = ".avi"
+            extension = ".yuv"
         
         os.makedirs(self.save_dir, exist_ok=True)
         self.file_path = os.path.join(self.save_dir, file_name + extension)
@@ -58,7 +66,6 @@ class VideoWriter(BasePlugin):
             self.file_path = os.path.join(self.save_dir, file_name + f" ({count})" + extension)
             count += 1
 
-        print(str(self.file_path))
         self.writer = FFmpegWriter(str(self.file_path), inputdict=self.input_params, outputdict=self.output_params)
 
     def execute(self, frame):
@@ -79,8 +86,6 @@ class VideoWriter(BasePlugin):
         self.active = False
         self.writer.close()
 
-
-
         # self.output_params = {
         #                         # "-hwaccel": "cuda",
         #                         # "-hwaccel_output_format": "cuda",
@@ -92,6 +97,145 @@ class VideoWriter(BasePlugin):
         #                         "-crf": "32", 
         #                     }
         # self.output_params = {'-vcodec': 'libx264', '-crf': '32', '-pix_fmt': 'rgb24'}
+
+
+# import subprocess as sp
+
+# class FFMPEG_Writer():
+#     """Write frames using ffmpeg as backend
+    
+#     :param filename: path to write video file to
+#     :param input_dict: dictionary of input parameters to interpret data from Python
+#     :param output_dict: dictionary of output parameters to encode data to disk
+#     """
+
+#     pix_format_8_bit = ['rgb24', 'bgr24', 'yuv444p', 'gray', 'pal8', 'yuvj444p', 'argb', 'rgba', 
+#                         'abgr', 'bgra', 'yuv420p16le', 'yuv420p16be', 'ya8', 'gbrp', '0rgb', 'rgb0', 
+#                         '0bgr', 'bgr0', 'yuva444p', 'yuv422p12be', 'yuv422p12le', 'gbrap', 'yuv440p12le', 'yuv440p12be']
+
+#     pix_format_16_bit = ['gray16be', 'gray16le', 'rgb48be', 'rgb48le', 'yuv444p16le', 'yuv444p16be', 'bgr48be', 
+#                         'bgr48le', 'gbrp16be', 'gbrp16le', 'yuva444p16be', 'yuva444p16le', 'ya16be', 'ya16le', 
+#                         'rgba64be', 'rgba64le', 'bgra64be', 'bgra64le', 'gbrap16be', 'gbrap16le', 'ayuv64le', 'ayuv64be']
+
+#     def __init__(self, file_path, input_dict={}, output_dict={}, debug=True):
+       
+#         self.file_path = os.path.abspath(file_path)
+#         dir_path = os.path.dirname(self.file_path)
+
+#         # Check for write permissions
+#         if not os.access(dir_path, os.W_OK): 
+#             print("Cannot write to directory: " + dir_path)
+
+#         self.input_dict = input_dict
+#         self.output_dict = output_dict
+#         self.debug = debug
+#         self.ready = False
+
+#         if FFMPEG_BINARY is not None and "ffmpeg" in FFMPEG_BINARY:
+#             self._FFMPEG_PATH = FFMPEG_BINARY
+#         else:
+#             self._FFMPEG_PATH = which("ffmpeg")
+        
+#         if self._FFMPEG_PATH is None:
+#             print("Could not find ffmpeg executable ... aborting")
+#             return
+        
+
+#     def set_frame_params(self, M, N, C, dtype):
+#         self.ready = True
+
+#         # self.bpp = bpplut[self.inputdict["-pix_fmt"]][1]
+#         # self.inputNumChannels = bpplut[self.inputdict["-pix_fmt"]][0]
+#         # bitpercomponent = self.bpp // self.inputNumChannels
+#         if self.input_dict["-pix_fmt"] in FFMPEG_Writer.pix_format_8_bit:
+#             self.dtype = np.dtype('u1')  # np.uint8
+#         elif self.input_dict["-pix_fmt"] in FFMPEG_Writer.pix_format_16_bit:
+#             if dtype.byteorder:
+#                 self.dtype = np.dtype('<u2')
+#             else:
+#                 self.dtype = np.dtype('>u2')
+#         else:
+#             raise ValueError(self.inputdict['-pix_fmt'] + 'is not a valid pix_fmt for numpy conversion')
+
+#         # assert self.inputNumChannels == C, "Failed to pass the correct number of channels %d for the pixel format %s." % (
+#         #     self.inputNumChannels, self.inputdict["-pix_fmt"])
+
+#         if "-s" not in self.input_dict:
+#             self.input_dict["-s"] = str(N) + "x" + str(M)
+
+#         in_args = []
+#         for key, value in self.input_dict.items():
+#             in_args.append(key)
+#             in_args.append(value)
+        
+#         out_args = []
+#         for key, value in self.output_dict.items():
+#             out_args.append(key)
+#             out_args.append(value)
+
+#         cmd = [self._FFMPEG_PATH, "-y", "-f", "rawvideo"] + in_args + ["-i", "-"] + out_args + [self.file_path]
+
+#         self._cmd = " ".join(cmd)
+#         print(self._cmd)
+#         if self.debug:
+#             cmd += ["-v", "warning"]
+#             self._proc = sp.Popen(cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=None)
+#         else:
+#             cmd += ["-v", "error"]
+#             self._proc = sp.Popen(cmd, stdin=sp.PIPE, stdout=sp.DEVNULL, stderr=sp.STDOUT)
+
+#         # # prepare output parameters, if raw
+#         # if self.extension == ".yuv":
+#         #     if "-pix_fmt" not in self.outputdict:
+#         #         self.outputdict["-pix_fmt"] = self.DEFAULT_OUTPUT_PIX_FMT
+#         #         if self.verbosity > 0:
+#         #             warnings.warn("No output color space provided. Assuming {}.".format(self.DEFAULT_OUTPUT_PIX_FMT),
+#         #                           UserWarning)
+
+#         # # check if we need to do some bit-plane swapping
+#         # # for the raw data format
+#         # if self.inputdict["-pix_fmt"].startswith('yuv444p') or self.inputdict["-pix_fmt"].startswith('yuvj444p') or \
+#         #         self.inputdict["-pix_fmt"].startswith('yuva444p'):
+#         #     vid = vid.transpose((0, 3, 1, 2))
+
+#     def write_frame(self, img_array):
+#         """Writes one frame to the file."""
+
+#         M, N, C = img_array.shape
+
+#         if not self.ready:
+#             self.set_frame_params(M, N, C, img_array.dtype)
+
+#         try:
+#             self._proc.stdin.write(img_array.tobytes())
+#         except IOError as err:
+#             # Show the command and stderr from pipe
+#             msg = f"{str(err)}\n FFMPEG COMMAND:{self._cmd}\n"
+#             raise IOError(msg)
+
+#         # try:
+#         #     self._proc.stdin.write(img_array.tobytes())
+#         # except IOError as err:
+#         #     _, ffmpeg_error = self._proc.communicate()
+#         #     if ffmpeg_error is not None:
+#         #         ffmpeg_error = ffmpeg_error.decode()
+
+#         #     print("FFMPEG_Writer encountered an error when writing file: "+str(self.file_path))
+
+#         #     raise IOError(ffmpeg_error)  
+
+#     def close(self):
+#         """Closes the writer and terminates the subprocess if is still alive."""
+#         if self._proc is None or self._proc.poll() is not None:
+#             return
+        
+#         if self._proc.stdin:
+#             self._proc.stdin.close()
+#         if self._proc.stderr:
+#             self._proc.stderr.close()
+
+#         self._proc.wait()
+#         self._proc = None
 
 # import subprocess as sp
 
