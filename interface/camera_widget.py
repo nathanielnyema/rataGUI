@@ -17,12 +17,11 @@ import asyncio
 
 # Change to camera widget
 class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
-    """Independent camera feed
+    """Encapsulates camera object and its plugin processing pipeline by connecting Camera and Plugin APIs.
 
-    @param width - width of the video frame
-    @param height - height of the video frame
-    @param camera - camera object to display
-    @param aspect_ratio - whether to maintain frame aspect ratio or force into fraame
+    :param camera: Camera object to extract frames from
+    :param cam_config: ConfigManager that stores camera settings
+    :param plugins: List of plugin types in processing pipeline
     """
 
     def __init__(self, camera=None, cam_config=None, plugins=[]):

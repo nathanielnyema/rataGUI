@@ -71,6 +71,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_timer.timeout.connect(self.update_camera_stats)
         self.update_timer.start(500)
 
+        open('log.txt', 'w').close() # Clear log file
         self.logging_timer = QTimer()
         self.logging_timer.timeout.connect(self.log_computer_stats)
         self.logging_timer.start(30000)
@@ -150,8 +151,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     config.add_handler(key, widget, mapper)
             
             layout = make_config_layout(config)
-            # layout.setSpacing(0)
-            # layout.addStretch()
             layout.insertStretch(1, 1)
             tab.setLayout(layout)
             self.cam_props.addTab(tab, str(camID))
