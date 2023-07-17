@@ -77,10 +77,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def log_computer_stats(self):
         process = psutil.Process(os.getpid())
-        cpu = process.cpu_times()
+        cpu = process.cpu_percent(interval=1)
         mem = process.memory_info().rss / float(2 ** 20)
         with open("log.txt", "a") as f:
-            print("CPU (user): "+str(cpu.user)+"\tCPU (sys): "+str(cpu.system)+"\tRAM: "+str(mem), file=f)
+            print("CPU (%): "+str(cpu)+"\tRAM: "+str(mem), file=f)
 
     def update_camera_stats(self): # Save stats?
         for row, camera in enumerate(self.cameras.values()):
