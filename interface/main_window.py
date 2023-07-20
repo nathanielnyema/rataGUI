@@ -91,6 +91,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.cam_stats.item(row, 2).setText(str(camera.frames_dropped))
             else:
                 self.cam_stats.item(row, 2).setText("N/A")
+
+            if hasattr(camera, "buffer_size"):
+                self.cam_stats.item(row, 3).setText(str(camera.buffer_size))
+            else:
+                self.cam_stats.item(row, 3).setText("N/A")
     
     # def update_plugin_stats(self):
     #     pass
@@ -167,6 +172,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             else:
                 self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem("N/A"))
 
+            if hasattr(camera, "buffer_size"):
+                self.cam_stats.setItem(row, 3, QtWidgets.QTableWidgetItem(str(camera.buffer_size)))
+            else:
+                self.cam_stats.setItem(row, 3, QtWidgets.QTableWidgetItem("N/A"))
+
         self.cam_stats.resizeColumnsToContents()
 
 
@@ -192,19 +202,28 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             tab = QtWidgets.QWidget()
             if hasattr(cls, "DEFAULT_CONFIG"):
                 config.set_defaults(cls.DEFAULT_CONFIG)
-                for key, value in cls.DEFAULT_CONFIG.items():
-                    if isinstance(value, bool):
+                for key, setting in cls.DEFAULT_CONFIG.items():
+                    mapper = (lambda x: x, lambda x: x)
+                    if isinstance(setting, bool):
                         widget = QtWidgets.QCheckBox()
-                    elif isinstance(value, str):
+                    elif isinstance(setting, str):
                         widget = QtWidgets.QLineEdit()
-                    elif isinstance(value, int):
+                    elif isinstance(setting, int):
                         widget = QtWidgets.QSpinBox()
-                    elif isinstance(value, list):
+                    elif isinstance(setting, list):
                         widget = QtWidgets.QComboBox()
-                        widget.addItems(value)
-                        config.set_default(key, value[0])
+                        widget.view().setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+                        widget.addItems(setting)
+                        config.set_default(key, setting[0]) # Default to first value
+                    elif isinstance(setting, dict):
+                        widget = QtWidgets.QComboBox()
+                        widget.view().setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+                        options = list(setting.keys())
+                        widget.addItems(options)
+                        config.set_default(key, setting[options[0]]) # Default to first value
+                        mapper = setting
 
-                    config.add_handler(key, widget)
+                    config.add_handler(key, widget, mapper)
             
             layout = make_config_layout(config)
             layout.insertStretch(1, 1)

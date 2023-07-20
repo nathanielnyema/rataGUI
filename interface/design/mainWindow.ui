@@ -79,7 +79,7 @@
       <item>
        <widget class="QTabWidget" name="camAttributes">
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="camPropsTab">
          <attribute name="title">
@@ -141,6 +141,11 @@
             <column>
              <property name="text">
               <string>Frames Dropped</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Buffer Size</string>
              </property>
             </column>
            </widget>

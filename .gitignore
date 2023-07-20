@@ -6,6 +6,8 @@ videos/*
 tests/
 archive/
 session/
+log.txt
+profile.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -53,10 +53,11 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         while self.camera.isOpened():
             
             if self.active:
-                status, frame = await loop.run_in_executor(None, self.camera.readCamera)
-                # status, frame = self.camera.readCamera("RGB")
+                # status, frame = await loop.run_in_executor(None, self.camera.readCamera)
+                status, frame = self.camera.readCamera("RGB")
                 if status: 
                     # Send acquired frame to first plugin process in pipeline
+                    # print('Camera queue: ' + str(self.plugins[0].in_queue.qsize()))
                     await self.plugins[0].in_queue.put(frame)
                     await asyncio.sleep(0)
                 else:
@@ -94,7 +95,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     def start_camera_pipeline(self):
         print('Started camera: {}'.format(self.camera.cameraID))
         self.camera.initializeCamera(self.camera_config)
-        asyncio.run(self.process_plugin_pipeline())
+        asyncio.run(self.process_plugin_pipeline(), debug=True)
 
     def close_camera_pipeline(self):
         print('Stopped camera: {}'.format(self.camera.cameraID))

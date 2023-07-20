@@ -11,6 +11,8 @@ from .base_plugin import BasePlugin
 import os
 import traceback
 
+import time
+
 from importlib import util
 from config import enabled_plugins
 
@@ -25,6 +27,7 @@ def load_module(path):
 # Asynchronous execution loop for an arbitrary plugin 
 async def plugin_process(plugin):
     while True:
+        # print(f'{type(plugin).__name__} queue: ' + str(plugin.in_queue.qsize()))
         frame = await plugin.in_queue.get()
 
         # TODO: Add plugin-specific data
@@ -34,6 +37,7 @@ async def plugin_process(plugin):
         # Execute plugin
         if plugin.active:
             result = plugin.execute(frame)
+
         # Send output to next plugin
         if plugin.out_queue != None:
             await plugin.out_queue.put(result)

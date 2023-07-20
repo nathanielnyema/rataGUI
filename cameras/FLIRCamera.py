@@ -59,9 +59,10 @@ class FLIRCamera(BaseCamera):
         super().__init__()
         self.cameraID = cameraID
         self.initialized = False
-        self.frames_dropped = 0
         self.last_frame = None
+        self.frames_dropped = 0
         self.last_index = -1
+        self.buffer_size = 0
 
     def configure_chunk_data(self, nodemap, selected_chucks, enable = True) -> bool:
         """
@@ -164,6 +165,14 @@ class FLIRCamera(BaseCamera):
                 print(err)
                 return False  
 
+        # print(dir(self._stream.TLStream))
+        # print(self._stream.TLStream.StreamMode.GetName)
+        # print(self._stream.TLStream.StreamBufferHandlingMode.ToString())
+        # print(self._stream.TLStream.StreamOutputBufferCount.GetValue())
+
+        # StreamOutputBufferCount
+
+
         self.initialized = True
         self.startStream()
 
@@ -193,9 +202,8 @@ class FLIRCamera(BaseCamera):
 
             # Detect dropped frames
             if self.last_index >= 0:
-                if new_index - self.last_index - 1 < 0:
-                    print(self.frames_dropped, new_index, self.last_index)
                 self.frames_dropped += new_index - self.last_index - 1
+                self.buffer_size = self._stream.TLStream.StreamOutputBufferCount.GetValue()
             self.last_index = new_index
             self.frames_acquired += 1
 
