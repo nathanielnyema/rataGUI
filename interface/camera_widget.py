@@ -2,6 +2,7 @@
 # import numpy as np
 # import cv2
 from datetime import datetime
+import time
 # import logging
 
 from plugins import plugin_process
@@ -51,11 +52,12 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     async def acquire_frames(self):
         loop = asyncio.get_running_loop()
         while self.camera._running:
+            # print('Camera queue: ' + str(self.plugins[0].in_queue.qsize()))
             if self.active:
-                # status, frame = await loop.run_in_executor(None, self.camera.readCamera)
-                status, frame = self.camera.readCamera("RGB")
+                status, frame = await loop.run_in_executor(None, self.camera.readCamera)
                 metadata = self.camera.getMetadata()
-                metadata['timestamp'] = datetime.now()
+                metadata['Timestamp'] = datetime.now()
+
                 if status: 
                     # Send acquired frame to first plugin process in pipeline
                     # print('Camera queue: ' + str(self.plugins[0].in_queue.qsize()))

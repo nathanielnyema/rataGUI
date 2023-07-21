@@ -27,9 +27,8 @@ def load_module(path):
 # Asynchronous execution loop for an arbitrary plugin 
 async def plugin_process(plugin):
     while True:
-        # print(f'{type(plugin).__name__} queue: ' + str(plugin.in_queue.qsize()))
         frame, metadata = await plugin.in_queue.get()
-
+        # print(f'{type(plugin).__name__} queue: ' + str(plugin.in_queue.qsize()))
         # Execute plugin
         if plugin.active:
             result = plugin.execute(frame, metadata)

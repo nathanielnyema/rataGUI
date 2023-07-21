@@ -13,7 +13,6 @@ class FrameDisplay(BasePlugin):
     """
 
     DEFAULT_CONFIG = {
-        'Show timestamp': True,
         'Keep aspect ratio': True,
     }
 

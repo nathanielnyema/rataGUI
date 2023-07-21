@@ -20,7 +20,6 @@ class VideoWriter(BasePlugin):
         'speed (preset)': ["fast", "veryfast", "ultrafast", "medium", "slow", "slower", "veryslow"], # Defaults to first item
         'quality (0-51)': 32,
         'pixel format': ['yuv420p', 'yuv422p', 'yuv444p', 'rgb24', 'yuv420p10le', 'yuv422p10le', 'yuv444p10le', 'gray'],
-        'save timestamp': False,
         'save directory': "videos",
         'filename': "",
     }
@@ -52,7 +51,7 @@ class VideoWriter(BasePlugin):
             elif prop_name in ["framerate",]: # input parameters
                 self.input_params['-'+prop_name] = str(value)
 
-            elif prop_name != "save timestamp": # output parameters
+            else: # output parameters
                 self.output_params['-'+prop_name] = str(value)
     
         if self.output_params.get("-vcodec") in ['libx264', 'libx265']:

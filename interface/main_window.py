@@ -71,7 +71,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_timer.timeout.connect(self.update_camera_stats)
         self.update_timer.start(500)
 
-        # open('log.txt', 'w').close() # Clear log file
         self.logging_timer = QTimer()
         self.logging_timer.timeout.connect(self.log_computer_stats)
         self.logging_timer.start(30000)
@@ -135,25 +134,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if hasattr(cls, "DEFAULT_PROPS"):
                 config.set_defaults(cls.DEFAULT_PROPS)
                 for key, setting in cls.DEFAULT_PROPS.items():
-                    mapper = (lambda x: x, lambda x: x)
-                    if isinstance(setting, bool):
-                        widget = QtWidgets.QCheckBox()
-                    elif isinstance(setting, str):
-                        widget = QtWidgets.QLineEdit()
-                    elif isinstance(setting, int):
-                        widget = QtWidgets.QSpinBox()
-                    elif isinstance(setting, list):
-                        widget = QtWidgets.QComboBox()
-                        widget.addItems(setting)
-                        config.set_default(key, setting[0]) # Default to first value
-                    elif isinstance(setting, dict):
-                        widget = QtWidgets.QComboBox()
-                        options = list(setting.keys())
-                        widget.addItems(options)
-                        config.set_default(key, setting[options[0]]) # Default to first value
-                        mapper = setting
-
-                    config.add_handler(key, widget, mapper)
+                    add_config_handler(config, key, setting)
             
             layout = make_config_layout(config)
             layout.insertStretch(1, 1)
@@ -197,38 +178,27 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.plugin_list.addItem(item)
 
     def populate_plugin_settings(self):
-        for name, config in self.plugin_configs.items():
-            cls = self.plugins[name]
+        for plugin_name, config in self.plugin_configs.items():
+            cls = self.plugins[plugin_name]
             tab = QtWidgets.QWidget()
             if hasattr(cls, "DEFAULT_CONFIG"):
                 config.set_defaults(cls.DEFAULT_CONFIG)
                 for key, setting in cls.DEFAULT_CONFIG.items():
-                    mapper = (lambda x: x, lambda x: x)
-                    if isinstance(setting, bool):
-                        widget = QtWidgets.QCheckBox()
-                    elif isinstance(setting, str):
-                        widget = QtWidgets.QLineEdit()
-                    elif isinstance(setting, int):
-                        widget = QtWidgets.QSpinBox()
-                    elif isinstance(setting, list):
-                        widget = QtWidgets.QComboBox()
-                        widget.view().setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-                        widget.addItems(setting)
-                        config.set_default(key, setting[0]) # Default to first value
-                    elif isinstance(setting, dict):
-                        widget = QtWidgets.QComboBox()
-                        widget.view().setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-                        options = list(setting.keys())
-                        widget.addItems(options)
-                        config.set_default(key, setting[options[0]]) # Default to first value
-                        mapper = setting
+                    add_config_handler(config, key, setting)
 
-                    config.add_handler(key, widget, mapper)
+                if cls.__name__ == "MetadataWriter": # add missing metadata to UI
+                    for camera in self.cameras.values():
+                        metadata = camera.getMetadata()
+                        settings =  config.get_visible_keys()
+                        for name in metadata.keys():
+                            key = 'Overlay ' + name
+                            if key not in settings:
+                                add_config_handler(config, key, setting=False)
             
             layout = make_config_layout(config)
             layout.insertStretch(1, 1)
             tab.setLayout(layout)
-            self.plugin_settings.addTab(tab, name)
+            self.plugin_settings.addTab(tab, plugin_name)
     
 
     def populate_plugin_pipeline(self):
@@ -467,6 +437,29 @@ def get_checked_items(check_list: QtWidgets.QListWidget) -> list:
         if item.checkState() == Qt.CheckState.Checked:
             checked.append(item)
     return checked
+
+
+def add_config_handler(config, key, setting):
+    mapper = (lambda x: x, lambda x: x)
+    if isinstance(setting, bool):
+        widget = QtWidgets.QCheckBox()
+    elif isinstance(setting, str):
+        widget = QtWidgets.QLineEdit()
+    elif isinstance(setting, int):
+        widget = QtWidgets.QSpinBox()
+    elif isinstance(setting, list):
+        widget = QtWidgets.QComboBox()
+        widget.view().setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        widget.addItems(setting)
+        config.set_default(key, setting[0]) # Default to first value
+    elif isinstance(setting, dict):
+        widget = QtWidgets.QComboBox()
+        widget.view().setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        options = list(setting.keys())
+        widget.addItems(options)
+        config.set_default(key, setting[options[0]]) # Default to first value
+        mapper = setting
+    config.add_handler(key, widget, mapper) 
 
 
 def make_config_layout(config, cols=2):
