@@ -4,6 +4,9 @@ from asyncio import Queue
 from PyQt6.QtWidgets import QWidget
 from pyqtconfig import ConfigManager
 
+from typing import Dict, Tuple
+from numpy.typing import NDArray
+
 class BasePlugin(ABC):
     """
     Abstract plugin class with generic functions. All custom plugins should be subclassed
@@ -27,7 +30,7 @@ class BasePlugin(ABC):
         self.out_queue = None
 
     @abstractmethod
-    def execute(self):
+    def execute(self, frame: NDArray, metadata: Dict) -> Tuple[NDArray, Dict]:
         pass
 
     @abstractmethod

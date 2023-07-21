@@ -146,7 +146,7 @@ class FLIRCamera(BaseCamera):
             self._stream.Init()
 
         nodemap = self._stream.GetNodeMap()
-        enabled_chunks = ["FrameID", "Timestamp"] # ExposureTime, PixelFormat
+        enabled_chunks = ["FrameID",] # ExposureTime, PixelFormat
         self.configure_chunk_data(nodemap, enabled_chunks)
 
         for name, value in prop_config.items():
@@ -199,6 +199,7 @@ class FLIRCamera(BaseCamera):
             # Parse image metadata
             chunk_data = img_data.GetChunkData()
             new_index = chunk_data.GetFrameID()
+            # time_stamp = chunk_data.GetTimestamp()
 
             # Detect dropped frames
             if self.last_index >= 0:
@@ -222,6 +223,11 @@ class FLIRCamera(BaseCamera):
         except PySpin.SpinnakerException as ex:
             print('Error: %s' % ex)
             return False
+
+    def getMetadata(self):
+        return {"Camera Index": self.last_index, 
+                "Frame Index": self.frames_acquired,}
+
 
     def closeCamera(self):
         try:

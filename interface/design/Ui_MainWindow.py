@@ -227,7 +227,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuHelp.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.camAttributes.setCurrentIndex(1)
+        self.camAttributes.setCurrentIndex(0)
         self.plugin_settings.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 

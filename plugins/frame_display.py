@@ -6,6 +6,11 @@ from PyQt6 import QtGui
 from PyQt6.QtCore import Qt
 
 class FrameDisplay(BasePlugin):
+    """
+    Plugin that displays frames in a separate window.
+
+    :param aspect_ratio: Whether to maintain frame aspect ratio or force into frame
+    """
 
     DEFAULT_CONFIG = {
         'Show timestamp': True,
@@ -15,13 +20,13 @@ class FrameDisplay(BasePlugin):
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
         
-        print("Started FrameDisplay for: {}".format(cam_widget.camera.cameraID))
+        print("Started Frame Display for: {}".format(cam_widget.camera.cameraID))
         self.video_frame = cam_widget.video_frame
         self.frame_width = cam_widget.frame_width
         self.frame_height = cam_widget.frame_height
 
 
-    def execute(self, frame):
+    def execute(self, frame, metadata):
         """Sets pixmap image to video frame"""
         # print("frame displayed")
 
@@ -45,7 +50,7 @@ class FrameDisplay(BasePlugin):
         pixmap = QtGui.QPixmap.fromImage(qt_image)
         self.video_frame.setPixmap(pixmap)
         
-        return frame
+        return frame, metadata
 
     def close(self):
         print("Frame display closed")

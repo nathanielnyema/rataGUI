@@ -71,7 +71,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_timer.timeout.connect(self.update_camera_stats)
         self.update_timer.start(500)
 
-        open('log.txt', 'w').close() # Clear log file
+        # open('log.txt', 'w').close() # Clear log file
         self.logging_timer = QTimer()
         self.logging_timer.timeout.connect(self.log_computer_stats)
         self.logging_timer.start(30000)
@@ -451,13 +451,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.save_session()
 
         # Wait for threads to stop TODO: More sophisticated way to wait for threads to stop
-        time.sleep(0.21)
+        time.sleep(0.2)
 
         # Release camera-specific resources
         for cam_type in self.camera_models:
             cam_type.releaseResources()
 
-        event.accept() # let the window close
+        QtWidgets.QMainWindow.closeEvent(self, event) # let the window close
 
 
 def get_checked_items(check_list: QtWidgets.QListWidget) -> list:

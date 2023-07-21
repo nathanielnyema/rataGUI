@@ -1,8 +1,6 @@
 from plugins import BasePlugin, ConfigManager
 from config import FFMPEG_BINARY
 
-from skvideo.io import FFmpegWriter
-
 import os
 import cv2
 import numpy as np
@@ -11,8 +9,9 @@ from datetime import datetime
 
 class VideoWriter(BasePlugin):
     """
-    
-    :param aspect_ratio: Whether to maintain frame aspect ratio or force into frame
+    Plugin that writes frames to video file using FFMPEG
+
+    :param vcodec: Video codec used by ffmpeg binary
     """
 
     DEFAULT_CONFIG = {
@@ -34,8 +33,8 @@ class VideoWriter(BasePlugin):
 
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
-        print("Started VideoWriter for: {}".format(cam_widget.camera.cameraID))
-        self.input_params = {'-framerate': '30'}
+        print("Started Video Writer for: {}".format(cam_widget.camera.cameraID))
+        self.input_params = {}
         self.output_params = {}
 
         for name, value in config.as_dict().items():
@@ -50,7 +49,10 @@ class VideoWriter(BasePlugin):
                     file_name = str(cam_widget.camera.cameraID) + "_" + datetime.now().strftime('%H-%M-%S')
                 else:
                     file_name = value
-            elif prop_name != "save timestamp":
+            elif prop_name in ["framerate",]: # input parameters
+                self.input_params['-'+prop_name] = str(value)
+
+            elif prop_name != "save timestamp": # output parameters
                 self.output_params['-'+prop_name] = str(value)
     
         if self.output_params.get("-vcodec") in ['libx264', 'libx265']:
@@ -65,21 +67,14 @@ class VideoWriter(BasePlugin):
             self.file_path = os.path.join(self.save_dir, file_name + f" ({count})" + extension)
             count += 1
 
-        print(self.output_params)
-        self.writer = FFMPEG_Writer(str(self.file_path), input_dict=self.input_params, output_dict=self.output_params, debug=True)
+        self.writer = FFMPEG_Writer(str(self.file_path), input_dict=self.input_params, output_dict=self.output_params)
 
-    def execute(self, frame):
+    def execute(self, frame, metadata):
         # print("frame saved")
-
-        img_h, img_w, num_ch = frame.shape
-
-        if self.config.get('save timestamp'):
-            cv2.rectangle(frame, (img_w-190,0), (img_w,50), color=(0,0,0), thickness=-1)
-            cv2.putText(frame, datetime.now().strftime('%H:%M:%S'), (img_w-185,37), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255,255,255), lineType=cv2.LINE_AA)
-
+        
         self.writer.write_frame(frame)
 
-        return frame
+        return frame, metadata
 
     def close(self):
         print("Video writer closed")
@@ -98,7 +93,7 @@ class FFMPEG_Writer():
     :param output_dict: dictionary of output parameters to encode data to disk
     """
 
-    def __init__(self, file_path, input_dict={}, output_dict={}, debug=True):
+    def __init__(self, file_path, input_dict={}, output_dict={}, verbosity=0):
        
         self.file_path = os.path.abspath(file_path)
         dir_path = os.path.dirname(self.file_path)
@@ -109,7 +104,7 @@ class FFMPEG_Writer():
 
         self.input_dict = input_dict
         self.output_dict = output_dict
-        self.debug = debug
+        self.verbosity = verbosity
         self.initialized = False
 
         if FFMPEG_BINARY is not None and "ffmpeg" in FFMPEG_BINARY:
@@ -152,11 +147,14 @@ class FFMPEG_Writer():
 
         self._cmd = " ".join(cmd)
         print(self._cmd)
-        if self.debug:
+        if self.verbosity > 2:
+            print(cmd)
+            self._proc = sp.Popen(cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=None)
+        elif self.verbosity == 1:
             cmd += ["-v", "warning"]
+            print(cmd)
             self._proc = sp.Popen(cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=None)
         else:
-            cmd += ["-v", "error"]
             self._proc = sp.Popen(cmd, stdin=sp.PIPE, stdout=sp.DEVNULL, stderr=sp.STDOUT)
 
 

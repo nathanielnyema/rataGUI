@@ -79,7 +79,7 @@
       <item>
        <widget class="QTabWidget" name="camAttributes">
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="camPropsTab">
          <attribute name="title">

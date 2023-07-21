@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any
-import numpy.typing as npt
+from typing import Any, Tuple, Dict
+from numpy.typing import NDArray
 
 class BaseCamera(ABC):
     """
@@ -19,7 +19,7 @@ class BaseCamera(ABC):
 
     @staticmethod
     @abstractmethod
-    def getAvailableCameras() -> dict[str, Any]:
+    def getAvailableCameras() -> Dict[str, Any]:
         pass
 
     # Optional method to release static resources upon exiting
@@ -37,14 +37,14 @@ class BaseCamera(ABC):
     @abstractmethod
     def initializeCamera(self, prop_config: dict) -> bool:
         """
-        Initializes the camera.
+        Initializes the camera and returns whether it was successful
         """
         pass
 
     @abstractmethod
-    def readCamera(self) -> tuple[bool, npt.ArrayLike]:
+    def readCamera(self) -> Tuple[bool, NDArray]:
         """
-        Gets next frame
+        Reads next frame on camera and whether retrieval was successful
         """
         pass
 
@@ -59,15 +59,19 @@ class BaseCamera(ABC):
         """
         Returns the name of the camera
         """
-        # returns cameraID by default but can be overriden for custom display name
-        return str(self.cameraID)
+        return str(self.cameraID) # Overrite for custom display name
 
     def isOpened(self) -> bool:
         """
         Returns true if camera has been initialized and is streaming.
         """
-        # returns _running by default but can be overriden for custom behavior
-        return self._running
+        return self._running # Overrite for custom behavior
+
+    def getMetadata(self) -> Dict[str, Any]:
+        """
+        Returns metadata associated with last acquired frame
+        """
+        return {"Frame Index": self.frames_acquired}
 
     def __str__(self):
         return 'Camera ID: {}'.format(self.cameraID)

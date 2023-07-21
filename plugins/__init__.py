@@ -28,15 +28,15 @@ def load_module(path):
 async def plugin_process(plugin):
     while True:
         # print(f'{type(plugin).__name__} queue: ' + str(plugin.in_queue.qsize()))
-        frame = await plugin.in_queue.get()
+        frame, metadata = await plugin.in_queue.get()
+
+        # Execute plugin
+        if plugin.active:
+            result = plugin.execute(frame, metadata)
 
         # TODO: Add plugin-specific data
 
         # TODO: Parallelize with Thread Executor
-        
-        # Execute plugin
-        if plugin.active:
-            result = plugin.execute(frame)
 
         # Send output to next plugin
         if plugin.out_queue != None:
