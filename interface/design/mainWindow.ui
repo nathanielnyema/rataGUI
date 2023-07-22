@@ -37,6 +37,9 @@
      <layout class="QHBoxLayout" name="camControl" stretch="2,6">
       <item>
        <layout class="QVBoxLayout" name="camListLayout">
+        <property name="spacing">
+         <number>6</number>
+        </property>
         <property name="rightMargin">
          <number>3</number>
         </property>
@@ -189,6 +192,9 @@
       </property>
       <item>
        <layout class="QVBoxLayout" name="pluginListLayout">
+        <property name="spacing">
+         <number>6</number>
+        </property>
         <property name="rightMargin">
          <number>0</number>
         </property>

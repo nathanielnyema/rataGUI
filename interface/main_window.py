@@ -160,11 +160,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.cam_stats.resizeColumnsToContents()
 
-
     def populate_plugin_list(self):
         self.plugin_list.clear()
         self.plugin_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
         self.plugin_list.itemChanged.connect(self.populate_plugin_pipeline)
+        self.plugin_list.model().rowsMoved.connect(self.populate_plugin_pipeline)
         self.plugin_list.itemDoubleClicked["QListWidgetItem*"].connect(
             lambda item: item.setCheckState(Qt.CheckState.Checked 
                 if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked
@@ -207,16 +207,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         except Exception: pass
 
         self.plugin_pipeline.setRowCount(len(self.camera_widgets))
-        self.plugin_pipeline.setVerticalHeaderLabels(self.camera_widgets.keys())
+        self.plugin_pipeline.setColumnCount(self.plugin_list.count())
+        column_labels = []
 
-        self.plugin_pipeline.setColumnCount(len(self.plugins.keys()))
-        self.plugin_pipeline.setHorizontalHeaderLabels(self.plugins.keys())
-
+        # TODO: Use self.cam_list directly if order can change
         checked_camera_names = [c.text() for c in get_checked_items(self.cam_list)]
-        checked_plugin_names = [p.text() for p in get_checked_items(self.plugin_list)]
 
         for row, (camID, widget) in enumerate(self.camera_widgets.items()):
-            for col, plugin_name in enumerate(self.plugins.keys()):
+            for col in range(self.plugin_list.count()):
+                plugin_item = self.plugin_list.item(col)
+                plugin_name = plugin_item.text()
+                if row == 0: # Add column label once
+                    column_labels.append(plugin_name)
+            # for col, plugin_name in enumerate(self.plugins.keys()):
                 item = self.plugin_pipeline.item(row, col)
                 if item is None:
                     item = QtWidgets.QTableWidgetItem()
@@ -246,8 +249,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                         item.setCheckState(Qt.CheckState.Unchecked)
                         item.setBackground(self.paused_color)
-                elif camID in checked_camera_names: # Enabled
-                    if plugin_name in checked_plugin_names:
+                elif camID in checked_camera_names: # Camera is enabled
+                    if plugin_item.checkState() == Qt.CheckState.Checked: # Plugin is enabled
                         item.setText("Enabled")
                         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                         item.setCheckState(Qt.CheckState.Checked)
@@ -257,6 +260,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 else:
                     item.setText("")
                     item.setBackground(self.inactive_color)
+
+        self.plugin_pipeline.setVerticalHeaderLabels(self.camera_widgets.keys())
+        self.plugin_pipeline.setHorizontalHeaderLabels(column_labels)
         
         self.plugin_pipeline.itemChanged.connect(self.toggle_camera_plugin)
         self.plugin_pipeline.resizeColumnsToContents()
@@ -321,7 +327,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 widget.active = True
                 self.cam_list.item(row).setBackground(self.active_color)
                 self.camera_widgets[camID].show()
-
+        # Update camera pipeline
         self.populate_plugin_pipeline()
 
 
@@ -361,7 +367,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         ui_settings = {}
         ui_settings["checked_cameras"] = [c.text() for c in get_checked_items(self.cam_list)]
-        ui_settings["checked_plugins"] = [p.text() for p in get_checked_items(self.plugin_list)]
+
+        plugin_states = {}
+        for idx in range(self.plugin_list.count()):
+            item = self.plugin_list.item(idx)
+            plugin_states[item.text()] = item.checkState() == Qt.CheckState.Checked
+        ui_settings["plugin_states"] = plugin_states
+
+        ui_settings["active_camera_tab"] = self.camAttributes.currentWidget().objectName()
+        # ui_settings["active_plugin_tab"] = self.plugin_settings.currentWidget().objectName()
+
         ui_settings["window_width"] = self.size().width()
         ui_settings["window_height"] = self.size().height()
         ui_settings["window_x"] = self.pos().x()
@@ -401,10 +416,33 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 if item.text() in saved_configs["checked_cameras"]:
                     item.setCheckState(Qt.CheckState.Checked)
 
-            for idx in range(self.plugin_list.count()):
-                item = self.plugin_list.item(idx)
-                if item.text() in saved_configs["checked_plugins"]:
-                    item.setCheckState(Qt.CheckState.Checked)
+            # Repopulate list with saved plugin state
+            self.plugin_list.clear()
+            for name, checked in saved_configs["plugin_states"].items():
+                if name in self.plugins:
+                    item = QtWidgets.QListWidgetItem(name)
+                    item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                    item.setCheckState(Qt.CheckState.Unchecked)
+                    if checked:
+                        item.setCheckState(Qt.CheckState.Checked)
+                    self.plugin_list.addItem(item)
+
+            # Append any new plugins to the end
+            new_plugins = list(set(self.plugins) - set(saved_configs["plugin_states"]))
+            for name in new_plugins:
+                item = QtWidgets.QListWidgetItem(name)
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(Qt.CheckState.Unchecked)
+                self.plugin_list.addItem(item)
+            
+            self.populate_plugin_pipeline()
+
+            # active_camera_tab = self.camAttributes.findChild(QtWidgets.QWidget, saved_configs["active_camera_tab"])
+            # self.camAttributes.setCurrentIndex(self.camAttributes.indexOf(active_camera_tab))
+
+
+            # active_plugin_tab = self.plugin_settings.findChild(QtWidgets.QWidget, saved_configs["active_plugin_tab"])
+            # self.plugin_settings.setCurrentWidget(active_plugin_tab)
 
             self.resize(saved_configs["window_width"], saved_configs["window_height"])
             self.move(saved_configs["window_x"], saved_configs["window_y"])

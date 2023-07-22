@@ -31,7 +31,10 @@ async def plugin_process(plugin):
         # print(f'{type(plugin).__name__} queue: ' + str(plugin.in_queue.qsize()))
         # Execute plugin
         if plugin.active:
-            result = plugin.execute(frame, metadata)
+            try:
+                result = plugin.execute(frame, metadata)
+            except Exception as err:
+                print('Error: %s' % err)
 
         # TODO: Add plugin-specific data
 

@@ -60,7 +60,7 @@ class WebCamera(BaseCamera):
             self._running = False
             return True
         except Exception as err:
-            print(err)
+            print('Error: %s' % err)
             return False
     
     def isOpened(self):

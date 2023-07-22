@@ -63,6 +63,7 @@ class FLIRCamera(BaseCamera):
         self.frames_dropped = 0
         self.last_index = -1
         self.buffer_size = 0
+        self.initial_frameID = 0 # on camera transport layer
 
     def configure_chunk_data(self, nodemap, selected_chucks, enable = True) -> bool:
         """
@@ -162,7 +163,7 @@ class FLIRCamera(BaseCamera):
 
                 node.SetValue(value)
             except Exception as err:
-                print(err)
+                print('Error: %s' % err)
                 return False  
 
         # print(dir(self._stream.TLStream))
@@ -191,7 +192,7 @@ class FLIRCamera(BaseCamera):
             return False, None
 
         try:
-            img_data = self._stream.GetNextImage(500) # Wait 0.5 sec before timing out
+            img_data = self._stream.GetNextImage()
             if img_data.IsIncomplete():
                 print('Image incomplete with image status %d ...' % img_data.GetImageStatus())
                 return False, None
@@ -205,6 +206,8 @@ class FLIRCamera(BaseCamera):
             if self.last_index >= 0:
                 self.frames_dropped += new_index - self.last_index - 1
                 self.buffer_size = self._stream.TLStream.StreamOutputBufferCount.GetValue()
+            else:
+                self.initial_frameID = new_index
             self.last_index = new_index
             self.frames_acquired += 1
 
@@ -225,7 +228,7 @@ class FLIRCamera(BaseCamera):
             return False
 
     def getMetadata(self):
-        return {"Camera Index": self.last_index, 
+        return {"Camera Index": self.last_index - self.initial_frameID, 
                 "Frame Index": self.frames_acquired,}
 
 
@@ -242,7 +245,7 @@ class FLIRCamera(BaseCamera):
             self._running = False
             return True
         except Exception as err:
-            print(err)
+            print('Error: %s' % err)
             return False
 
     def isOpened(self):

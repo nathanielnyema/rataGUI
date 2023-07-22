@@ -15,7 +15,7 @@ class VideoWriter(BasePlugin):
     """
 
     DEFAULT_CONFIG = {
-        'vcodec': ['libx264', 'libx265'],
+        'vcodec': ['libx264', 'libx265', 'h264_nvenc', 'hevc_nvenc'],
         'framerate': 30,
         'speed (preset)': ["fast", "veryfast", "ultrafast", "medium", "slow", "slower", "veryslow"], # Defaults to first item
         'quality (0-51)': 32,
@@ -54,11 +54,12 @@ class VideoWriter(BasePlugin):
             else: # output parameters
                 self.output_params['-'+prop_name] = str(value)
     
-        if self.output_params.get("-vcodec") in ['libx264', 'libx265']:
-            extension = ".mp4"
-        # elif self.output_params.get("-vcodec") in ['huffyuv', 'rawvideo']: # lossless
-        #     extension = ".yuv"
-        
+        # # Configure codec-specific parameters
+        # vcodec = self.output_params.get("-vcodec")
+        # if vcodec in ['h264_nvenc', 'hevc_nvenc']:
+        #     self.output_params['-cq'] = self.output_params.pop('-crf')
+
+        extension = ".mp4"
         os.makedirs(self.save_dir, exist_ok=True)
         self.file_path = os.path.join(self.save_dir, file_name + extension)
         count = 1
@@ -66,7 +67,7 @@ class VideoWriter(BasePlugin):
             self.file_path = os.path.join(self.save_dir, file_name + f" ({count})" + extension)
             count += 1
 
-        self.writer = FFMPEG_Writer(str(self.file_path), input_dict=self.input_params, output_dict=self.output_params)
+        self.writer = FFMPEG_Writer(str(self.file_path), input_dict=self.input_params, output_dict=self.output_params, verbosity=2)
 
     def execute(self, frame, metadata):
         # print("frame saved")

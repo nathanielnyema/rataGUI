@@ -1,8 +1,8 @@
 # import sys
 # import numpy as np
 # import cv2
+import os
 from datetime import datetime
-import time
 # import logging
 
 from plugins import plugin_process
@@ -73,18 +73,28 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.camera.closeCamera()
 
     async def process_plugin_pipeline(self):
+        # Add process to continuously acquire frames from camera
+        acquisition_task = asyncio.create_task(self.acquire_frames())
+
         # Add all plugin processes (pipeline) to async event loop
+        plugin_tasks = [] 
         for cur_plugin, next_plugin in zip(self.plugins, self.plugins[1:]):
             # Connect outputs and inputs of consecutive plugin pairs
             cur_plugin.out_queue = next_plugin.in_queue
-            asyncio.create_task(plugin_process(cur_plugin))
+            plugin_tasks.append(asyncio.create_task(plugin_process(cur_plugin)))
         # Add terminating plugin
-        asyncio.create_task(plugin_process(self.plugins[-1]))
+        plugin_tasks.append(asyncio.create_task(plugin_process(self.plugins[-1])))
 
-        # Send frames through pipeline
-        await self.acquire_frames()
+        # Wait until camera stops running
+        await acquisition_task
+
+        # Wait for plugins to finish processing
         for plugin in self.plugins:
             await plugin.in_queue.join()
+
+        # Cancel idle plugin processes
+        for task in plugin_tasks:
+            task.cancel()
 
     def stop_plugin_pipeline(self):
         for plugin in self.plugins:
@@ -98,7 +108,11 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     def start_camera_pipeline(self):
         print('Started camera: {}'.format(self.camera.cameraID))
         self.camera.initializeCamera(self.camera_config)
-        asyncio.run(self.process_plugin_pipeline(), debug=True)
+        try:
+            asyncio.run(self.process_plugin_pipeline(), debug=False)
+        except Exception as err:
+            print('Error: %s' % err)
+            os._exit(42)
 
     def close_camera_pipeline(self):
         print('Stopped camera: {}'.format(self.camera.cameraID))
