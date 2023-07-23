@@ -124,7 +124,7 @@ class FLIRCamera(BaseCamera):
                             result = False
 
         except PySpin.SpinnakerException as ex:
-            print('Error: %s' % ex)
+            print('ERROR: %s' % ex)
             result = False
 
         return result
@@ -163,7 +163,7 @@ class FLIRCamera(BaseCamera):
 
                 node.SetValue(value)
             except Exception as err:
-                print('Error: %s' % err)
+                print('ERROR: %s' % err)
                 return False  
 
         # print(dir(self._stream.TLStream))
@@ -224,7 +224,7 @@ class FLIRCamera(BaseCamera):
             img_data.Release()
             return True, self.last_frame
         except PySpin.SpinnakerException as ex:
-            print('Error: %s' % ex)
+            print('ERROR: %s' % ex)
             return False
 
     def getMetadata(self):
@@ -245,7 +245,7 @@ class FLIRCamera(BaseCamera):
             self._running = False
             return True
         except Exception as err:
-            print('Error: %s' % err)
+            print('ERROR: %s' % err)
             return False
 
     def isOpened(self):

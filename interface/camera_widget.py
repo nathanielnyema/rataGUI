@@ -64,7 +64,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
                     await self.plugins[0].in_queue.put((frame, metadata))
                     await asyncio.sleep(0)
                 else:
-                    print("Error: camera frame not found ... stopping")
+                    print("ERROR: camera frame not found ... stopping")
                     break
             else: # Pass to next coroutine
                 await asyncio.sleep(0)
@@ -111,7 +111,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         try:
             asyncio.run(self.process_plugin_pipeline(), debug=False)
         except Exception as err:
-            print('Error: %s' % err)
+            print('ERROR: %s' % err)
             os._exit(42)
 
     def close_camera_pipeline(self):

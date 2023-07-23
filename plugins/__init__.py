@@ -29,22 +29,21 @@ async def plugin_process(plugin):
     while True:
         frame, metadata = await plugin.in_queue.get()
         # print(f'{type(plugin).__name__} queue: ' + str(plugin.in_queue.qsize()))
-        # Execute plugin
-        if plugin.active:
-            try:
+        try:
+            # Execute plugin
+            if plugin.active:
                 result = plugin.execute(frame, metadata)
-            except Exception as err:
-                print('Error: %s' % err)
+
+            # Send output to next plugin
+            if plugin.out_queue != None:
+                await plugin.out_queue.put(result)
+        except Exception as err:
+            print('ERROR: %s' % err)
+        finally:
+            plugin.in_queue.task_done()
 
         # TODO: Add plugin-specific data
-
         # TODO: Parallelize with Thread Executor
-
-        # Send output to next plugin
-        if plugin.out_queue != None:
-            await plugin.out_queue.put(result)
-        
-        plugin.in_queue.task_done()
 
 
 # Get current path

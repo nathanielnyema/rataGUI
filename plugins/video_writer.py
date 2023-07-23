@@ -146,8 +146,8 @@ class FFMPEG_Writer():
         cmd = [self._FFMPEG_PATH, "-y", "-f", "rawvideo"] + in_args + ["-i", "-", '-an'] + out_args + [self.file_path]
 
         self._cmd = " ".join(cmd)
-        print(self._cmd)
-        if self.verbosity > 2:
+        
+        if self.verbosity >= 2:
             print(cmd)
             self._proc = sp.Popen(cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=None)
         elif self.verbosity == 1:
