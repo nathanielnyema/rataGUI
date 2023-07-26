@@ -8,11 +8,13 @@ class FLIRCamera(BaseCamera):
     DEFAULT_PROPS = {
         "Limit framerate": True,
         "Framerate" : 30,
+        # "TriggerMode" : False,
         "Buffer mode" : {"OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
                                  "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,},  # Defaults to first item
-        "LineSelector" : PySpin.LineSelector_Line2,
-        "LineMode" : PySpin.LineMode_Output,
-        "LineSource": PySpin.LineSource_ExposureActive,
+        "LineSelector" : {"Line 2": PySpin.LineSelector_Line2},
+        "LineMode" : {"Output": PySpin.LineMode_Output},
+        "LineSource": {"Exposure Active": PySpin.LineSource_ExposureActive},
+        # "PixelFormat": {"RGB8": PySpin.PixelFormat_RGB8Packed, "BGR8": PySpin.PixelFormat_BGR8}
     }
 
     DISPLAY_PROP_MAP = {
@@ -165,14 +167,11 @@ class FLIRCamera(BaseCamera):
             except Exception as err:
                 print('ERROR: %s' % err)
                 return False  
-
+        
         # print(dir(self._stream.TLStream))
-        # print(self._stream.TLStream.StreamMode.GetName)
         # print(self._stream.TLStream.StreamBufferHandlingMode.ToString())
         # print(self._stream.TLStream.StreamOutputBufferCount.GetValue())
-
-        # StreamOutputBufferCount
-
+        # print(self._stream.AcquisitionMode.ToString())
 
         self.initialized = True
         self.startStream()
@@ -212,13 +211,14 @@ class FLIRCamera(BaseCamera):
             self.frames_acquired += 1
 
             frame = img_data.GetNDArray()
-            match colorspace:
-                case "BGR":
+            if colorspace == "BGR":
                     self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2BGR)
-                case "RGB":
+            elif colorspace == "RGB":
                     self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2RGB)
-                case "GRAY":
+            elif colorspace == "GRAY":
                     self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2GRAY)
+            else:
+                self.last_frame = frame
 
             # Release image from camera buffer
             img_data.Release()

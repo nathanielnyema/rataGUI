@@ -42,15 +42,14 @@ class WebCamera(BaseCamera):
         ret, frame = self._stream.read()
         if ret:
             self.frames_acquired += 1
-            match colorspace:
-                case "RGB":
-                    self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                case "HSV": 
-                    self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-                case "GRAY":
-                    self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                case other:
-                    self.last_frame = frame
+            if colorspace == "BGR":
+                self.last_frame = frame
+            elif colorspace == "RGB":
+                self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            elif colorspace == "GRAY":
+                self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            else:
+                self.last_frame = frame
         
         return ret, self.last_frame
 

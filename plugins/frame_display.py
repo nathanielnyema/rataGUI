@@ -34,10 +34,6 @@ class FrameDisplay(BasePlugin):
         # Get image dimensions
         img_h, img_w, num_ch = frame.shape
 
-        if self.config.get('Show timestamp'):
-            cv2.rectangle(frame, (img_w-190,0), (img_w,50), color=(0,0,0), thickness=-1)
-            cv2.putText(frame, datetime.now().strftime('%H:%M:%S'), (img_w-185,37), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255,255,255), lineType=cv2.LINE_AA)
-
         # Convert to pixmap and set to video frame
         bytes_per_line = num_ch * img_w
         qt_image = QtGui.QImage(frame.data, img_w, img_h, bytes_per_line, QtGui.QImage.Format.Format_RGB888)

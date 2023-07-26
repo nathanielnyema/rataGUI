@@ -6,7 +6,7 @@ RataGUI is written entirely in Python and runs on all major platforms. To get st
 
 ## Conda Environment
 ```
-conda env create --file rataGUI.yaml
+conda env create --file rataGUI-cpu.yaml
 conda activate rataGUI
 ```
 
@@ -19,7 +19,7 @@ pip install -r requirements.txt
 
 ## Install FFmpeg
 
-FFmpeg can be installed through the official download links or using a package manager (e.g. `sudo apt install ffmpeg` on Debian/Ubuntu, `brew install ffmpeg` on macOS, etc.).
+FFmpeg can be installed through the official download [links](https://ffmpeg.org/download.html) or using a package manager (e.g. `sudo apt install ffmpeg` on Debian/Ubuntu, `brew install ffmpeg` on macOS, etc.).
 
 Confi
 
@@ -27,7 +27,7 @@ Confi
 To use RataGUI with Spinnaker cameras, follow the instructions [here](https://www.flir.com/products/spinnaker-sdk/) to download the Spinnaker SDK for your specific Python version. 
 In the downloaded folder, find the package wheel (spinnaker_python-\<version\>-\<system-info\>.whl) file and run the following command install PySpin into your Python enviornment.
 ```
-pip install <PATH-TO-SPINNAKER-WHEEL-FILE>.whl
+python -m pip install <PATH-TO-SPINNAKER-WHEEL-FILE>.whl
 ```
 
 # Custom Camera Models

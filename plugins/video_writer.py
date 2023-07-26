@@ -67,7 +67,7 @@ class VideoWriter(BasePlugin):
             self.file_path = os.path.join(self.save_dir, file_name + f" ({count})" + extension)
             count += 1
 
-        self.writer = FFMPEG_Writer(str(self.file_path), input_dict=self.input_params, output_dict=self.output_params, verbosity=2)
+        self.writer = FFMPEG_Writer(str(self.file_path), input_dict=self.input_params, output_dict=self.output_params, verbosity=0)
 
     def execute(self, frame, metadata):
         # print("frame saved")

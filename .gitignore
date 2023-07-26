@@ -6,6 +6,7 @@ videos/*
 tests/
 archive/
 session/
+nvvm/
 log.txt
 profile.txt
 

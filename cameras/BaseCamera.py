@@ -57,7 +57,7 @@ class BaseCamera(ABC):
 
     def getName(self) -> str:
         """
-        Returns the name of the camera
+        Returns the default display name of the camera
         """
         return str(self.cameraID) # Overrite for custom display name
 
