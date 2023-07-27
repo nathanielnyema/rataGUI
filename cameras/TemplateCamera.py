@@ -29,9 +29,7 @@ class TemplateCamera(BaseCamera):
         ret, frame = self._stream.read()
         if ret:
             self.frames_acquired += 1
-            if colorspace == "BGR":
-                self.last_frame = frame
-            elif colorspace == "RGB":
+            if colorspace == "RGB":
                 self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             elif colorspace == "GRAY":
                 self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
