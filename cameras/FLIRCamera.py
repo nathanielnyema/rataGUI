@@ -249,11 +249,11 @@ class FLIRCamera(BaseCamera):
 
             frame = img_data.GetNDArray()
             if colorspace == "BGR":
-                    self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2BGR)
+                self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2BGR)
             elif colorspace == "RGB":
-                    self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2RGB)
+                self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2RGB)
             elif colorspace == "GRAY":
-                    self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2GRAY)
+                self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2GRAY)
             else:
                 self.last_frame = frame
 

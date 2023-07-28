@@ -54,7 +54,6 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     async def acquire_frames(self):
         loop = asyncio.get_running_loop()
         while self.camera._running:
-            # print('Camera queue: ' + str(self.plugins[0].in_queue.qsize()))
             if self.active:
                 try:
                     status, frame = await loop.run_in_executor(None, self.camera.readCamera)
@@ -116,7 +115,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         print('Started camera: {}'.format(self.camera.cameraID))
         self.camera.initializeCamera(self.camera_config)
         try:
-            asyncio.run(self.process_plugin_pipeline(), debug=False)
+            asyncio.run(self.process_plugin_pipeline(), debug=True)
         except Exception as err:
             print('ERROR: %s' % err)
             os._exit(42)
