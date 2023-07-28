@@ -33,12 +33,14 @@ async def plugin_process(plugin):
             # Execute plugin
             if plugin.active:
                 result = plugin.execute(frame, metadata)
+            else:
+                result = (frame, metadata)
 
             # Send output to next plugin
             if plugin.out_queue != None:
                 await plugin.out_queue.put(result)
         except Exception as err:
-            print('ERROR: %s' % err)
+            print('ERROR--Pipeline: %s' % err)
         finally:
             plugin.in_queue.task_done()
 

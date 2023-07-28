@@ -535,7 +535,7 @@ def add_config_handler(config, key, value):
 
         config.add_handler(key, widget, mapper) 
     except Exception as err:
-        print('ERROR: %s' % err)
+        print('ERROR--GUI: %s' % err)
         print("Failed to create setting handler. Each setting must have a corresponding set of values")
 
 

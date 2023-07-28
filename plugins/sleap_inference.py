@@ -22,7 +22,13 @@ class SleapInference(BasePlugin):
         print("Started Sleap Inference for: {}".format(cam_widget.camera.cameraID))
         self.model_path = os.path.normpath(config.get("Model directory"))
 
-        self.model_fn = load_frozen_graph(config.get("Model directory"))
+        try:
+            self.model_fn = load_frozen_graph(config.get("Model directory"))
+        except Exception as err:
+            print('ERROR--SLEAP: %s' % err)
+            print("Unable to load model ... auto-disabling plugin")
+            self.active = False
+
         self.input_width = 1920
         self.input_height = 1376
         self.count = 0

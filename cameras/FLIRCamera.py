@@ -131,7 +131,7 @@ class FLIRCamera(BaseCamera):
                             result = False
 
         except PySpin.SpinnakerException as ex:
-            print('ERROR: %s' % ex)
+            print('ERROR--PySpin: %s' % ex)
             result = False
 
         return result
@@ -144,7 +144,7 @@ class FLIRCamera(BaseCamera):
             cam_list = FLIRCamera.getCameraList()
             self._stream = cam_list.GetBySerial(self.cameraID)
         except Exception as err:
-            print('ERROR: %s' % err)
+            print('ERROR--FLIRCamera: %s' % err)
             print("Camera not available")
             return False
         finally:
@@ -189,7 +189,7 @@ class FLIRCamera(BaseCamera):
 
                     node.SetValue(value)
         except (Exception, PySpin.SpinnakerException) as err:
-            print('ERROR: %s' % err)
+            print('ERROR--FLIRCamera: %s' % err)
             return False  
             
         self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
@@ -261,7 +261,7 @@ class FLIRCamera(BaseCamera):
             img_data.Release()
             return True, self.last_frame
         except PySpin.SpinnakerException as ex:
-            print('ERROR: %s' % ex)
+            print('ERROR--PySpin: %s' % ex)
             return False
 
     def getMetadata(self):
@@ -282,7 +282,7 @@ class FLIRCamera(BaseCamera):
             self._running = False
             return True
         except Exception as err:
-            print('ERROR: %s' % err)
+            print('ERROR--FLIRCamera: %s' % err)
             return False
 
     def isOpened(self):
