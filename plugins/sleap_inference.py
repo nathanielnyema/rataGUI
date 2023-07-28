@@ -3,8 +3,6 @@ from plugins import BasePlugin, ConfigManager
 import os
 import numpy as np
 import cv2
-# sleap.disable_preallocation()
-
 
 class SleapInference(BasePlugin):
     """

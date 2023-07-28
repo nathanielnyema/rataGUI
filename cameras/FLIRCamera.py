@@ -6,21 +6,26 @@ import PySpin
 class FLIRCamera(BaseCamera):
 
     DEFAULT_PROPS = {
-        "Limit framerate": True,
-        "Framerate" : 30,
-        # "TriggerMode" : False,
-        "Buffer mode" : {"OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
-                                 "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,},  # Defaults to first item
-        "LineSelector" : {"Line 2": PySpin.LineSelector_Line2},
-        "LineMode" : {"Output": PySpin.LineMode_Output},
-        "LineSource": {"Exposure Active": PySpin.LineSource_ExposureActive},
+        "Limit Framerate": {"On": True, "Off": False},
+        "Framerate": 30,
+        "TriggerSource": {"Off": "TriggerMode_Off", 
+                          "Line 3": PySpin.TriggerSource_Line3, "Line 0": PySpin.TriggerSource_Line0, 
+                          "Line 1": PySpin.TriggerSource_Line1, "Line 2": PySpin.TriggerSource_Line2,},
+                        #   "Software": PySpin.TriggerSource_Software}, # TODO: Add TriggerSoftware.Execute()
+        "Buffer Mode": {"OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
+                        "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,},
+        # ["Line0 Input", "Line0_Output"]: [{}, {}]
+        "Line0 Output": {"None": PySpin.LineSource_Off,},
+        "Line1 Output": {"None": PySpin.LineSource_Off,},
+        "Line2 Output": {"User Output 0": PySpin.LineSource_UserOutput0, "Frame Acquired": PySpin.LineSource_ExposureActive,},
+        "Line3 Output": {"None": PySpin.LineSource_Off,},
         # "PixelFormat": {"RGB8": PySpin.PixelFormat_RGB8Packed, "BGR8": PySpin.PixelFormat_BGR8}
     }
 
     DISPLAY_PROP_MAP = {
+        "Limit Framerate": "AcquisitionFrameRateEnable",
         "Framerate": "AcquisitionFrameRate",
-        "Limit framerate": "AcquisitionFrameRateEnable",
-        "Buffer mode": "TLStream.StreamBufferHandlingMode",
+        "Buffer Mode": "TLStream.StreamBufferHandlingMode",
     }
 
     # Global pyspin system variable
@@ -135,14 +140,15 @@ class FLIRCamera(BaseCamera):
         # Reset session variables
         self.__init__(self.cameraID)
 
-        cam_list = FLIRCamera.getCameraList()
-        if cam_list.GetSize() == 0:
-            print("No camera available")
-            cam_list.Clear()
+        try:
+            cam_list = FLIRCamera.getCameraList()
+            self._stream = cam_list.GetBySerial(self.cameraID)
+        except Exception as err:
+            print('ERROR: %s' % err)
+            print("Camera not available")
             return False
-        
-        self._stream = cam_list.GetBySerial(self.cameraID)
-        cam_list.Clear()
+        finally:
+            cam_list.Clear()
 
         # Initialize stream
         if not self._stream.IsInitialized():
@@ -152,21 +158,52 @@ class FLIRCamera(BaseCamera):
         enabled_chunks = ["FrameID",] # ExposureTime, PixelFormat
         self.configure_chunk_data(nodemap, enabled_chunks)
 
-        for name, value in prop_config.items():
-            prop_name = FLIRCamera.DISPLAY_PROP_MAP.get(name)
-            if prop_name is None:
-                prop_name = name
+        try:
+            for name, value in prop_config.items():
+                prop_name = FLIRCamera.DISPLAY_PROP_MAP.get(name)
+                if prop_name is None:
+                    prop_name = name
+                    
+                if prop_name.startswith("Line") and prop_name.endswith("Output"):
+                    line_num = prop_name[4]
+                    selector = getattr(PySpin, "LineSelector_Line" + line_num)
+                    self._stream.LineSelector.SetValue(selector)
+                    try: 
+                        self._stream.LineMode.SetValue(PySpin.LineMode_Output)
+                        print(value)
+                        self._stream.LineSource.SetValue(value)
+                    except PySpin.SpinnakerException as ex:
+                        print(f"Warning: Unable to write enum entry to Line {line_num}")
+                        pass
 
-            try:
-                # Recursively access QuickSpin API
-                node = self._stream
-                for attr in prop_name.split('.'):
-                    node = getattr(node, attr)
+                elif prop_name == "TriggerSource":
+                    self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
+                    if value != "TriggerMode_Off":
+                        self._stream.TriggerSource.SetValue(value)
+                        self._stream.TriggerMode.SetValue(PySpin.TriggerMode_On)
 
-                node.SetValue(value)
-            except Exception as err:
-                print('ERROR: %s' % err)
-                return False  
+                else: # Recursively access QuickSpin API
+                    node = self._stream
+                    for attr in prop_name.split('.'):
+                        node = getattr(node, attr)
+
+                    node.SetValue(value)
+        except (Exception, PySpin.SpinnakerException) as err:
+            print('ERROR: %s' % err)
+            return False  
+            
+        self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
+
+        if self._stream.TriggerSource.GetAccessMode() != PySpin.RW:
+            print('Unable to get trigger source (node retrieval). Aborting...')
+            return False
+
+        # if CHOSEN_TRIGGER == TriggerType.SOFTWARE:
+        #     cam.TriggerSource.SetValue(PySpin.TriggerSource_Software)
+        # elif CHOSEN_TRIGGER == TriggerType.HARDWARE:
+        # self._stream.TriggerSource.SetValue(PySpin.TriggerSource_Line0)
+
+        # self._stream.TriggerMode.SetValue(PySpin.TriggerMode_On)
         
         # print(dir(self._stream.TLStream))
         # print(self._stream.TLStream.StreamBufferHandlingMode.ToString())

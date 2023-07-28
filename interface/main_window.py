@@ -219,7 +219,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         for name in metadata.keys():
                             key = 'Overlay ' + name
                             if key not in settings:
-                                add_config_handler(config, key, setting=False)
+                                add_config_handler(config, key, value=False)
             
             layout = make_config_layout(config)
             layout.insertStretch(1, 1)
@@ -507,27 +507,36 @@ def get_checked_items(check_list: QtWidgets.QListWidget) -> list:
     return checked
 
 
-def add_config_handler(config, key, setting):
-    mapper = (lambda x: x, lambda x: x)
-    if isinstance(setting, bool):
-        widget = QtWidgets.QCheckBox()
-    elif isinstance(setting, str):
-        widget = QtWidgets.QLineEdit()
-    elif isinstance(setting, int):
-        widget = QtWidgets.QSpinBox()
-    elif isinstance(setting, list):
-        widget = QtWidgets.QComboBox()
-        widget.view().setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        widget.addItems(setting)
-        config.set_default(key, setting[0]) # Default to first value
-    elif isinstance(setting, dict):
-        widget = QtWidgets.QComboBox()
-        widget.view().setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        options = list(setting.keys())
-        widget.addItems(options)
-        config.set_default(key, setting[options[0]]) # Default to first value
-        mapper = setting
-    config.add_handler(key, widget, mapper) 
+def add_config_handler(config, key, value):
+    try:
+        # if isinstance(key, list): # Mutually exclusive options
+        #     key = tuple(key)
+        #     value = value[0]
+
+        mapper = (lambda x: x, lambda x: x)
+        if isinstance(value, bool):
+            widget = QtWidgets.QCheckBox()
+        elif isinstance(value, str):
+            widget = QtWidgets.QLineEdit()
+        elif isinstance(value, int):
+            widget = QtWidgets.QSpinBox()
+        elif isinstance(value, list):
+            widget = QtWidgets.QComboBox()
+            widget.view().setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            widget.addItems(value)
+            config.set_default(key, value[0]) # Default to first value
+        elif isinstance(value, dict):
+            widget = QtWidgets.QComboBox()
+            widget.view().setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            options = list(value.keys())
+            widget.addItems(options)
+            config.set_default(key, value[options[0]]) # Default to first value
+            mapper = value
+
+        config.add_handler(key, widget, mapper) 
+    except Exception as err:
+        print('ERROR: %s' % err)
+        print("Failed to create setting handler. Each setting must have a corresponding set of values")
 
 
 def make_config_layout(config, cols=2):

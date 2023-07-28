@@ -21,11 +21,9 @@ pip install -r requirements.txt
 
 FFmpeg can be installed through the official download [links](https://ffmpeg.org/download.html) or using a package manager (e.g. `sudo apt install ffmpeg` on Debian/Ubuntu, `brew install ffmpeg` on macOS, etc.).
 
-Confi
-
 ## Install Spinnaker SDK (optional)
 To use RataGUI with Spinnaker cameras, follow the instructions [here](https://www.flir.com/products/spinnaker-sdk/) to download the Spinnaker SDK for your specific Python version. 
-In the downloaded folder, find the package wheel (spinnaker_python-\<version\>-\<system-info\>.whl) file and run the following command install PySpin into your Python enviornment.
+In the downloaded folder, find the package wheel (spinnaker_python-\<version\>-\<system-info\>.whl) file and run the following command install PySpin into your Python enviornment. Then, restart the environment and/or reboot your computer to recapture the system and user environment variables.
 ```
 python -m pip install <PATH-TO-SPINNAKER-WHEEL-FILE>.whl
 ```
