@@ -11,8 +11,7 @@ class BaseCamera(ABC):
     # Static variable to contain all camera subclasses
     camera_models = []
 
-    # For every class that inherits from the current,
-    # the class name will be added to plugins
+    # For every class that inherits from BaseCamera, the class name will be added to camera_models
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cls.camera_models.append(cls)
@@ -29,7 +28,8 @@ class BaseCamera(ABC):
 
     def __init__(self):
         self._stream = None
-        self.cameraID = ""
+        self.cameraID = "Unnamed"
+        self.display_name = None
         self._running = False
         self.frames_acquired = 0
         # TODO: Add required properties
@@ -39,27 +39,29 @@ class BaseCamera(ABC):
         """
         Initializes the camera and returns whether it was successful
         """
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def readCamera(self) -> Tuple[bool, NDArray]:
         """
         Reads next frame on camera and whether retrieval was successful
         """
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def closeCamera(self) -> bool:
         """
         Stops the acquisition and closes the connection with the camera.
         """
-        pass
+        raise NotImplementedError()
 
     def getName(self) -> str:
         """
-        Returns the default display name of the camera
+        Returns the display name of the camera. Defaults to cameraID if display is not set.
         """
-        return str(self.cameraID) # Overrite for custom display name
+        if self.display_name is not None:
+            return str(self.display_name)
+        return str(self.cameraID)
 
     def isOpened(self) -> bool:
         """

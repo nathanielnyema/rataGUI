@@ -18,7 +18,7 @@ class VideoWriter(BasePlugin):
         'vcodec': ['libx264', 'libx265', 'h264_nvenc', 'hevc_nvenc'],
         'framerate': 30,
         'speed (preset)': ["fast", "veryfast", "ultrafast", "medium", "slow", "slower", "veryslow"], # Defaults to first item
-        'quality (0-51)': 32,
+        'quality (0-51)': (32, 0, 51),
         'pixel format': ['yuv420p', 'yuv422p', 'yuv444p', 'rgb24', 'yuv420p10le', 'yuv422p10le', 'yuv444p10le', 'gray'],
         'save directory': "videos",
         'filename': "",
@@ -35,6 +35,7 @@ class VideoWriter(BasePlugin):
         print("Started Video Writer for: {}".format(cam_widget.camera.cameraID))
         self.input_params = {}
         self.output_params = {}
+        self.cpu_bound = True
 
         for name, value in config.as_dict().items():
             prop_name = VideoWriter.DISPLAY_CONFIG_MAP.get(name)
@@ -45,10 +46,10 @@ class VideoWriter(BasePlugin):
                 self.save_dir = os.path.normpath(value)
             elif prop_name == "filename":
                 if value == "": # default value
-                    file_name = str(cam_widget.camera.cameraID) + "_" + datetime.now().strftime('%H-%M-%S')
+                    file_name = str(cam_widget.camera.getName()) + "_" + datetime.now().strftime('%H-%M-%S')
                 else:
                     file_name = value
-            elif prop_name in ["framerate",]: # input parameters
+            elif prop_name in ["framerate",] and value >= 0: # input parameters
                 self.input_params['-'+prop_name] = str(value)
 
             else: # output parameters

@@ -22,17 +22,23 @@ class BasePlugin(ABC):
         super().__init_subclass__(**kwargs)
         cls.plugins.append(cls)
 
+    # @staticmethod
+    # def execute_process(plugin, frame, metadata):
+    #     return plugin.execute(frame, metadata)
+
     @abstractmethod
     def __init__(self, cam_widget: QWidget, config: ConfigManager, queue_size=0):
         self.active = True
+        self.cpu_bound = False
+        self.io_bound = False
         self.config = config
         self.in_queue = Queue(queue_size)
         self.out_queue = None
 
     @abstractmethod
     def execute(self, frame: NDArray, metadata: Dict) -> Tuple[NDArray, Dict]:
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def close(self):
-        pass
+        raise NotImplementedError()

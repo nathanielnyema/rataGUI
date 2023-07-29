@@ -24,30 +24,6 @@ def load_module(path):
     spec.loader.exec_module(module)
     return module
 
-# Asynchronous execution loop for an arbitrary plugin 
-async def plugin_process(plugin):
-    while True:
-        frame, metadata = await plugin.in_queue.get()
-        # print(f'{type(plugin).__name__} queue: ' + str(plugin.in_queue.qsize()))
-        try:
-            # Execute plugin
-            if plugin.active:
-                result = plugin.execute(frame, metadata)
-            else:
-                result = (frame, metadata)
-
-            # Send output to next plugin
-            if plugin.out_queue != None:
-                await plugin.out_queue.put(result)
-        except Exception as err:
-            print('ERROR--Pipeline: %s' % err)
-        finally:
-            plugin.in_queue.task_done()
-
-        # TODO: Add plugin-specific data
-        # TODO: Parallelize with Thread Executor
-
-
 # Get current path
 path = os.path.relpath(__file__)
 dirpath = os.path.dirname(path)

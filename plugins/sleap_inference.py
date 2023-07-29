@@ -5,22 +5,24 @@ import numpy as np
 import cv2
 import tensorflow as tf
 
-
 class SleapInference(BasePlugin):
     """
     Plugin that inferences on frames using trained SLEAP model to predict animal pose and write keypoints as metadata
     """
 
     DEFAULT_CONFIG = {
-        "Model directory": ""
+        "Model directory": "C:\\Users\\Siapas\\Documents\\video_acquisition\\rataGUI\\exported_model",
+        "Inference FPS": ["Automatic", "Match Camera", "Manual"],
+        "Score Threshold": 0.5, 
+        # "Cameras"
     }
-
 
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
 
         print("Started Sleap Inference for: {}".format(cam_widget.camera.cameraID))
         self.model_path = os.path.normpath(config.get("Model directory"))
+        # self.cpu_bound = True
 
         try:
             self.model_fn = load_frozen_graph(config.get("Model directory"))
@@ -29,38 +31,52 @@ class SleapInference(BasePlugin):
             print("Unable to load model ... auto-disabling plugin")
             self.active = False
 
+        # if config.get("Inference FPS") == "Automatic":
+        self.interval = 10
         self.input_width = 1920
         self.input_height = 1376
         self.count = 0
         self.keypoints = np.zeros((1,4,2))
+        self.keypoint_scores = np.zeros((4,1))
 
     def execute(self, frame, metadata):
-        self.count += 1
         img_h, img_w, num_ch = frame.shape
+        self.interval -= 1
 
-        if self.count >= 0:
+        if self.interval <= 0:
             image = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
             image = cv2.resize(image, (self.input_width, self.input_height)) # resize uses reverse order
             image = np.reshape(image, (-1, self.input_height, self.input_width, 1))
             prediction = self.model_fn(x=tf.constant(image))
             self.keypoints = prediction[3].numpy()[0]
-            self.count = 0
+            self.keypoint_scores = np.squeeze(prediction[2].numpy())
+            # self.count = 0
+            self.interval = 10
+            # fps_mode = self.config.get("Inference FPS")
+            # if fps_mode == "Match Camera":
+            #     self.interval = 0
+            # elif fps_mode == "Automatic":
+            #     self.interval = self.in_queue.qsize()
+            #     print(self.interval)
 
-            # print(self.keypoints.shape)
+            # print(self.keypoint_scores)
+            # print(prediction[2])
+            # print(prediction[0])
+
+        threshold = self.config.get("Score Threshold")
         for idx, instance in enumerate(self.keypoints):
             color = [0,0,0]
             color[idx % 3] = 255
-            for point in instance:
-                if not(np.isnan(point[0]) or np.isnan(point[0])): 
+            for idx, point in enumerate(instance):
+                if not(np.isnan(point[0]) or np.isnan(point[0])) and self.keypoint_scores[idx] > threshold: 
                     resized_x = point[0] * (img_w/self.input_width)
                     resized_y = point[1] * (img_h/self.input_height)
                     frame = cv2.circle(frame, (int(resized_x), int(resized_y)), 5, color, -1)
 
-
         return frame, metadata
 
     def close(self):
-        print("Video writer closed")
+        print("Sleap Inference closed")
         self.active = False
 
 def load_frozen_graph(model_path):

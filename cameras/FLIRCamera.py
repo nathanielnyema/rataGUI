@@ -71,6 +71,7 @@ class FLIRCamera(BaseCamera):
         self.last_index = -1
         self.buffer_size = 0
         self.initial_frameID = 0 # on camera transport layer
+        self.FPS = -1
 
     def configure_chunk_data(self, nodemap, selected_chucks, enable = True) -> bool:
         """
@@ -175,28 +176,29 @@ class FLIRCamera(BaseCamera):
                     except PySpin.SpinnakerException as ex:
                         print(f"Warning: Unable to write enum entry to Line {line_num}")
                         pass
-
                 elif prop_name == "TriggerSource":
                     self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
                     if value != "TriggerMode_Off":
                         self._stream.TriggerSource.SetValue(value)
                         self._stream.TriggerMode.SetValue(PySpin.TriggerMode_On)
-
                 else: # Recursively access QuickSpin API
                     node = self._stream
                     for attr in prop_name.split('.'):
                         node = getattr(node, attr)
-
                     node.SetValue(value)
+                    
         except (Exception, PySpin.SpinnakerException) as err:
             print('ERROR--FLIRCamera: %s' % err)
             return False  
+        
+        if prop_config.get("Limit Framerate"):
+            self.FPS = int(prop_config.get("Framerate"))
             
-        self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
+        # self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
 
-        if self._stream.TriggerSource.GetAccessMode() != PySpin.RW:
-            print('Unable to get trigger source (node retrieval). Aborting...')
-            return False
+        # if self._stream.TriggerSource.GetAccessMode() != PySpin.RW:
+        #     print('Unable to get trigger source (node retrieval). Aborting...')
+        #     return False
 
         # if CHOSEN_TRIGGER == TriggerType.SOFTWARE:
         #     cam.TriggerSource.SetValue(PySpin.TriggerSource_Software)

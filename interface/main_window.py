@@ -86,7 +86,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def update_camera_stats(self): # Save stats?
         for row, camera in enumerate(self.cameras.values()):
-            # self.cam_stats.item(row, 0).setText(self.camera_names[camera.getName()]) TODO
+            # self.cam_stats.item(row, 0).setText(self.camera_names[camera.getName()])
             self.cam_stats.item(row, 0).setText(camera.getName())
             self.cam_stats.item(row, 1).setText(str(camera.frames_acquired))
             if hasattr(camera, "frames_dropped"):
@@ -107,12 +107,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         camID, old_name = self.camera_names.popitem()
 
         if new_name not in self.camera_names.keys() or old_name == new_name:
+            if new_name in self.camera_names.values():
+                print("Warning: Display name is already used by another camera.")
             self.camera_names[camID] = new_name
+            self.cameras[camID].display_name = new_name
             self.populate_camera_properties()
         else:
             self.camera_names[camID] = old_name
             self.camera_names.move_to_end(new_name)
-        
+
         self.populate_plugin_pipeline()
 
     def populate_camera_list(self):
@@ -165,11 +168,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def populate_camera_stats(self):
-        self.cam_stats.clear()
         self.cam_stats.setRowCount(len(self.cameras))
-        for row, (camID, camera)  in enumerate(self.cameras.items()):
-            cam_name = self.camera_names[camID]
-            self.cam_stats.setItem(row, 0, QtWidgets.QTableWidgetItem(cam_name))
+        for row, camera in enumerate(self.cameras.values()):
+            name_item = QtWidgets.QTableWidgetItem(camera.getName())
+            name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.cam_stats.setItem(row, 0, name_item)
             self.cam_stats.setItem(row, 1, QtWidgets.QTableWidgetItem(str(camera.frames_acquired)))
 
             if hasattr(camera, "frames_dropped"):
@@ -396,6 +399,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             json.dump(plugin_settings, file, indent=2)
 
         ui_settings = {}
+        ui_settings["camera_names"] = self.camera_names
         ui_settings["checked_cameras"] = [c.text() for c in get_checked_items(self.cam_list)]
 
         plugin_states = {}
@@ -404,7 +408,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             plugin_states[item.text()] = item.checkState() == Qt.CheckState.Checked
         ui_settings["plugin_states"] = plugin_states
 
-        ui_settings["active_camera_tab"] = self.camAttributes.currentWidget().objectName()
+        # ui_settings["active_camera_tab"] = self.camAttributes.currentWidget().objectName()
         # ui_settings["active_plugin_tab"] = self.plugin_settings.currentWidget().objectName()
 
         ui_settings["window_width"] = self.size().width()
@@ -441,17 +445,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             with open(ui_config_path, 'r') as file:
                 saved_configs = json.load(file)
 
+            # Restore camera list to saved state
             for idx in range(self.cam_list.count()):
                 item = self.cam_list.item(idx)
+                camID = item.text()
+                # Rename cameras to saved display names
+                if camID in saved_configs["camera_names"]:
+                    item.setText(saved_configs["camera_names"][camID])
+
                 if item.text() in saved_configs["checked_cameras"]:
                     item.setCheckState(Qt.CheckState.Checked)
 
-            # Repopulate list with saved plugin state
+            # Repopulate list with saved plugin state and order
             self.plugin_list.clear()
             for name, checked in saved_configs["plugin_states"].items():
                 if name in self.plugins:
                     item = QtWidgets.QListWidgetItem(name)
-                    # item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                     item.setCheckState(Qt.CheckState.Unchecked)
                     if checked:
                         item.setCheckState(Qt.CheckState.Checked)
@@ -461,7 +470,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             new_plugins = list(set(self.plugins) - set(saved_configs["plugin_states"]))
             for name in new_plugins:
                 item = QtWidgets.QListWidgetItem(name)
-                # item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                 item.setCheckState(Qt.CheckState.Unchecked)
                 self.plugin_list.addItem(item)
             
@@ -520,6 +528,15 @@ def add_config_handler(config, key, value):
             widget = QtWidgets.QLineEdit()
         elif isinstance(value, int):
             widget = QtWidgets.QSpinBox()
+            widget.setMinimum(-1)
+        elif isinstance(value, float):
+            widget = QtWidgets.QDoubleSpinBox()
+            widget.setSingleStep(0.1)
+        elif isinstance(value, tuple):
+            widget = QtWidgets.QSpinBox()
+            if len(value) == 3:
+                widget.setRange(value[1], value[2])
+            config.set_default(key, value[0])
         elif isinstance(value, list):
             widget = QtWidgets.QComboBox()
             widget.view().setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -536,7 +553,7 @@ def add_config_handler(config, key, value):
         config.add_handler(key, widget, mapper) 
     except Exception as err:
         print('ERROR--GUI: %s' % err)
-        print("Failed to create setting handler. Each setting must have a corresponding set of values")
+        print("Failed to create setting handler. Each setting must correspond to a valid set of values")
 
 
 def make_config_layout(config, cols=2):
@@ -550,18 +567,37 @@ def make_config_layout(config, cols=2):
     """
     layout = QtWidgets.QHBoxLayout()
 
-    if len(config.get_visible_keys()) < 4:
-        cols = 1
+    # if len(config.get_visible_keys()) < 4:
+    #     cols = 1
 
     forms = [QtWidgets.QFormLayout() for _ in range(cols)]
     for form in forms:
-        layout.addLayout(form, 4)
+        # form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        layout.addLayout(form, stretch=4)
 
-    for i, key in enumerate(config.get_visible_keys()):
-        f_index = i % cols
+    line_edits = []
+    count = 0
+    for key in config.get_visible_keys():
+        f_index = count % cols
         handler = config.handlers[key]
-
         label = QtWidgets.QLabel(key)
-        forms[f_index].addRow(label, handler)
+
+        if isinstance(handler, QtWidgets.QLineEdit):
+            line_edits.append((label, handler))
+        else:
+            forms[f_index].addRow(label, handler)
+            count += 1
+
+    if len(line_edits) > 0:
+        line_form = QtWidgets.QFormLayout()
+        # line_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        for label, handler in line_edits:
+            line_form.addRow(label, handler)
+        
+        new_layout = QtWidgets.QVBoxLayout()
+        new_layout.addLayout(line_form, stretch=1)
+        new_layout.addLayout(layout, stretch=1)
+        new_layout.addStretch(10)
+        return new_layout
 
     return layout
