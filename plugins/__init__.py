@@ -11,8 +11,6 @@ from .base_plugin import BasePlugin
 import os
 import traceback
 
-import time
-
 from importlib import util
 from config import enabled_plugins
 

@@ -1,20 +1,14 @@
-"""
-Loads camera modules listed in config.py (defaults to all camera models if none are specified) 
-
-Stores utility functions available to every camera model in folder
-"""
-
 import os
 import traceback
 
-__all__ = ['ConfigManager', 'BaseCamera']
+__all__ = ['ConfigManager', 'BaseTrigger']
 from pyqtconfig import ConfigManager
-from .BaseCamera import BaseCamera
+from .base_trigger import BaseTrigger
 
 from importlib import util
 from config import enabled_camera_models
 
-# Automatically load camera modules
+# Automatically load trigger modules
 def load_module(path):
     name = os.path.split(path)[-1]
     spec = util.spec_from_file_location(name, path)
@@ -33,6 +27,6 @@ for fname in os.listdir(dirpath):
             try:
                 load_module(os.path.join(dirpath, fname))
             except ModuleNotFoundError:
-                print(f"Unable to load camera module {fname}")
+                print(f"Unable to load trigger module {fname}")
             except Exception:
                 traceback.print_exc()

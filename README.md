@@ -1,12 +1,23 @@
 # RataGUI
-Easy-to-use real-time video acquisition for animal tracking and behavior quantification
+Customizable real-time video acquisition with intuitive interface for animal tracking and behavior quantification
 
 # Installation
 RataGUI is written entirely in Python and runs on all major platforms. To get started, clone the repository and create a virtual environment with the required dependencies.
 
 ## Conda Environment
+
+### CPU-only environment
 ```
 conda env create --file rataGUI-cpu.yaml
+```
+
+### GPU-enabled environment
+```
+conda env create --file rataGUI-gpu.yaml
+```
+
+### Activate environment
+```
 conda activate rataGUI
 ```
 
@@ -21,7 +32,7 @@ pip install -r requirements.txt
 
 FFmpeg can be installed through the official download [links](https://ffmpeg.org/download.html) or using a package manager (e.g. `sudo apt install ffmpeg` on Debian/Ubuntu, `brew install ffmpeg` on macOS, etc.).
 
-## Install Spinnaker SDK (optional)
+## Install Spinnaker SDK
 To use RataGUI with Spinnaker cameras, follow the instructions [here](https://www.flir.com/products/spinnaker-sdk/) to download the Spinnaker SDK for your specific Python version. 
 In the downloaded folder, find the package wheel (spinnaker_python-\<version\>-\<system-info\>.whl) file and run the following command install PySpin into your Python enviornment. Then, restart the environment and/or reboot your computer to recapture the system and user environment variables.
 ```

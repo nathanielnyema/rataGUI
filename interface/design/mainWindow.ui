@@ -82,7 +82,7 @@
       <item>
        <widget class="QTabWidget" name="camAttributes">
         <property name="currentIndex">
-         <number>0</number>
+         <number>3</number>
         </property>
         <widget class="QWidget" name="camPropsTab">
          <attribute name="title">
@@ -172,6 +172,16 @@
              <number>74</number>
             </attribute>
            </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="camTriggersTab">
+         <attribute name="title">
+          <string>Triggers</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_4">
+          <item row="0" column="0">
+           <widget class="VerticalTabWidget" name="cam_props_2"/>
           </item>
          </layout>
         </widget>

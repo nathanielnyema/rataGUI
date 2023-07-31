@@ -118,11 +118,11 @@ class FFMPEG_Writer():
             return
 
 
-    def start_process(self, M, N, C):
+    def start_process(self, H, W, C):
         self.initialized = True
 
         if "-s" not in self.input_dict:
-            self.input_dict["-s"] = str(N) + "x" + str(M)
+            self.input_dict["-s"] = str(W) + "x" + str(H)
 
         if "-pix_fmt" not in self.input_dict:
             if C == 1:
@@ -162,10 +162,10 @@ class FFMPEG_Writer():
     def write_frame(self, img_array):
         """Writes one frame to the file."""
 
-        M, N, C = img_array.shape
+        H, W, C = img_array.shape
 
         if not self.initialized:
-            self.start_process(M, N, C)
+            self.start_process(H, W, C)
 
         # print(img_array.dtype)
         # img_array = img_array.astype(np.uint8)

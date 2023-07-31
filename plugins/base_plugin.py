@@ -10,14 +10,13 @@ from numpy.typing import NDArray
 class BasePlugin(ABC):
     """
     Abstract plugin class with generic functions. All custom plugins should be subclassed
-    to ensure that all the necessary methods are available to the camera acquistion engine.
+    to ensure that all the necessary methods are available to the processing pipeline.
     """
 
     # Static variable to contain all plugin subclasses
     plugins = []
 
-    # For every class that inherits from the current,
-    # the class name will be added to plugins
+    # For every class that inherits from BasePlugin, the class name will be added to triggers
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cls.plugins.append(cls)

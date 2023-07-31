@@ -155,6 +155,9 @@ class FLIRCamera(BaseCamera):
         if not self._stream.IsInitialized():
             self._stream.Init()
 
+        # # Set display name
+        # self.display_name = self._stream.TLDevice.DeviceDisplayName()
+
         nodemap = self._stream.GetNodeMap()
         enabled_chunks = ["FrameID",] # ExposureTime, PixelFormat
         self.configure_chunk_data(nodemap, enabled_chunks)
