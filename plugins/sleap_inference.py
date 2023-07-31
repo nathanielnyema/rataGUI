@@ -11,7 +11,7 @@ class SleapInference(BasePlugin):
     """
 
     DEFAULT_CONFIG = {
-        "Model directory": "C:\\Users\\Siapas\\Documents\\video_acquisition\\rataGUI\\exported_model",
+        "Model directory": "",
         "Inference FPS": ["Automatic", "Match Camera", "Manual"],
         "Score Threshold": 0.5, 
         # "Cameras"
@@ -39,7 +39,7 @@ class SleapInference(BasePlugin):
         self.keypoints = np.zeros((1,4,2))
         self.keypoint_scores = np.zeros((4,1))
 
-    def execute(self, frame, metadata):
+    def process(self, frame, metadata):
         img_h, img_w, num_ch = frame.shape
         self.interval -= 1
 

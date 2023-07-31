@@ -23,7 +23,7 @@ class BasePlugin(ABC):
 
     # @staticmethod
     # def execute_process(plugin, frame, metadata):
-    #     return plugin.execute(frame, metadata)
+    #     return plugin.process(frame, metadata)
 
     @abstractmethod
     def __init__(self, cam_widget: QWidget, config: ConfigManager, queue_size=0):
@@ -35,7 +35,7 @@ class BasePlugin(ABC):
         self.out_queue = None
 
     @abstractmethod
-    def execute(self, frame: NDArray, metadata: Dict) -> Tuple[NDArray, Dict]:
+    def process(self, frame: NDArray, metadata: Dict) -> Tuple[NDArray, Dict]:
         raise NotImplementedError()
 
     @abstractmethod

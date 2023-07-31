@@ -70,7 +70,7 @@ class VideoWriter(BasePlugin):
 
         self.writer = FFMPEG_Writer(str(self.file_path), input_dict=self.input_params, output_dict=self.output_params, verbosity=0)
 
-    def execute(self, frame, metadata):
+    def process(self, frame, metadata):
         # print("frame saved")
         
         self.writer.write_frame(frame)

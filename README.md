@@ -39,7 +39,7 @@ In the downloaded folder, find the package wheel (spinnaker_python-\<version\>-\
 python -m pip install <PATH-TO-SPINNAKER-WHEEL-FILE>.whl
 ```
 
-# Custom Camera Models
+# Implement Custom Camera Models
 RataGUI's modular framework makes adding another camera model an easy and straightfoward process. Simply edit the provided TemplateCamera.py class with the required basic functionality to fit your specific camera model use-case. These functions enable the acquisition engine to find, initialize, read frames and properly close the camera.
 
-# Custom Plugins
+# Implement Custom Plugins

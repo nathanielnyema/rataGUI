@@ -1,8 +1,6 @@
 # import sys
 import time
 import numpy as np
-import nidaqmx
-# import cv2
 import os
 from datetime import datetime
 # import logging
@@ -54,7 +52,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 
     async def acquire_frames(self):
         loop = asyncio.get_running_loop()
-        t0 = time.time()
+        # t0 = time.time()
         while self.camera._running:
             if self.active:
                 try:
@@ -77,9 +75,9 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
             else: # Pass to next coroutine
                 await asyncio.sleep(0)
 
-        t1 = time.time()
-        print(self.camera.frames_acquired, str(t1-t0))
-        print('FPS: '+str(self.camera.frames_acquired / (t1-t0)))
+        # t1 = time.time()
+        # print(self.camera.frames_acquired, str(t1-t0))
+        # print('FPS: '+str(self.camera.frames_acquired / (t1-t0)))
 
         # Close camera if camera stops streaming
         self.camera.closeCamera()
@@ -149,9 +147,9 @@ async def plugin_process(plugin):
             # Execute plugin
             if plugin.active:
                 if plugin.cpu_bound or plugin.io_bound: # possibly move queues outside plugins
-                    result = await loop.run_in_executor(None, plugin.execute, frame, metadata)
+                    result = await loop.run_in_executor(None, plugin.process, frame, metadata)
                 else:
-                    result = plugin.execute(frame, metadata)
+                    result = plugin.process(frame, metadata)
             else:
                 result = (frame, metadata)
 

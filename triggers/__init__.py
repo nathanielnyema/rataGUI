@@ -6,7 +6,7 @@ from pyqtconfig import ConfigManager
 from .base_trigger import BaseTrigger
 
 from importlib import util
-from config import enabled_camera_models
+from config import enabled_triggers
 
 # Automatically load trigger modules
 def load_module(path):
@@ -23,7 +23,7 @@ dirpath = os.path.dirname(path)
 for fname in os.listdir(dirpath):
     # Load only "real modules"
     if not fname.startswith('.') and not fname.startswith('__') and fname.endswith('.py'):
-        if len(enabled_camera_models) == 0 or fname in enabled_camera_models:
+        if len(enabled_triggers) == 0 or fname in enabled_triggers:
             try:
                 load_module(os.path.join(dirpath, fname))
             except ModuleNotFoundError:

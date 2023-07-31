@@ -19,7 +19,7 @@ class MetadataWriter(BasePlugin):
         print("Started Metadata Writer for: {}".format(cam_widget.camera.cameraID))
             
 
-    def execute(self, frame, metadata):
+    def process(self, frame, metadata):
 
         img_h, img_w, num_ch = frame.shape
 

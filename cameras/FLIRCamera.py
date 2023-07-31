@@ -19,7 +19,7 @@ class FLIRCamera(BaseCamera):
         "Line1 Output": {"None": PySpin.LineSource_Off,},
         "Line2 Output": {"User Output 0": PySpin.LineSource_UserOutput0, "Frame Acquired": PySpin.LineSource_ExposureActive,},
         "Line3 Output": {"None": PySpin.LineSource_Off,},
-        # "PixelFormat": {"RGB8": PySpin.PixelFormat_RGB8Packed, "BGR8": PySpin.PixelFormat_BGR8}
+        # "PixelFormat": {"RGB8": PySpin.PixelFormat_RGB8Packed, "BGR8": PySpin.PixelFormat_BGR8} # TODO: Ensure consistency
     }
 
     DISPLAY_PROP_MAP = {

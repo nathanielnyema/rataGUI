@@ -288,7 +288,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         item.setBackground(self.inactive_color)
                 else:
                     item.setText("")
-                    item.setBackground(self.inactive_color)
+                    item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
 
         cam_names = [self.camera_names[camID] for camID in self.camera_widgets.keys()]
         self.plugin_pipeline.setVerticalHeaderLabels(cam_names)

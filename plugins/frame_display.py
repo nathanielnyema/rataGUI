@@ -25,7 +25,7 @@ class FrameDisplay(BasePlugin):
         self.frame_height = cam_widget.frame_height
 
 
-    def execute(self, frame, metadata):
+    def process(self, frame, metadata):
         """Sets pixmap image to video frame"""
         # print("frame displayed")
 

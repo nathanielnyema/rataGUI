@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
 
-from asyncio import Queue
-from PyQt6.QtWidgets import QWidget
 from pyqtconfig import ConfigManager
 
 from typing import Dict, Tuple
@@ -19,17 +17,16 @@ class BaseTrigger(ABC):
     # For every class that inherits from BaseTrigger, the class name will be added to triggers
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        cls.plugins.append(cls)
+        cls.triggers.append(cls)
 
     @abstractmethod
-    def __init__(self, interval: float, config: ConfigManager):
-        self.active = True
+    def __init__(self, config: ConfigManager):
         self.config = config
 
     @abstractmethod
-    def execute(self, frame: NDArray, metadata: Dict) -> Tuple[NDArray, Dict]:
+    def execute(self) -> bool:
         raise NotImplementedError()
 
     @abstractmethod
-    def close(self):
+    def stop(self):
         raise NotImplementedError()

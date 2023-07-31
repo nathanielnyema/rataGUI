@@ -3,6 +3,9 @@ from cameras import BaseCamera
 import cv2
 
 class TemplateCamera(BaseCamera):
+    """
+    Example subclass to rewrite with the required basic functionality for a custom camera model
+    """
 
     @staticmethod
     def getAvailableCameras():
