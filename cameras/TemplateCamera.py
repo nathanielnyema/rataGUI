@@ -13,8 +13,7 @@ class TemplateCamera(BaseCamera):
         return []
 
     def __init__(self, cameraID):
-        super().__init__()
-        self.cameraID = cameraID
+        super().__init__(cameraID)
         self.last_frame = None
 
     def initializeCamera(self, config = dict()):

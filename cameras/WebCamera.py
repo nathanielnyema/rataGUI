@@ -12,8 +12,7 @@ class WebCamera(BaseCamera):
 
 
     def __init__(self, cameraID):
-        super().__init__()
-        self.cameraID = cameraID
+        super().__init__(cameraID)
         self.last_frame = None
 
     @staticmethod

@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file './interface/design/mainWindow.ui'
+# Form implementation generated from reading ui file 'mainWindow.ui'
 #
 # Created by: PyQt6 UI code generator 6.5.1
 #
@@ -93,9 +93,9 @@ class Ui_MainWindow(object):
         self.camTriggersTab.setObjectName("camTriggersTab")
         self.gridLayout_4 = QtWidgets.QGridLayout(self.camTriggersTab)
         self.gridLayout_4.setObjectName("gridLayout_4")
-        self.cam_props_2 = VerticalTabWidget(parent=self.camTriggersTab)
-        self.cam_props_2.setObjectName("cam_props_2")
-        self.gridLayout_4.addWidget(self.cam_props_2, 0, 0, 1, 1)
+        self.cam_triggers = VerticalTabWidget(parent=self.camTriggersTab)
+        self.cam_triggers.setObjectName("cam_triggers")
+        self.gridLayout_4.addWidget(self.cam_triggers, 0, 0, 1, 1)
         self.camAttributes.addTab(self.camTriggersTab, "")
         self.camControl.addWidget(self.camAttributes)
         self.camControl.setStretch(0, 2)
@@ -274,13 +274,3 @@ class Ui_MainWindow(object):
         self.actionOpen.setText(_translate("MainWindow", "Open"))
         self.actionSave.setText(_translate("MainWindow", "Save"))
 from interface.vtab_widget import VerticalTabWidget
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec())

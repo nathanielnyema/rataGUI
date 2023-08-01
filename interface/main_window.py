@@ -2,6 +2,7 @@ import os
 # import sys
 import time
 import json
+import asyncio
 from collections import OrderedDict
 
 from pyqtconfig import ConfigManager
@@ -15,7 +16,7 @@ from config import restore_session
 import psutil
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    def __init__(self, camera_models = [], plugins = [], dark_mode=True):
+    def __init__(self, camera_models = [], plugins = [], trigger_types = [], dark_mode=True):
         super().__init__()
         self.setupUi(self)
 
@@ -53,6 +54,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.populate_plugin_list()
         self.populate_plugin_settings()
         self.populate_plugin_pipeline()
+
+        self.triggers = {}
+        self.trigger_configs = {}
+        self.trigger_types = trigger_types
+        self.populate_camera_triggers()
 
         if restore_session: self.restore_session() # Load config from session 
         
@@ -329,6 +335,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 item.setBackground(self.inactive_color)
 
 
+    def populate_camera_triggers(self):
+        self.cam_triggers.clear()
+
+        for trigger_cls in self.trigger_types:
+            device_list = trigger_cls.getAvailableDevices()
+            for trigger in device_list:
+                deviceID = trigger.deviceID
+                if deviceID not in self.triggers.keys():
+                    self.triggers[deviceID] = trigger
+                    config = ConfigManager()
+                    self.trigger_configs[deviceID] = config
+                    
+                    tab = QtWidgets.QWidget()
+                    if hasattr(trigger_cls, "DEFAULT_CONFIG"):
+                        config.set_defaults(trigger_cls.DEFAULT_CONFIG)
+                        for key, setting in trigger_cls.DEFAULT_CONFIG.items():
+                            add_config_handler(config, key, setting)
+
+                    layout = make_config_layout(config)
+                    layout.insertStretch(1, 1)
+                    tab.setLayout(layout)
+                    self.cam_triggers.addTab(tab, deviceID)
+
+
     def start_camera_widgets(self):
         screen_width = self.screen.width()
         for row in range(self.plugin_pipeline.rowCount()):
@@ -347,7 +377,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     continue
                 
                 config = self.camera_configs[camID].as_dict()
-                widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins)
+                widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins, triggers=[self.triggers["cameraclock"]])
                 x_pos = min(widget.width() * row, screen_width - widget.width())
                 y_pos = (widget.height() // 2) * (row * widget.width() // screen_width)
                 widget.move(x_pos,y_pos)

@@ -26,7 +26,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     :param plugins: List of plugin types in processing pipeline
     """
 
-    def __init__(self, camera=None, cam_config=None, plugins=[]):
+    def __init__(self, camera=None, cam_config=None, plugins=[], triggers=[]):
         super().__init__()
         self.setupUi(self)
 
@@ -42,6 +42,8 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         # Threadpool for asynchronous tasks with signals and slots
         self.threadpool = QThreadPool().globalInstance()
 
+        self.triggers = triggers
+
         # Instantiate plugins with camera-specific settings
         self.plugins = [Plugin(self, config) for Plugin, config in plugins]
         self.active = True
@@ -49,6 +51,12 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         # Start thread to load camera stream and start pipeline
         self.pipeline_thread = WorkerThread(self.start_camera_pipeline)
         self.threadpool.start(self.pipeline_thread)
+
+
+    async def run_triggering(self):
+        for trigger in self.triggers:
+            task = asyncio.create_task(self.repeat_trigger(trigger, trigger.interval))
+
 
     async def acquire_frames(self):
         loop = asyncio.get_running_loop()
@@ -163,3 +171,13 @@ async def plugin_process(plugin):
 
         # TODO: Add plugin-specific data
         # TODO: Parallelize with Thread Executor
+
+async def repeat_trigger(trigger, interval):
+    """
+    Execute trigger every interval seconds.
+    """
+    while trigger.active:
+        await asyncio.gather(
+            trigger.execute,
+            asyncio.sleep(interval),
+        )

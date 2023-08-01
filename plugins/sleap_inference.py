@@ -51,7 +51,7 @@ class SleapInference(BasePlugin):
             self.keypoints = prediction[3].numpy()[0]
             self.keypoint_scores = np.squeeze(prediction[2].numpy())
             # self.count = 0
-            self.interval = 10
+            self.interval = 5
             # fps_mode = self.config.get("Inference FPS")
             # if fps_mode == "Match Camera":
             #     self.interval = 0

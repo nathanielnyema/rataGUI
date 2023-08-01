@@ -12,12 +12,12 @@ class BaseTrigger(ABC):
     """
 
     # Static variable to contain all trigger subclasses
-    triggers = []
+    trigger_types = []
 
     # For every class that inherits from BaseTrigger, the class name will be added to triggers
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        cls.triggers.append(cls)
+        cls.trigger_types.append(cls)
 
     @staticmethod
     @abstractmethod
@@ -30,8 +30,10 @@ class BaseTrigger(ABC):
         pass
 
     @abstractmethod
-    def __init__(self, config: ConfigManager):
-        self.config = config
+    def __init__(self, deviceID):
+        # self.config = config
+        self.active = False
+        self.deviceID = deviceID
 
     @abstractmethod
     def execute(self) -> bool:

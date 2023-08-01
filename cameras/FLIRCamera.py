@@ -63,8 +63,7 @@ class FLIRCamera(BaseCamera):
             del FLIRCamera._SYSTEM
 
     def __init__(self, cameraID: str):
-        super().__init__()
-        self.cameraID = cameraID
+        super().__init__(cameraID)
         self.initialized = False
         self.last_frame = None
         self.frames_dropped = 0

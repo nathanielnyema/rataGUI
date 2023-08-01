@@ -20,8 +20,7 @@ class VideoReader(BaseCamera):
 
 
     def __init__(self, file_path=""):
-        super().__init__()
-        self.cameraID = "File: " + str(file_path[-10:])
+        super().__init__(cameraID = "File: " + str(file_path[-10:]))
         self.file_path = file_path
         self.last_frame = None
 
