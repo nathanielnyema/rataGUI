@@ -39,7 +39,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.camera_model = type(camera).__name__
         self.camera_config = cam_config
 
-        # Threadpool for GUI-related tasks with signals and slots
+        # Threadpool for asynchronous tasks with signals and slots
         self.threadpool = QThreadPool().globalInstance()
 
         # Instantiate plugins with camera-specific settings

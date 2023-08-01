@@ -32,12 +32,6 @@ class FLIRCamera(BaseCamera):
     _SYSTEM = None
 
     @staticmethod
-    def releaseResources():
-        if FLIRCamera._SYSTEM is not None:
-            FLIRCamera._SYSTEM.ReleaseInstance()
-            del FLIRCamera._SYSTEM
-
-    @staticmethod
     def getCameraList():
         '''Return a list of Spinnaker cameras that must be cleared. Also initializes the PySpin 'System', if needed.'''
 
@@ -61,6 +55,12 @@ class FLIRCamera(BaseCamera):
                 cameras.append(FLIRCamera(serial_number))
         cam_list.Clear()
         return cameras
+
+    @staticmethod
+    def releaseResources():
+        if FLIRCamera._SYSTEM is not None:
+            FLIRCamera._SYSTEM.ReleaseInstance()
+            del FLIRCamera._SYSTEM
 
     def __init__(self, cameraID: str):
         super().__init__()

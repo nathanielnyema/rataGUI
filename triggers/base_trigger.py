@@ -19,6 +19,16 @@ class BaseTrigger(ABC):
         super().__init_subclass__(**kwargs)
         cls.triggers.append(cls)
 
+    @staticmethod
+    @abstractmethod
+    def getAvailableDevices():
+        pass
+
+    # Optional method to release static resources upon exiting
+    @staticmethod
+    def releaseResources():
+        pass
+
     @abstractmethod
     def __init__(self, config: ConfigManager):
         self.config = config

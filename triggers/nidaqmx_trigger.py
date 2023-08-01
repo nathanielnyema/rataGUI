@@ -11,3 +11,16 @@ class NIDAQMXTrigger(BaseTrigger):
         "Phase offset (deg)": 0.0, 
     }
 
+    @staticmethod
+    def getAvailableDevices():
+        '''Returns list of all available NI-DAQmx devices'''
+        pass
+
+    def __init__(self, config: ConfigManager):
+        pass
+
+    def execute(self):
+        print("NI-DAQmx triggered")
+    
+    def stop(self):
+        pass
