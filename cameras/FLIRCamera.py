@@ -173,7 +173,6 @@ class FLIRCamera(BaseCamera):
                     self._stream.LineSelector.SetValue(selector)
                     try: 
                         self._stream.LineMode.SetValue(PySpin.LineMode_Output)
-                        print(value)
                         self._stream.LineSource.SetValue(value)
                     except PySpin.SpinnakerException as ex:
                         print(f"Warning: Unable to write enum entry to Line {line_num}")
@@ -187,7 +186,9 @@ class FLIRCamera(BaseCamera):
                     node = self._stream
                     for attr in prop_name.split('.'):
                         node = getattr(node, attr)
-                    node.SetValue(value)
+                    
+                    if node.GetAccessMode() == PySpin.RW:
+                        node.SetValue(value)
                     
         except (Exception, PySpin.SpinnakerException) as err:
             print('ERROR--FLIRCamera: %s' % err)
@@ -195,6 +196,8 @@ class FLIRCamera(BaseCamera):
         
         if prop_config.get("Limit Framerate"):
             self.FPS = int(prop_config.get("Framerate"))
+        else:
+            self.FPS = -1
             
         # self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
 
@@ -232,7 +235,7 @@ class FLIRCamera(BaseCamera):
             return False, None
 
         try:
-            img_data = self._stream.GetNextImage()
+            img_data = self._stream.GetNextImage(10e3) # 10s timeout
             if img_data.IsIncomplete():
                 print('Image incomplete with image status %d ...' % img_data.GetImageStatus())
                 return False, None

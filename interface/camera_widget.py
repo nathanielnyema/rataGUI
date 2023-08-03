@@ -19,11 +19,12 @@ thread_pool = ThreadPoolExecutor()
 
 # Change to camera widget
 class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
-    """Encapsulates camera object and its plugin processing pipeline by connecting Camera and Plugin APIs.
+    """Encapsulates running camera object and its plugin processing pipeline by connecting Camera and Plugin APIs.
 
     :param camera: Camera object to extract frames from
-    :param cam_config: ConfigManager that stores camera settings
-    :param plugins: List of plugin types in processing pipeline
+    :param cam_config: ConfigManager that stores settings to initialize camera
+    :param plugins: List of plugin types in processing pipeline to instantiate
+    :param triggers: List of initialized trigger objects to execute when needed
     """
 
     def __init__(self, camera=None, cam_config=None, plugins=[], triggers=[]):
@@ -39,37 +40,37 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.camera_model = type(camera).__name__
         self.camera_config = cam_config
 
-
         # Threadpool for asynchronous tasks with signals and slots
         self.threadpool = QThreadPool().globalInstance()
 
+        # Start thread to process triggering
         self.triggers = triggers
-        self.trigger_thread = WorkerThread(self.start_camera_triggers)
-        self.threadpool.start(self.trigger_thread)
+        # self.trigger_thread = WorkerThread(self.start_camera_triggers)
+        # self.threadpool.start(self.trigger_thread)
 
         # Instantiate plugins with camera-specific settings
         self.plugins = [Plugin(self, config) for Plugin, config in plugins]
         self.active = True
 
-        # Start thread to load camera stream and start pipeline
+        # Start thread to process camera stream and plugin pipeline
         self.pipeline_thread = WorkerThread(self.start_camera_pipeline)
         self.threadpool.start(self.pipeline_thread)
 
 
-    async def run_triggering(self):
-        tasks = []
-        for trigger in self.triggers:
-            tasks.append(asyncio.create_task(repeat_trigger(trigger, trigger.interval)))
+    # async def run_triggering(self):
+    #     tasks = []
+    #     for trigger in self.triggers:
+    #         tasks.append(asyncio.create_task(repeat_trigger(trigger, trigger.interval)))
 
-        await asyncio.gather(*tasks)
+    #     await asyncio.gather(*tasks)
 
-    def start_camera_triggers(self):
-        print('Started camera trigger: {}'.format(self.camera.getName()))
-        try:
-            asyncio.run(self.run_triggering(), debug=False)
-        except Exception as err:
-            print('ERROR--Trigger Loop: %s' % err)
-            os._exit(42)
+    # def start_camera_triggers(self):
+    #     print('Started camera trigger: {}'.format(self.camera.getName()))
+    #     try:
+    #         asyncio.run(self.run_triggering(), debug=False)
+    #     except Exception as err:
+    #         print('ERROR--Trigger Loop: %s' % err)
+    #         os._exit(42)
 
 
     async def acquire_frames(self):
@@ -136,25 +137,26 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         for plugin in self.plugins:
             plugin.close()
 
+
     @pyqtSlot()
     def start_camera_pipeline(self):
         print('Started camera: {}'.format(self.camera.getName()))
-        self.camera.initializeCamera(self.camera_config)
         try:
+            self.camera.initializeCamera(self.camera_config)
             asyncio.run(self.process_plugin_pipeline(), debug=False)
         except Exception as err:
             print('ERROR--Camera Loop: %s' % err)
-            os._exit(42)
+            self.close_widget()
 
-    def close_camera_pipeline(self):
+    def stop_camera_pipeline(self):
         print('Stopped camera: {}'.format(self.camera.cameraID))
-        # Signal to event loop to stop camera
+        # Signal to event loop to stop camera and plugins
         self.camera._running = False
         self.stop_plugin_pipeline()
-
+        
     def close_widget(self):
-        self.close_camera_pipeline()
-        # Wait for thread to finish and queues to empty
+        self.stop_camera_pipeline()
+        # Wait for thread to finish and queues to empty before closing
         self.pipeline_thread.signals.finished.connect(self.close_plugin_pipeline)
         self.pipeline_thread.signals.finished.connect(self.deleteLater)
 
@@ -162,6 +164,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 # Asynchronous execution loop for an arbitrary plugin 
 async def plugin_process(plugin):
     loop = asyncio.get_running_loop()
+    failures = 0
     while True:
         frame, metadata = await plugin.in_queue.get()
         # print(f'{type(plugin).__name__} queue: ' + str(plugin.in_queue.qsize()))
@@ -180,18 +183,22 @@ async def plugin_process(plugin):
                 await plugin.out_queue.put(result)
         except Exception as err:
             print('ERROR--%s: %s' % (type(plugin).__name__, err))
+            failures += 1
+            if failures > 5: # close plugin after 5 failures
+                plugin.active = False
+                plugin.close()
         finally:
             plugin.in_queue.task_done()
 
         # TODO: Add plugin-specific data
         # TODO: Parallelize with Thread Executor
 
-async def repeat_trigger(trigger, interval):
-    """
-    Execute trigger every interval seconds.
-    """
-    while trigger.active:
-        await asyncio.gather(
-            trigger.execute,
-            asyncio.sleep(interval),
-        )
+# async def repeat_trigger(trigger, interval):
+#     """
+#     Execute trigger every interval seconds.
+#     """
+#     while trigger.active:
+#         await asyncio.gather(
+#             trigger.execute,
+#             asyncio.sleep(interval),
+#         )

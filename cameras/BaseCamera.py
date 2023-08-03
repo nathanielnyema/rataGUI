@@ -67,7 +67,7 @@ class BaseCamera(ABC):
         """
         Returns true if camera has been initialized and is streaming.
         """
-        return self._running # Overrite for custom behavior
+        return self._running  # Overwrite for custom behavior
 
     def getMetadata(self) -> Dict[str, Any]:
         """

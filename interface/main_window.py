@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt, QTimer
 
 from interface.design.Ui_MainWindow import Ui_MainWindow
 from interface.camera_widget import CameraWidget
-from config import restore_session
+from config import restore_session, save_directory
 
 import psutil
 
@@ -36,17 +36,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.paused_color = QtGui.QColorConstants.LightGray
             self.inactive_color = QtGui.QColorConstants.DarkGray
 
-        # Create ID look-ups for cameras, widgets, and configs
+        # Create mappings from camID to camera, widget, config and model
         self.cameras = {}
         self.camera_widgets = {}
         self.camera_configs = {}
         self.camera_names = OrderedDict() # map camID to display name
-        self.camera_models = camera_models
+        self.camera_models = {c.__name__ : c for c in camera_models}
         self.populate_camera_list()
         self.populate_camera_properties()
         self.populate_camera_stats()
 
-        # Create name look-ups for plugin classes and configs
+        # Create mappings from name to plugin class and configs
         self.plugins = {p.__name__ : p for p in plugins}
         self.plugin_configs = {}
         self.populate_plugin_list()
@@ -56,7 +56,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.triggers = {}          # deviceID -> trigger object
         self.trigger_tabs = {}      # trigger type -> tab widget
         self.trigger_configs = {}   # enabled trigger -> config manager
-        self.trigger_types = trigger_types
+        self.trigger_types = {t.__name__ : t for t in trigger_types}
         self.populate_camera_triggers()
 
         if restore_session: self.restore_session() # Load config from session 
@@ -134,7 +134,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         )
         self.cam_list.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked)
 
-        for camera_cls in self.camera_models:
+        for camera_cls in self.camera_models.values():
             cam_list = camera_cls.getAvailableCameras()
             for cam in cam_list:
                 camID = cam.getName()
@@ -157,7 +157,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     
 
     def populate_camera_properties(self):
-        self.cam_props.clear()
+        self.cam_props.clear() # TODO
         for camID, config in self.camera_configs.items():
             cls = self.cameras[camID].__class__
             tab = QtWidgets.QWidget()
@@ -336,7 +336,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def populate_camera_triggers(self):
         self.cam_triggers.clear()
-        for trigger_cls in self.trigger_types:
+        for trigger_cls in self.trigger_types.values():
             tab = QtWidgets.QWidget()
             self.cam_triggers.addTab(tab, trigger_cls.__name__)
             layout = QtWidgets.QVBoxLayout()
@@ -350,6 +350,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 if deviceID not in self.triggers.keys():
                     self.triggers[deviceID] = trigger
                     options.addItem(deviceID)
+
+            options.model().sort(0)
             options_layout = QtWidgets.QHBoxLayout()
             options_layout.addWidget(options, stretch=2)
             add_btn = QtWidgets.QPushButton("Add Trigger")
@@ -358,10 +360,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             layout.addLayout(options_layout)
             tab.setLayout(layout)
-            self.trigger_tabs[trigger_cls] = tab
+            self.trigger_tabs[trigger_cls.__name__] = tab
 
-    def add_trigger_config(self, option_box):
-        deviceID = option_box.currentText()
+    def add_trigger_config(self, options):
+        deviceID = options.currentText()
         config = ConfigManager()
         trigger_cls = type(self.triggers[deviceID])
         if hasattr(trigger_cls, "DEFAULT_CONFIG"):
@@ -379,16 +381,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         config_box = QtWidgets.QGroupBox(deviceID)
         config_box.setLayout(config_layout)
         config_box.setCheckable(True)
-        layout = self.trigger_tabs[trigger_cls].layout()
-        layout.insertWidget(0, config_box)
+        layout = self.trigger_tabs[trigger_cls.__name__].layout()
+        layout.insertWidget(layout.count()-1, config_box)
 
-        delete_btn.clicked.connect(lambda state, x=config_box: self.remove_trigger_config(x))
-        option_box.removeItem(option_box.currentIndex())
+        delete_btn.clicked.connect(lambda: self.remove_trigger_config(config_box, options))
+        options.removeItem(options.currentIndex())
 
-    def remove_trigger_config(self, config_box):
+    def remove_trigger_config(self, config_box, options):
         config_box.setParent(None)
         config_box.deleteLater()
-        # self.trigger_configs.pop(config_box.title())
+        deviceID = config_box.title()
+        self.trigger_configs.pop(deviceID)
+
+        for i in range(options.count()):
+            if options.itemText(i) > deviceID:
+                options.insertItem(i, deviceID)
+                break
 
 
     def start_camera_widgets(self):
@@ -397,7 +405,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             cam_name = self.plugin_pipeline.verticalHeaderItem(row).text()
             camID = list(self.camera_names.keys())[list(self.camera_names.values()).index(cam_name)] # cam_name -> camID
             widget = self.camera_widgets[camID]
-            if widget is None: # Create new widget
+            if widget is None: # Create new widget 
                 enabled_plugins = []
                 for col in range(self.plugin_pipeline.columnCount()):
                     plugin_name = self.plugin_pipeline.horizontalHeaderItem(col).text()
@@ -407,9 +415,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 if len(enabled_plugins) == 0:
                     # print("At least one plugin must be selected")
                     continue
+
+                # Initialize all enabled triggers
+                enabled_triggers = []
+                for enabled_name, config in self.trigger_configs.items():
+                    trigger = self.triggers[enabled_name]
+                    if not trigger.initialized:
+                        trigger.initialize(config)
+                    enabled_triggers.append(trigger)
                 
                 config = self.camera_configs[camID].as_dict()
-                widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins, triggers=[self.triggers["cameraclock"]])
+                widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins, triggers=enabled_triggers)
                 x_pos = min(widget.width() * row, screen_width - widget.width())
                 y_pos = (widget.height() // 2) * (row * widget.width() // screen_width)
                 widget.move(x_pos,y_pos)
@@ -444,9 +460,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 cam_widget.close_widget()
                 cam_item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
 
+        # Stop triggers
+        for trigger in self.triggers.values():
+            if trigger.initialized:
+                trigger.stop()
+
 
     def save_session(self):
-        save_dir = os.path.join(os.getcwd(), 'session')
+        save_dir = os.path.abspath(save_directory)
         os.makedirs(save_dir, exist_ok=True)
         cam_settings = {}
         for camID, config in self.camera_configs.items():
@@ -459,6 +480,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             plugin_settings[name] = config.as_dict()
         with open(os.path.join(save_dir, "plugin_settings.json"), 'w') as file:
             json.dump(plugin_settings, file, indent=2)
+
+        trigger_settings = {}
+        for name, config in self.trigger_configs.items():
+            trigger_settings[name] = config.as_dict()
+        with open(os.path.join(save_dir, "trigger_settings.json"), 'w') as file:
+            json.dump(trigger_settings, file, indent=2)
 
         ui_settings = {}
         ui_settings["camera_names"] = self.camera_names
@@ -481,7 +508,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             json.dump(ui_settings, file, indent=2)
 
     def restore_session(self):
-        save_dir = os.path.join(os.getcwd(), 'session')
+        save_dir = os.path.abspath(save_directory)
         cam_config_path = os.path.join(save_dir, "camera_settings.json")
         if os.path.exists(cam_config_path): 
             with open(cam_config_path, 'r') as file:
@@ -489,6 +516,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for camID, config in self.camera_configs.items():
                 if camID in saved_configs.keys():
                     config.set_many(saved_configs[camID])
+                    # TODO: Catch error when saved setting is not in config
         else:
             print("No saved camera settings ... using defaults")
 
@@ -499,8 +527,24 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for name, config in self.plugin_configs.items():
                 if name in saved_configs.keys():
                     config.set_many(saved_configs[name])
+                    # TODO: Catch error when saved setting is not in config
         else:
             print("No saved plugin settings ... using defaults")
+
+        trigger_config_path = os.path.join(save_dir, "trigger_settings.json")
+        if os.path.exists(trigger_config_path): 
+            with open(trigger_config_path, 'r') as file:
+                saved_configs = json.load(file)
+            for deviceID, trigger in self.triggers.items():
+                if deviceID in saved_configs.keys():
+                    # Add trigger by "pressing" interface button
+                    trigger_type = type(trigger).__name__
+                    layout = self.trigger_tabs[trigger_type].layout()
+                    options = layout.itemAt(layout.count()-1).itemAt(0).widget()
+                    options.setCurrentText(deviceID)
+                    self.add_trigger_config(options)
+        else:
+            print("No saved trigger settings ... using defaults")
 
         ui_config_path = os.path.join(save_dir, "interface_settings.json")
         if os.path.exists(ui_config_path): 
@@ -562,7 +606,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         time.sleep(0.2)
 
         # Release camera-specific resources
-        for cam_type in self.camera_models:
+        for cam_type in self.camera_models.values():
             cam_type.releaseResources()
 
         QtWidgets.QMainWindow.closeEvent(self, event) # let the window close

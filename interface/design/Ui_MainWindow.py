@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'mainWindow.ui'
+# Form implementation generated from reading ui file 'interface\design\mainWindow.ui'
 #
 # Created by: PyQt6 UI code generator 6.5.1
 #
@@ -93,9 +93,20 @@ class Ui_MainWindow(object):
         self.camTriggersTab.setObjectName("camTriggersTab")
         self.gridLayout_4 = QtWidgets.QGridLayout(self.camTriggersTab)
         self.gridLayout_4.setObjectName("gridLayout_4")
-        self.cam_triggers = VerticalTabWidget(parent=self.camTriggersTab)
+        self.camTriggersScroll = QtWidgets.QScrollArea(parent=self.camTriggersTab)
+        self.camTriggersScroll.setWidgetResizable(True)
+        self.camTriggersScroll.setObjectName("camTriggersScroll")
+        self.camTriggersScrollContents = QtWidgets.QWidget()
+        self.camTriggersScrollContents.setGeometry(QtCore.QRect(0, 0, 500, 247))
+        self.camTriggersScrollContents.setObjectName("camTriggersScrollContents")
+        self.gridLayout_5 = QtWidgets.QGridLayout(self.camTriggersScrollContents)
+        self.gridLayout_5.setContentsMargins(9, 9, 9, 9)
+        self.gridLayout_5.setObjectName("gridLayout_5")
+        self.cam_triggers = VerticalTabWidget(parent=self.camTriggersScrollContents)
         self.cam_triggers.setObjectName("cam_triggers")
-        self.gridLayout_4.addWidget(self.cam_triggers, 0, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.cam_triggers, 0, 0, 1, 1)
+        self.camTriggersScroll.setWidget(self.camTriggersScrollContents)
+        self.gridLayout_4.addWidget(self.camTriggersScroll, 0, 0, 1, 1)
         self.camAttributes.addTab(self.camTriggersTab, "")
         self.camControl.addWidget(self.camAttributes)
         self.camControl.setStretch(0, 2)
@@ -194,7 +205,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.setStretch(1, 2)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(parent=MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 720, 18))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 720, 22))
         self.menubar.setNativeMenuBar(False)
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(parent=self.menubar)
@@ -273,4 +284,4 @@ class Ui_MainWindow(object):
         self.actionNew.setText(_translate("MainWindow", "New"))
         self.actionOpen.setText(_translate("MainWindow", "Open"))
         self.actionSave.setText(_translate("MainWindow", "Save"))
-from interface.vtab_widget import VerticalTabWidget
+from interface.design.vtab_widget import VerticalTabWidget

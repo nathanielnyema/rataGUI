@@ -38,6 +38,13 @@ class BasePlugin(ABC):
     def process(self, frame: NDArray, metadata: Dict) -> Tuple[NDArray, Dict]:
         raise NotImplementedError()
 
-    @abstractmethod
     def close(self):
-        raise NotImplementedError()
+        """
+        Deactivates plugin and closes any plugin-dependent objects
+        """
+        self.active = False  # Overwrite for custom behavior
+        print(f"{type(self).__name__} closed")
+
+    # @abstractmethod
+    # def close(self):
+    #     raise NotImplementedError()

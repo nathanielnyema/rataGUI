@@ -1,10 +1,15 @@
 from triggers import BaseTrigger, ConfigManager
 
 import nidaqmx
+from nidaqmx.stream_writers import CounterWriter
+from nidaqmx.constants import AcquisitionType
+import time
 
 class NIDAQmxCounter(BaseTrigger):
     """
-    Interface for triggering connected National Instrument devices through the NI-DAQmx driver 
+    Interface for triggering connected National Instrument devices through the NI-DAQmx driver.
+
+    Current implementation produces TTL pulses to trigger cameras at specified FPS and phase.
     """
     DEFAULT_CONFIG = {
         "FPS": 30, 
@@ -22,14 +27,29 @@ class NIDAQmxCounter(BaseTrigger):
 
     def __init__(self, deviceID):
         super().__init__(deviceID)
-
-        self.interval = 1
+        self._task = None
+        self.interval = -1
 
     def initialize(self, config: ConfigManager):
-        pass
+        print("trigger initialized")
+        task = nidaqmx.Task()
+        task.co_channels.add_co_pulse_chan_time(counter=self.deviceID)
+        task.timing.cfg_implicit_timing(sample_mode=AcquisitionType.CONTINUOUS)
+        cw = CounterWriter(task.out_stream, auto_start=True)
+        task.start()
+        cw.write_one_sample_pulse_frequency(frequency=30, duty_cycle=0.5, timeout=10)
+        
+        self._task = task
+        self.initialized = True
+
 
     def execute(self):
-        print("NI-DAQmx triggered")
+        print("Warning: NIDAQmxCounter execute funciton shouldn't be called")
+        # print("NI-DAQmx triggered")
     
     def stop(self):
-        pass
+        print("NIDAQmxCounter stopped")
+        self.initialized = False
+        if self._task is not None:
+            self._task.stop()
+            self._task.close()

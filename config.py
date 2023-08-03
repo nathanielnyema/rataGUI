@@ -16,3 +16,4 @@ video_file_paths = []
 
 # Save and restore settings between sessions
 restore_session = True
+save_directory = "./session"

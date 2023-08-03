@@ -32,13 +32,21 @@ class BaseTrigger(ABC):
     @abstractmethod
     def __init__(self, deviceID):
         # self.config = config
-        self.active = False
+        self.initialized = False
+        self.interval = 0
         self.deviceID = deviceID
 
     @abstractmethod
     def execute(self) -> bool:
         raise NotImplementedError()
 
-    @abstractmethod
     def stop(self):
-        raise NotImplementedError()
+        """
+        Deactivates trigger and closes any trigger-dependent objects
+        """
+        self.active = False  # Overwrite for custom behavior
+        print(f"{type(self).__name__} closed")
+
+    # @abstractmethod
+    # def stop(self):
+    #     raise NotImplementedError()
