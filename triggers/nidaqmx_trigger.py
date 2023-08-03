@@ -2,7 +2,7 @@ from triggers import BaseTrigger, ConfigManager
 
 import nidaqmx
 
-class NIDAQMXTrigger(BaseTrigger):
+class NIDAQmxCounter(BaseTrigger):
     """
     Interface for triggering connected National Instrument devices through the NI-DAQmx driver 
     """
@@ -13,18 +13,20 @@ class NIDAQMXTrigger(BaseTrigger):
 
     @staticmethod
     def getAvailableDevices():
-        '''Returns list of all available NI-DAQmx devices'''
-        devices = []
+        '''Returns list of all available NI-DAQmx counter channels'''
+        counter_channels = []
         local_system = nidaqmx.system.System.local()
         for device in local_system.devices:
-            # counter_names = [ci.name for ci in device.ci_physical_chans]
-            devices.append(NIDAQMXTrigger(device))
-        return devices
+            counter_channels.extend([NIDAQmxCounter(co.name) for co in device.co_physical_chans])
+        return counter_channels
 
-    def __init__(self, device):
-        super().__init__(device.name)
-        self.sub_devices = [ci.name for ci in device.ci_physical_chans]
-        interval = 1
+    def __init__(self, deviceID):
+        super().__init__(deviceID)
+
+        self.interval = 1
+
+    def initialize(self, config: ConfigManager):
+        pass
 
     def execute(self):
         print("NI-DAQmx triggered")

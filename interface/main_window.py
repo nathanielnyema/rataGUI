@@ -43,8 +43,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.camera_names = OrderedDict() # map camID to display name
         self.camera_models = camera_models
         self.populate_camera_list()
-
-        # self.camera_configs = {id : ConfigManager() for id in self.cameras.keys()}
         self.populate_camera_properties()
         self.populate_camera_stats()
 
@@ -55,8 +53,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.populate_plugin_settings()
         self.populate_plugin_pipeline()
 
-        self.triggers = {}
-        self.trigger_configs = {}
+        self.triggers = {}          # deviceID -> trigger object
+        self.trigger_tabs = {}      # trigger type -> tab widget
+        self.trigger_configs = {}   # enabled trigger -> config manager
         self.trigger_types = trigger_types
         self.populate_camera_triggers()
 
@@ -168,7 +167,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     add_config_handler(config, key, setting)
             
             layout = make_config_layout(config)
-            layout.insertStretch(1, 1)
             tab.setLayout(layout)
             self.cam_props.addTab(tab, self.camera_names[camID])
 
@@ -193,6 +191,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.cam_stats.resizeColumnsToContents()
 
+
     def populate_plugin_list(self):
         self.plugin_list.clear()
         self.plugin_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
@@ -210,6 +209,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             item.setCheckState(Qt.CheckState.Unchecked)
             self.plugin_list.addItem(item)
             self.plugin_configs[name] = ConfigManager()
+
 
     def populate_plugin_settings(self):
         self.plugin_settings.clear()
@@ -231,10 +231,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                 add_config_handler(config, key, value=False)
             
             layout = make_config_layout(config)
-            layout.insertStretch(1, 1)
             tab.setLayout(layout)
             self.plugin_settings.addTab(tab, plugin_name)
-    
+
 
     def populate_plugin_pipeline(self):
         self.plugin_pipeline.clear()
@@ -337,26 +336,59 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def populate_camera_triggers(self):
         self.cam_triggers.clear()
-
         for trigger_cls in self.trigger_types:
+            tab = QtWidgets.QWidget()
+            self.cam_triggers.addTab(tab, trigger_cls.__name__)
+            layout = QtWidgets.QVBoxLayout()
+            layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+            options = QtWidgets.QComboBox()
+            options.view().setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             device_list = trigger_cls.getAvailableDevices()
             for trigger in device_list:
-                deviceID = trigger.deviceID
+                deviceID = str(trigger.deviceID)
                 if deviceID not in self.triggers.keys():
                     self.triggers[deviceID] = trigger
-                    config = ConfigManager()
-                    self.trigger_configs[deviceID] = config
-                    
-                    tab = QtWidgets.QWidget()
-                    if hasattr(trigger_cls, "DEFAULT_CONFIG"):
-                        config.set_defaults(trigger_cls.DEFAULT_CONFIG)
-                        for key, setting in trigger_cls.DEFAULT_CONFIG.items():
-                            add_config_handler(config, key, setting)
+                    options.addItem(deviceID)
+            options_layout = QtWidgets.QHBoxLayout()
+            options_layout.addWidget(options, stretch=2)
+            add_btn = QtWidgets.QPushButton("Add Trigger")
+            add_btn.clicked.connect(lambda state, x=options: self.add_trigger_config(x))
+            options_layout.addWidget(add_btn, stretch=1)
 
-                    layout = make_config_layout(config)
-                    layout.insertStretch(1, 1)
-                    tab.setLayout(layout)
-                    self.cam_triggers.addTab(tab, deviceID)
+            layout.addLayout(options_layout)
+            tab.setLayout(layout)
+            self.trigger_tabs[trigger_cls] = tab
+
+    def add_trigger_config(self, option_box):
+        deviceID = option_box.currentText()
+        config = ConfigManager()
+        trigger_cls = type(self.triggers[deviceID])
+        if hasattr(trigger_cls, "DEFAULT_CONFIG"):
+            config.set_defaults(trigger_cls.DEFAULT_CONFIG)
+            for key, setting in trigger_cls.DEFAULT_CONFIG.items():
+                add_config_handler(config, key, setting)
+        self.trigger_configs[deviceID] = config
+
+        config_layout = make_config_layout(config)
+        delete_btn = QtWidgets.QToolButton()
+        delete_btn.setFixedSize(15,15)
+        delete_btn.setText('X')
+        config_layout.addWidget(delete_btn)
+
+        config_box = QtWidgets.QGroupBox(deviceID)
+        config_box.setLayout(config_layout)
+        config_box.setCheckable(True)
+        layout = self.trigger_tabs[trigger_cls].layout()
+        layout.insertWidget(0, config_box)
+
+        delete_btn.clicked.connect(lambda state, x=config_box: self.remove_trigger_config(x))
+        option_box.removeItem(option_box.currentIndex())
+
+    def remove_trigger_config(self, config_box):
+        config_box.setParent(None)
+        config_box.deleteLater()
+        # self.trigger_configs.pop(config_box.title())
 
 
     def start_camera_widgets(self):
@@ -602,8 +634,9 @@ def make_config_layout(config, cols=2):
 
     forms = [QtWidgets.QFormLayout() for _ in range(cols)]
     for form in forms:
-        # form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        layout.addLayout(form, stretch=4)
+        form.setContentsMargins(5,0,5,0)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        layout.addLayout(form, stretch=5)
 
     line_edits = []
     count = 0
@@ -620,14 +653,14 @@ def make_config_layout(config, cols=2):
 
     if len(line_edits) > 0:
         line_form = QtWidgets.QFormLayout()
-        # line_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        line_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         for label, handler in line_edits:
             line_form.addRow(label, handler)
         
         new_layout = QtWidgets.QVBoxLayout()
-        new_layout.addLayout(line_form, stretch=1)
-        new_layout.addLayout(layout, stretch=1)
-        new_layout.addStretch(10)
+        new_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        new_layout.addLayout(line_form)
+        new_layout.addLayout(layout)
         return new_layout
 
     return layout
