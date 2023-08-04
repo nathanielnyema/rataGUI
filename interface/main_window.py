@@ -109,31 +109,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     # def update_plugin_stats(self):
     #     pass
 
-    def rename_camera(self, item):
-        new_name = item.text()
-        cur_index = self.cam_list.currentRow()
-        cur_item = self.cam_list.currentItem()
-        if cur_item is not None and new_name == cur_item.text(): # Ignore checkbox changes
-            camID, prev_name = list(self.camera_names.items())[cur_index]
-            if new_name in self.camera_names.values() and new_name != prev_name:
-                print("Warning: Display name is already used by another camera.")
-                self.cam_list.itemChanged.disconnect(self.rename_camera)
-                item.setText(prev_name)
-                self.cam_list.itemChanged.connect(self.rename_camera)
-            else:
-                self.camera_names[camID] = new_name
-                self.cameras[camID].display_name = new_name
-                for i in range(self.cam_props.count()):
-                    if self.cam_props.tabText(i) == prev_name:
-                        self.cam_props.setTabText(i, new_name)
-                        break
-
-        self.populate_plugin_pipeline()
-
     def populate_camera_list(self):
+        def rename_camera(item):
+            new_name = item.text()
+            cur_index = self.cam_list.currentRow()
+            cur_item = self.cam_list.currentItem()
+            if cur_item is not None and new_name == cur_item.text(): # Ignore checkbox changes
+                camID, prev_name = list(self.camera_names.items())[cur_index]
+                if new_name in self.camera_names.values() and new_name != prev_name:
+                    print("Warning: Display name is already used by another camera.")
+                    self.cam_list.itemChanged.disconnect(rename_camera)
+                    item.setText(prev_name)
+                    self.cam_list.itemChanged.connect(rename_camera)
+                else:
+                    self.camera_names[camID] = new_name
+                    self.cameras[camID].display_name = new_name
+                    for i in range(self.cam_props.count()):
+                        if self.cam_props.tabText(i) == prev_name:
+                            self.cam_props.setTabText(i, new_name)
+                            break
+            self.populate_plugin_pipeline()
+
         self.cam_list.clear()
         self.cam_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
-        self.cam_list.itemChanged.connect(self.rename_camera)
+        self.cam_list.itemChanged.connect(rename_camera)
         self.cam_list.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked)
 
         for camera_cls in self.camera_models.values():
@@ -333,8 +332,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 item.setText("Disabled")
                 item.setBackground(self.inactive_color)
 
+    # def sync_trigger_checkbox(self, item):
+    #     pass
+        
 
     def populate_trigger_list(self):
+        def sync_check_box(item):
+            deviceID = item.text()
+            trigger_type = type(self.triggers[deviceID]).__name__
+            layout = self.trigger_tabs[trigger_type].layout()
+            for idx in range(layout.count()): # Find device QGroupBox in layout
+                widget = layout.itemAt(idx).widget()
+                if isinstance(widget, QtWidgets.QGroupBox) and widget.title() == deviceID:
+                    widget.setChecked(item.checkState() == Qt.CheckState.Checked)
+                    break
+
         self.trigger_list.clear()
         self.trigger_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
         self.trigger_list.itemDoubleClicked.connect(
@@ -342,6 +354,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked
             )
         )
+        self.trigger_list.itemChanged.connect(sync_check_box)
         # trigger_list is initially empty as triggers are added dynamically
 
     def populate_trigger_settings(self):
@@ -372,13 +385,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.trigger_tabs[trigger_cls.__name__] = tab
 
     def add_trigger_config(self, options):
+        def sync_check_box(group_box):
+            deviceID = group_box.title()
+            for idx in range(self.trigger_list.count()):
+                item = self.trigger_list.item(idx)
+                if item.text() == deviceID:
+                    item.setCheckState(Qt.CheckState.Checked if group_box.isChecked() 
+                                       else Qt.CheckState.Unchecked)
+                    break
+
         deviceID = options.currentText()
         if deviceID == "":
             return
-
         # Add device item to trigger list
         item = QtWidgets.QListWidgetItem(deviceID)
-        item.setCheckState(Qt.CheckState.Unchecked)
+        item.setCheckState(Qt.CheckState.Checked)
         self.trigger_list.addItem(item)
 
         config = ConfigManager()
@@ -401,6 +422,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         layout = self.trigger_tabs[trigger_cls.__name__].layout()
         layout.insertWidget(layout.count()-1, config_box)
 
+        config_box.clicked.connect(lambda: sync_check_box(config_box))
         delete_btn.clicked.connect(lambda: self.remove_trigger_config(config_box, options))
         options.removeItem(options.currentIndex())
 
@@ -441,26 +463,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
                 # Initialize all enabled triggers
                 enabled_triggers = []
-                for enabled_name, config in self.trigger_configs.items():
-                    trigger = self.triggers[enabled_name]
+                for item in get_checked_items(self.trigger_list):
+                    deviceID = item.text()
+                    trigger = self.triggers[deviceID]
                     if not trigger.initialized:
-                        trigger.initialize(config)
+                        trigger.initialize(self.trigger_configs[deviceID])
                     enabled_triggers.append(trigger)
+                    item.setBackground(self.active_color)
                 
                 config = self.camera_configs[camID].as_dict()
                 widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins, triggers=enabled_triggers)
                 x_pos = min(widget.width() * row, screen_width - widget.width())
                 y_pos = (widget.height() // 2) * (row * widget.width() // screen_width)
                 widget.move(x_pos,y_pos)
-                self.camera_widgets[camID] = widget
+                # Update interface when camera widget exits
+                widget.destroyed.connect(lambda widget, item=self.cam_list.item(row): 
+                                         item.setData(Qt.ItemDataRole.BackgroundRole, None))
                 self.cam_list.item(row).setBackground(self.active_color)
+                self.camera_widgets[camID] = widget
                 self.camera_widgets[camID].show()
             elif not widget.active: # Toggle paused widget to resume
                 widget.active = True
                 self.cam_list.item(row).setBackground(self.active_color)
                 self.camera_widgets[camID].show()
-        # Update camera pipeline
-        self.populate_plugin_pipeline()
 
 
     def pause_camera_widgets(self):
@@ -483,10 +508,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 cam_widget.close_widget()
                 cam_item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
 
-        # Stop triggers
-        for trigger in self.triggers.values():
+        # Stop all checked triggers
+        for item in get_checked_items(self.trigger_list):
+            trigger = self.triggers[item.text()]
             if trigger.initialized:
                 trigger.stop()
+            item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
 
 
     def save_session(self):
@@ -578,14 +605,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for idx in range(self.cam_list.count()):
                 item = self.cam_list.item(idx)
                 camID = item.text()
-                self.cam_list.setCurrentItem(None)
-                if camID in saved_configs["checked_cameras"]:
-                    item.setCheckState(Qt.CheckState.Checked)
-
                 # Rename cameras to saved display names
                 self.cam_list.setCurrentItem(item)
                 if camID in saved_configs["camera_names"]:
-                    item.setText(saved_configs["camera_names"][camID])
+                    display_name = saved_configs["camera_names"][camID]
+                    item.setText(display_name)
+                    if display_name in saved_configs["checked_cameras"]:
+                        self.cam_list.setCurrentItem(None)
+                        item.setCheckState(Qt.CheckState.Checked)
 
 
             # Repopulate list with saved plugin state and order

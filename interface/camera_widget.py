@@ -155,6 +155,10 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.stop_plugin_pipeline()
         
     def close_widget(self):
+        # def clean_up():
+        #     self.close_plugin_pipeline()
+        #     self.setParent(None)
+        #     self.deleteLater()
         self.stop_camera_pipeline()
         # Wait for thread to finish and queues to empty before closing
         self.pipeline_thread.signals.finished.connect(self.close_plugin_pipeline)
