@@ -6,9 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>750</width>
+    <width>760</width>
     <height>690</height>
    </rect>
+  </property>
+  <property name="font">
+   <font>
+    <pointsize>8</pointsize>
+   </font>
   </property>
   <property name="windowTitle">
    <string>RataGUI</string>
@@ -66,11 +71,16 @@
         </item>
         <item>
          <widget class="QListWidget" name="cam_list">
+          <property name="font">
+           <font>
+            <pointsize>9</pointsize>
+           </font>
+          </property>
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
           </property>
           <property name="spacing">
-           <number>3</number>
+           <number>4</number>
           </property>
           <property name="sortingEnabled">
            <bool>false</bool>
@@ -78,7 +88,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QLabel" name="label">
+         <widget class="QLabel" name="triggerListLabel">
           <property name="font">
            <font>
             <pointsize>10</pointsize>
@@ -99,18 +109,32 @@
          </widget>
         </item>
         <item>
-         <widget class="QListWidget" name="listWidget">
+         <widget class="QListWidget" name="trigger_list">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="minimumSize">
            <size>
             <width>180</width>
-            <height>0</height>
+            <height>55</height>
            </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>9</pointsize>
+           </font>
+          </property>
+          <property name="sizeAdjustPolicy">
+           <enum>QAbstractScrollArea::AdjustToContents</enum>
           </property>
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
           </property>
           <property name="spacing">
-           <number>3</number>
+           <number>4</number>
           </property>
          </widget>
         </item>
@@ -118,6 +142,11 @@
       </item>
       <item>
        <widget class="QTabWidget" name="camAttributes">
+        <property name="font">
+         <font>
+          <pointsize>9</pointsize>
+         </font>
+        </property>
         <property name="currentIndex">
          <number>0</number>
         </property>
@@ -136,7 +165,7 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>530</width>
+               <width>538</width>
                <height>372</height>
               </rect>
              </property>
@@ -261,7 +290,7 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>530</width>
+               <width>538</width>
                <height>372</height>
               </rect>
              </property>
@@ -333,6 +362,11 @@
         </item>
         <item>
          <widget class="QListWidget" name="plugin_list">
+          <property name="font">
+           <font>
+            <pointsize>9</pointsize>
+           </font>
+          </property>
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
           </property>
@@ -346,7 +380,7 @@
            <enum>Qt::MoveAction</enum>
           </property>
           <property name="spacing">
-           <number>3</number>
+           <number>4</number>
           </property>
          </widget>
         </item>
@@ -359,6 +393,11 @@
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>9</pointsize>
+         </font>
         </property>
         <property name="currentIndex">
          <number>-1</number>
@@ -464,8 +503,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>750</width>
-     <height>18</height>
+     <width>760</width>
+     <height>17</height>
     </rect>
    </property>
    <property name="nativeMenuBar">

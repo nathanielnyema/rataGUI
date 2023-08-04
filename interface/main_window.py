@@ -60,8 +60,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.populate_trigger_list()
         self.populate_trigger_settings()
 
-        if restore_session: self.restore_session() # Load config from session 
-        
         # Create camera widget and start pipeline 
         self.start_button.clicked.connect(self.start_camera_widgets)
         self.start_button.setStyleSheet("background-color: darkgreen; color: white; font-weight: bold")
@@ -73,6 +71,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Close camera, stop pipeline and delete widget
         self.stop_button.clicked.connect(self.stop_camera_widgets)
         self.stop_button.setStyleSheet("background-color: darkred; color: white; font-weight: bold")
+        
+        # Load saved session config
+        if restore_session: self.restore_session()
 
         # Update camera stats occasionally
         self.update_timer = QTimer()
@@ -158,7 +159,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     
 
     def populate_camera_properties(self):
-        # self.cam_props.clear() # TODO
         for camID, config in self.camera_configs.items():
             cls = self.cameras[camID].__class__
             tab = QtWidgets.QWidget()
@@ -213,7 +213,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def populate_plugin_settings(self):
-        # self.plugin_settings.clear()
         for plugin_name, config in self.plugin_configs.items():
             cls = self.plugins[plugin_name]
             tab = QtWidgets.QWidget()
@@ -336,10 +335,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def populate_trigger_list(self):
-        pass
+        self.trigger_list.clear()
+        self.trigger_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
+        self.trigger_list.itemDoubleClicked.connect(
+            lambda item: item.setCheckState(Qt.CheckState.Checked 
+                if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked
+            )
+        )
+        # trigger_list is initially empty as triggers are added dynamically
 
     def populate_trigger_settings(self):
-        # self.cam_triggers.clear()
         for trigger_cls in self.trigger_types.values():
             tab = QtWidgets.QWidget()
             self.cam_triggers.addTab(tab, trigger_cls.__name__)
@@ -371,6 +376,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if deviceID == "":
             return
 
+        # Add device item to trigger list
+        item = QtWidgets.QListWidgetItem(deviceID)
+        item.setCheckState(Qt.CheckState.Unchecked)
+        self.trigger_list.addItem(item)
+
         config = ConfigManager()
         trigger_cls = type(self.triggers[deviceID])
         if hasattr(trigger_cls, "DEFAULT_CONFIG"):
@@ -395,9 +405,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         options.removeItem(options.currentIndex())
 
     def remove_trigger_config(self, config_box, options):
+        deviceID = config_box.title()
+        for idx in range(self.trigger_list.count()):
+            if self.trigger_list.item(idx).text() == deviceID:
+                item = self.trigger_list.takeItem(idx)
+                if item.checkState() == Qt.CheckState.Checked:
+                    pass # TODO: Deactivate
+
         config_box.setParent(None)
         config_box.deleteLater()
-        deviceID = config_box.title()
         self.trigger_configs.pop(deviceID)
 
         for i in range(options.count()):
@@ -504,8 +520,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             plugin_states[item.text()] = item.checkState() == Qt.CheckState.Checked
         ui_settings["plugin_states"] = plugin_states
 
-        # ui_settings["active_camera_tab"] = self.camAttributes.currentWidget().objectName()
-        # ui_settings["active_plugin_tab"] = self.plugin_settings.currentWidget().objectName()
+        ui_settings["active_camera_tab"] = self.camAttributes.tabText(self.camAttributes.currentIndex())
+        ui_settings["active_plugin_tab"] = self.plugin_settings.tabText(self.plugin_settings.currentIndex())
 
         ui_settings["window_width"] = self.size().width()
         ui_settings["window_height"] = self.size().height()
@@ -590,13 +606,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.plugin_list.addItem(item)
             
             self.populate_plugin_pipeline()
+            self.show()
 
-            # active_camera_tab = self.camAttributes.findChild(QtWidgets.QWidget, saved_configs["active_camera_tab"])
-            # self.camAttributes.setCurrentIndex(self.camAttributes.indexOf(active_camera_tab))
-
-
-            # active_plugin_tab = self.plugin_settings.findChild(QtWidgets.QWidget, saved_configs["active_plugin_tab"])
-            # self.plugin_settings.setCurrentWidget(active_plugin_tab)
+            # Restore tab focus after window is shown
+            for idx in range(self.camAttributes.count()):
+                if self.camAttributes.tabText(idx) == saved_configs["active_camera_tab"]:
+                    self.camAttributes.setCurrentIndex(idx)
+                    break
+            for idx in range(self.plugin_settings.count()):
+                if self.plugin_settings.tabText(idx) == saved_configs["active_plugin_tab"]:
+                    self.plugin_settings.setCurrentIndex(idx)
+                    break
 
             self.resize(saved_configs["window_width"], saved_configs["window_height"])
             self.move(saved_configs["window_x"], saved_configs["window_y"])
@@ -690,6 +710,7 @@ def make_config_layout(config, cols=2):
     for form in forms:
         form.setContentsMargins(5,0,5,0)
         form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        form.setVerticalSpacing(10)
         layout.addLayout(form, stretch=5)
 
     line_edits = []
