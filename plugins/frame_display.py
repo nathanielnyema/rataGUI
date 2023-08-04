@@ -19,7 +19,7 @@ class FrameDisplay(BasePlugin):
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
         
-        print("Started Frame Display for: {}".format(cam_widget.camera.cameraID))
+        print("Started Frame Display for: {}".format(cam_widget.camera.getName()))
         self.video_frame = cam_widget.video_frame
         self.frame_width = cam_widget.frame_width
         self.frame_height = cam_widget.frame_height

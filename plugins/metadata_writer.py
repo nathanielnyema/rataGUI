@@ -16,7 +16,7 @@ class MetadataWriter(BasePlugin):
 
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
-        print("Started Metadata Writer for: {}".format(cam_widget.camera.cameraID))
+        print("Started Metadata Writer for: {}".format(cam_widget.camera.getName()))
             
 
     def process(self, frame, metadata):

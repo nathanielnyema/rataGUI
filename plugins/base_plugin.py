@@ -40,5 +40,12 @@ class BasePlugin(ABC):
 
     # Overrite for custom behavior
     def close(self):
-        print(type(self).__name__)
+        """
+        Deactivates plugin and closes any plugin-dependent objects
+        """
         self.active = False
+        print(f"{type(self).__name__} closed")
+
+    # @abstractmethod
+    # def close(self):
+    #     raise NotImplementedError()
