@@ -38,6 +38,7 @@ class BasePlugin(ABC):
     def process(self, frame: NDArray, metadata: Dict) -> Tuple[NDArray, Dict]:
         raise NotImplementedError()
 
-    @abstractmethod
+    # Overrite for custom behavior
     def close(self):
-        raise NotImplementedError()
+        print(type(self).__name__)
+        self.active = False

@@ -15,7 +15,7 @@ class VideoWriter(BasePlugin):
     """
 
     DEFAULT_CONFIG = {
-        'vcodec': ['libx264', 'libx265', 'h264_nvenc', 'hevc_nvenc'],
+        'vcodec': ['libx264', 'libx265', 'h264_nvenc', 'hevc_nvenc', 'rawvideo'],
         'framerate': 30,
         'speed (preset)': ["fast", "veryfast", "ultrafast", "medium", "slow", "slower", "veryslow"], # Defaults to first item
         'quality (0-51)': (32, 0, 51),
@@ -55,12 +55,15 @@ class VideoWriter(BasePlugin):
             else: # output parameters
                 self.output_params['-'+prop_name] = str(value)
     
-        # # Configure codec-specific parameters
-        # vcodec = self.output_params.get("-vcodec")
+        extension = ".mp4"
+
+        # Configure codec-specific parameters
+        vcodec = self.output_params.get("-vcodec")
+        if vcodec in ['rawvideo']:
+            extension = ".raw"
         # if vcodec in ['h264_nvenc', 'hevc_nvenc']:
         #     self.output_params['-cq'] = self.output_params.pop('-crf')
 
-        extension = ".mp4"
         os.makedirs(self.save_dir, exist_ok=True)
         self.file_path = os.path.join(self.save_dir, file_name + extension)
         count = 1
