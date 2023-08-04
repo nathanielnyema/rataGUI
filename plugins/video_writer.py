@@ -32,7 +32,7 @@ class VideoWriter(BasePlugin):
 
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
-        print("Started Video Writer for: {}".format(cam_widget.camera.cameraID))
+        print("Started Video Writer for: {}".format(cam_widget.camera.getName()))
         self.input_params = {}
         self.output_params = {}
         self.cpu_bound = True

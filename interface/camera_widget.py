@@ -75,7 +75,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 
     async def acquire_frames(self):
         loop = asyncio.get_running_loop()
-        # t0 = time.time()
+        t0 = time.time()
         while self.camera._running:
             if self.active:
                 try:
@@ -98,9 +98,9 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
             else: # Pass to next coroutine
                 await asyncio.sleep(0)
 
-        # t1 = time.time()
-        # print(self.camera.frames_acquired, str(t1-t0))
-        # print('FPS: '+str(self.camera.frames_acquired / (t1-t0)))
+        t1 = time.time()
+        print(self.camera.frames_acquired, str(t1-t0))
+        print('FPS: '+str(self.camera.frames_acquired / (t1-t0)))
 
         # Close camera if camera stops streaming
         self.camera.closeCamera()
