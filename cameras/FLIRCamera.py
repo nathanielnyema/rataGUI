@@ -235,7 +235,7 @@ class FLIRCamera(BaseCamera):
             return False, None
 
         try:
-            img_data = self._stream.GetNextImage(10e3) # 10s timeout
+            img_data = self._stream.GetNextImage(10000) # 10s timeout
             if img_data.IsIncomplete():
                 print('Image incomplete with image status %d ...' % img_data.GetImageStatus())
                 return False, None

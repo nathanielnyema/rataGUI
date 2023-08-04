@@ -61,6 +61,8 @@ class VideoReader(BaseCamera):
         self._running = False
 
     def getName(self):
-        if self.file_path == "":
+        if self.display_name is not None:
+            return self.display_name
+        elif self.file_path == "":
             return "VideoReader"
         return self.cameraID

@@ -57,7 +57,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.trigger_tabs = {}      # trigger type -> tab widget
         self.trigger_configs = {}   # enabled trigger -> config manager
         self.trigger_types = {t.__name__ : t for t in trigger_types}
-        self.populate_camera_triggers()
+        self.populate_trigger_list()
+        self.populate_trigger_settings()
 
         if restore_session: self.restore_session() # Load config from session 
         
@@ -109,29 +110,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def rename_camera(self, item):
         new_name = item.text()
-        camID, old_name = self.camera_names.popitem()
-
-        if new_name not in self.camera_names.keys() or old_name == new_name:
-            if new_name in self.camera_names.values():
+        cur_index = self.cam_list.currentRow()
+        cur_item = self.cam_list.currentItem()
+        if cur_item is not None and new_name == cur_item.text(): # Ignore checkbox changes
+            camID, prev_name = list(self.camera_names.items())[cur_index]
+            if new_name in self.camera_names.values() and new_name != prev_name:
                 print("Warning: Display name is already used by another camera.")
-            self.camera_names[camID] = new_name
-            self.cameras[camID].display_name = new_name
-            self.populate_camera_properties()
-        else:
-            self.camera_names[camID] = old_name
-            self.camera_names.move_to_end(new_name)
+                self.cam_list.itemChanged.disconnect(self.rename_camera)
+                item.setText(prev_name)
+                self.cam_list.itemChanged.connect(self.rename_camera)
+            else:
+                self.camera_names[camID] = new_name
+                self.cameras[camID].display_name = new_name
+                for i in range(self.cam_props.count()):
+                    if self.cam_props.tabText(i) == prev_name:
+                        self.cam_props.setTabText(i, new_name)
+                        break
 
         self.populate_plugin_pipeline()
 
     def populate_camera_list(self):
         self.cam_list.clear()
         self.cam_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
-        self.cam_list.itemChanged["QListWidgetItem*"].connect(self.rename_camera)
-        self.cam_list.itemDoubleClicked["QListWidgetItem*"].connect(
-            lambda item: item.setCheckState(Qt.CheckState.Checked 
-                if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked
-            )
-        )
+        self.cam_list.itemChanged.connect(self.rename_camera)
         self.cam_list.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked)
 
         for camera_cls in self.camera_models.values():
@@ -157,7 +158,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     
 
     def populate_camera_properties(self):
-        self.cam_props.clear() # TODO
+        # self.cam_props.clear() # TODO
         for camID, config in self.camera_configs.items():
             cls = self.cameras[camID].__class__
             tab = QtWidgets.QWidget()
@@ -197,7 +198,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.plugin_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
         self.plugin_list.itemChanged.connect(self.populate_plugin_pipeline)
         self.plugin_list.model().rowsMoved.connect(self.populate_plugin_pipeline)
-        self.plugin_list.itemDoubleClicked["QListWidgetItem*"].connect(
+        self.plugin_list.itemDoubleClicked.connect(
             lambda item: item.setCheckState(Qt.CheckState.Checked 
                 if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked
             )
@@ -212,7 +213,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def populate_plugin_settings(self):
-        self.plugin_settings.clear()
+        # self.plugin_settings.clear()
         for plugin_name, config in self.plugin_configs.items():
             cls = self.plugins[plugin_name]
             tab = QtWidgets.QWidget()
@@ -236,7 +237,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def populate_plugin_pipeline(self):
-        self.plugin_pipeline.clear()
+        self.plugin_pipeline.setRowCount(0) # Clear QTableWidget
         try: self.plugin_pipeline.disconnect() # Disconnect all signal-slots
         except Exception: pass
 
@@ -334,8 +335,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 item.setBackground(self.inactive_color)
 
 
-    def populate_camera_triggers(self):
-        self.cam_triggers.clear()
+    def populate_trigger_list(self):
+        pass
+
+    def populate_trigger_settings(self):
+        # self.cam_triggers.clear()
         for trigger_cls in self.trigger_types.values():
             tab = QtWidgets.QWidget()
             self.cam_triggers.addTab(tab, trigger_cls.__name__)
@@ -364,6 +368,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def add_trigger_config(self, options):
         deviceID = options.currentText()
+        if deviceID == "":
+            return
+
         config = ConfigManager()
         trigger_cls = type(self.triggers[deviceID])
         if hasattr(trigger_cls, "DEFAULT_CONFIG"):
@@ -555,12 +562,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for idx in range(self.cam_list.count()):
                 item = self.cam_list.item(idx)
                 camID = item.text()
+                self.cam_list.setCurrentItem(None)
+                if camID in saved_configs["checked_cameras"]:
+                    item.setCheckState(Qt.CheckState.Checked)
+
                 # Rename cameras to saved display names
+                self.cam_list.setCurrentItem(item)
                 if camID in saved_configs["camera_names"]:
                     item.setText(saved_configs["camera_names"][camID])
 
-                if item.text() in saved_configs["checked_cameras"]:
-                    item.setCheckState(Qt.CheckState.Checked)
 
             # Repopulate list with saved plugin state and order
             self.plugin_list.clear()
