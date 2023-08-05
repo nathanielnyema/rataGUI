@@ -8,7 +8,7 @@ enabled_camera_models = ["FLIRCamera.py", "VideoReader.py"]
 # Specify which modules to use in the plugins folder or program defaults to all
 enabled_plugins = []
 
-# Specify which modules to use in the triggers folder or program defaults to all
+# Specify which modules to use in the triggers folder
 enabled_trigger_types = []
 
 # Specify paths to video files for VideoReader

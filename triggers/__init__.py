@@ -23,7 +23,7 @@ dirpath = os.path.dirname(path)
 for fname in os.listdir(dirpath):
     # Load only "real modules"
     if not fname.startswith('.') and not fname.startswith('__') and fname.endswith('.py'):
-        if len(enabled_trigger_types) == 0 or fname in enabled_trigger_types:
+        if fname in enabled_trigger_types: # len(enabled_trigger_types) == 0 or
             try:
                 load_module(os.path.join(dirpath, fname))
             except ModuleNotFoundError:
