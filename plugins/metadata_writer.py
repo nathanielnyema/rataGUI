@@ -11,20 +11,21 @@ class MetadataWriter(BasePlugin):
         'Abbreviate': False,
         'Overlay Timestamp': False,
         'Include date': False,
-        'Overlay CameraID': False,
+        'Overlay Camera Name': False,
     }
 
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
         print("Started Metadata Writer for: {}".format(cam_widget.camera.getName()))
-            
+
 
     def process(self, frame, metadata):
 
         img_h, img_w, num_ch = frame.shape
 
         abbreviate = self.config.get('Abbreviate')
-        for idx, (name, value) in enumerate(metadata.items()):
+        count = 0
+        for name, value in metadata.items():
             key = 'Overlay ' + name
             if self.config.get(key):
                 if name == "Timestamp":
@@ -41,9 +42,10 @@ class MetadataWriter(BasePlugin):
                     overlay = name+": "+str(value)
                 
                 (text_w, text_h), _ = cv2.getTextSize(overlay, cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.75, thickness=2)
-                pos = (6, img_h - idx*(text_h+6))
+                pos = (6, img_h - count*(text_h+6))
                 cv2.rectangle(frame, pos, (pos[0] + text_w, pos[1] - text_h), (0, 0, 0), cv2.FILLED)
                 cv2.putText(frame, overlay, pos, cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.75, color=(255, 255, 255), thickness=2, lineType=cv2.LINE_4)
+                count += 1
 
         return frame, metadata
 

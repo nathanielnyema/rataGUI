@@ -3,7 +3,10 @@ from plugins import BasePlugin, ConfigManager
 import cv2
 from datetime import datetime
 from PyQt6 import QtGui
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QObject, pyqtSignal
+
+class DisplaySignal(QObject):
+    image = pyqtSignal(QtGui.QImage)
 
 class FrameDisplay(BasePlugin):
     """
@@ -11,7 +14,6 @@ class FrameDisplay(BasePlugin):
 
     :param aspect_ratio: Whether to maintain frame aspect ratio or force into frame
     """
-
     DEFAULT_CONFIG = {
         'Keep aspect ratio': True,
     }
@@ -20,9 +22,10 @@ class FrameDisplay(BasePlugin):
         super().__init__(cam_widget, config, queue_size)
         
         print("Started Frame Display for: {}".format(cam_widget.camera.getName()))
-        self.video_frame = cam_widget.video_frame
         self.frame_width = cam_widget.frame_width
         self.frame_height = cam_widget.frame_height
+        self.signal = DisplaySignal()
+        self.signal.image.connect(cam_widget.set_window_pixmap)
 
 
     def process(self, frame, metadata):
@@ -36,14 +39,16 @@ class FrameDisplay(BasePlugin):
 
         # Convert to pixmap and set to video frame
         bytes_per_line = num_ch * img_w
-        qt_image = QtGui.QImage(frame.data, img_w, img_h, bytes_per_line, QtGui.QImage.Format.Format_RGB888)
+        qt_image = QtGui.QImage(frame.data, img_w, img_h, bytes_per_line, QtGui.QImage.Format.Format_RGB888).copy()
         if self.config.get('Keep aspect ratio'):
             qt_image = qt_image.scaled(self.frame_width, self.frame_height, Qt.AspectRatioMode.KeepAspectRatio)
         else: 
             qt_image = qt_image.scaled(self.frame_width, self.frame_height, Qt.AspectRatioMode.IgnoreAspectRatio)
         
-        pixmap = QtGui.QPixmap.fromImage(qt_image)
-        self.video_frame.setPixmap(pixmap)
+        self.signal.image.emit(qt_image)
+
+        # pixmap = QtGui.QPixmap.fromImage(qt_image)
+        # self.video_frame.setPixmap(pixmap)
         
         return frame, metadata
 

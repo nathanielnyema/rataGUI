@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from pyqtconfig import ConfigManager
 from typing import Any, Tuple, Dict
 from numpy.typing import NDArray
 
@@ -35,9 +36,12 @@ class BaseCamera(ABC):
         # TODO: Add required properties
 
     @abstractmethod
-    def initializeCamera(self, prop_config: dict) -> bool:
+    def initializeCamera(self, prop_config: ConfigManager, plugin_names: list) -> bool:
         """
         Initializes the camera and returns whether it was successful
+
+        :param prop_config: ConfigManager that stores settings to initialize camera
+        :param plugin_names: List of plugin names to determine plugin-dependent settings 
         """
         raise NotImplementedError()
 

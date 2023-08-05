@@ -19,11 +19,12 @@ thread_pool = ThreadPoolExecutor()
 
 # Change to camera widget
 class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
-    """Encapsulates running camera object and its plugin processing pipeline by connecting Camera and Plugin APIs.
+    """
+    Encapsulates running camera object and its plugin processing pipeline by connecting Camera and Plugin APIs.
 
     :param camera: Camera object to extract frames from
     :param cam_config: ConfigManager that stores settings to initialize camera
-    :param plugins: List of plugin types in processing pipeline to instantiate
+    :param plugins: List of plugin types and configs in processing pipeline to instantiate
     :param triggers: List of initialized trigger objects to execute when needed
     """
 
@@ -35,10 +36,17 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.frame_width = self.frameGeometry().width()
         self.frame_height = self.frameGeometry().height()
 
-        # Initialize camera object
+        # Set camera fields
         self.camera = camera
         self.camera_model = type(camera).__name__
         self.camera_config = cam_config
+
+        # Instantiate plugins with camera-specific settings
+        self.plugins = [Plugin(self, config) for Plugin, config in plugins]
+        self.plugin_names = [cls.__name__ for cls, _ in plugins]
+        self.active = True
+
+        if "FrameDisplay" in self.plugin_names: self.show()
 
         # Threadpool for asynchronous tasks with signals and slots
         self.threadpool = QThreadPool().globalInstance()
@@ -47,10 +55,6 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.triggers = triggers
         # self.trigger_thread = WorkerThread(self.start_camera_triggers)
         # self.threadpool.start(self.trigger_thread)
-
-        # Instantiate plugins with camera-specific settings
-        self.plugins = [Plugin(self, config) for Plugin, config in plugins]
-        self.active = True
 
         # Start thread to process camera stream and plugin pipeline
         self.pipeline_thread = WorkerThread(self.start_camera_pipeline)
@@ -71,6 +75,12 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     #     except Exception as err:
     #         print('ERROR--Trigger Loop: %s' % err)
     #         os._exit(42)
+    
+    @pyqtSlot(QtGui.QImage)
+    def set_window_pixmap(self, qt_image):
+        pixmap = QtGui.QPixmap.fromImage(qt_image)
+        self.video_frame.setPixmap(pixmap)
+        # QtCore.QTimer.singleShot(0, self.launch_processor)
 
 
     async def acquire_frames(self):
@@ -82,7 +92,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
                     status, frame = await loop.run_in_executor(None, self.camera.readCamera)
                     metadata = self.camera.getMetadata()
                     metadata['Timestamp'] = datetime.now()
-                    metadata['CameraID'] = self.camera.getName()
+                    metadata['Camera Name'] = self.camera.getName()
 
                     if status: 
                         # Send acquired frame to first plugin process in pipeline
@@ -142,7 +152,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     def start_camera_pipeline(self):
         print('Started camera: {}'.format(self.camera.getName()))
         try:
-            self.camera.initializeCamera(self.camera_config)
+            self.camera.initializeCamera(self.camera_config, self.plugin_names)
             asyncio.run(self.process_plugin_pipeline(), debug=False)
         except Exception as err:
             print('ERROR--Camera Loop: %s' % err)

@@ -1,4 +1,4 @@
-from cameras import BaseCamera
+from cameras import BaseCamera, ConfigManager
 
 import cv2
 import numpy as np
@@ -33,9 +33,10 @@ class WebCamera(BaseCamera):
 
         return [WebCamera(0)]
 
-    def initializeCamera(self, config = dict()):
+    def initializeCamera(self, prop_config: ConfigManager, plugin_names=[]):
         self._stream = cv2.VideoCapture(self.cameraID)
         self._running = True
+        return True
 
     def readCamera(self, colorspace="RGB"):
         ret, frame = self._stream.read()

@@ -1,4 +1,4 @@
-from cameras import BaseCamera
+from cameras import BaseCamera, ConfigManager
 from config import video_file_paths
 
 import os
@@ -24,10 +24,10 @@ class VideoReader(BaseCamera):
         self.file_path = file_path
         self.last_frame = None
 
-    def initializeCamera(self, config = dict()):
+    def initializeCamera(self, prop_config: ConfigManager, plugin_names=[]):
         self.input_params = {}
         self.output_params = {}
-        for prop_name, value in config.items():
+        for prop_name, value in prop_config.as_dict().items():
             if prop_name == "File path":
                 self.file_path = os.path.normpath(value)
 
