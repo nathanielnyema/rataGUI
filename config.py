@@ -1,6 +1,5 @@
-# Specify path to alternative ffmpeg binary or program uses default path
+# Specify path to ffmpeg binary or program tries to find it using environment PATH 
 FFMPEG_BINARY = None
-# FFMPEG_BINARY = "C:\\media-autobuild_suite\\local64\\bin-video\\ffmpeg.exe"
 
 # Specify which modules to use in the cameras folder or program defaults to all
 enabled_camera_models = ["FLIRCamera.py", "VideoReader.py"]
@@ -17,3 +16,6 @@ video_file_paths = []
 # Save and restore settings between sessions
 restore_session = True
 save_directory = "./session"
+
+# # Specify color mode (Light or Dark) or program matches computer setting (None)
+# color_mode = "Dark"
