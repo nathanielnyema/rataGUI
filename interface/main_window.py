@@ -457,6 +457,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     item = self.plugin_pipeline.item(row, col)
                     if item.text() == "Enabled":
                         enabled_plugins.append((self.plugins[plugin_name], self.plugin_configs[plugin_name]))
+                        plugin_names.append(plugin_name)
                 if len(enabled_plugins) == 0:
                     # print("At least one plugin must be selected")
                     continue
@@ -471,7 +472,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     enabled_triggers.append(trigger)
                     item.setBackground(self.active_color)
                 
-                config = self.camera_configs[camID].as_dict()
+                config = self.camera_configs[camID]
                 widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins, triggers=enabled_triggers)
                 x_pos = min(widget.width() * row, screen_width - widget.width())
                 y_pos = (widget.height() // 2) * (row * widget.width() // screen_width)
@@ -479,13 +480,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 # Update interface when camera widget exits
                 widget.destroyed.connect(lambda widget, item=self.cam_list.item(row): 
                                          item.setData(Qt.ItemDataRole.BackgroundRole, None))
-                self.cam_list.item(row).setBackground(self.active_color)
                 self.camera_widgets[camID] = widget
-                self.camera_widgets[camID].show()
+                self.cam_list.item(row).setBackground(self.active_color)
             elif not widget.active: # Toggle paused widget to resume
                 widget.active = True
-                self.cam_list.item(row).setBackground(self.active_color)
                 self.camera_widgets[camID].show()
+                self.cam_list.item(row).setBackground(self.active_color)
 
 
     def pause_camera_widgets(self):

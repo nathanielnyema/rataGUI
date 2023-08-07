@@ -35,7 +35,7 @@ class VideoWriter(BasePlugin):
         print("Started Video Writer for: {}".format(cam_widget.camera.getName()))
         self.input_params = {}
         self.output_params = {}
-        self.cpu_bound = True
+        # self.cpu_bound = True
 
         for name, value in config.as_dict().items():
             prop_name = VideoWriter.DISPLAY_CONFIG_MAP.get(name)

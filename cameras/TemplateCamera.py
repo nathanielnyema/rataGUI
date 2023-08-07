@@ -1,4 +1,4 @@
-from cameras import BaseCamera
+from cameras import BaseCamera, ConfigManager
 
 import cv2
 
@@ -16,7 +16,7 @@ class TemplateCamera(BaseCamera):
         super().__init__(cameraID)
         self.last_frame = None
 
-    def initializeCamera(self, config = dict()):
+    def initializeCamera(self, prop_config: ConfigManager, plugin_names=[]):
         cap = cv2.VideoCapture(self.cameraID)
         if cap.isOpened():
             self._running = True

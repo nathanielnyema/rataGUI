@@ -48,7 +48,7 @@ class WorkerThread(QRunnable):
         try:
             result = self.func(*self.args, **self.kwargs)
         except:
-            traceback.print_exc()
+            traceback.print_exc() # TODO: Understand error handling
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit((exctype, value, traceback.format_exc()))
         else:

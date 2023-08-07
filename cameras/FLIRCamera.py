@@ -1,4 +1,4 @@
-from cameras import BaseCamera
+from cameras import BaseCamera, ConfigManager
 
 import cv2
 import PySpin
@@ -136,8 +136,15 @@ class FLIRCamera(BaseCamera):
 
         return result
 
-    def initializeCamera(self, prop_config = dict()) -> bool:
-        # Reset session variables
+    def configure_custom_settings(self, prop_config, plugin_names):
+        # Configure plugin-dependent settings
+        if "VideoWriter" in plugin_names:
+            prop_config.set("Line2 Output", "Frame Acquired")
+        else:
+            prop_config.set("Line2 Output", "User Output 0")
+
+    def initializeCamera(self, prop_config: ConfigManager, plugin_names=[]) -> bool:
+        # Reset camera session variables
         self.__init__(self.cameraID)
 
         try:
@@ -161,8 +168,9 @@ class FLIRCamera(BaseCamera):
         enabled_chunks = ["FrameID",] # ExposureTime, PixelFormat
         self.configure_chunk_data(nodemap, enabled_chunks)
 
+        self.configure_custom_settings(prop_config, plugin_names)
         try:
-            for name, value in prop_config.items():
+            for name, value in prop_config.as_dict().items():
                 prop_name = FLIRCamera.DISPLAY_PROP_MAP.get(name)
                 if prop_name is None:
                     prop_name = name
@@ -198,19 +206,6 @@ class FLIRCamera(BaseCamera):
             self.FPS = int(prop_config.get("Framerate"))
         else:
             self.FPS = -1
-            
-        # self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
-
-        # if self._stream.TriggerSource.GetAccessMode() != PySpin.RW:
-        #     print('Unable to get trigger source (node retrieval). Aborting...')
-        #     return False
-
-        # if CHOSEN_TRIGGER == TriggerType.SOFTWARE:
-        #     cam.TriggerSource.SetValue(PySpin.TriggerSource_Software)
-        # elif CHOSEN_TRIGGER == TriggerType.HARDWARE:
-        # self._stream.TriggerSource.SetValue(PySpin.TriggerSource_Line0)
-
-        # self._stream.TriggerMode.SetValue(PySpin.TriggerMode_On)
         
         # print(dir(self._stream.TLStream))
         # print(self._stream.TLStream.StreamBufferHandlingMode.ToString())
