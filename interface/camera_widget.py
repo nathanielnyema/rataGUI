@@ -80,7 +80,6 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     def set_window_pixmap(self, qt_image):
         pixmap = QtGui.QPixmap.fromImage(qt_image)
         self.video_frame.setPixmap(pixmap)
-        # QtCore.QTimer.singleShot(0, self.launch_processor)
 
 
     async def acquire_frames(self):
@@ -159,7 +158,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
             self.close_widget()
 
     def stop_camera_pipeline(self):
-        print('Stopped camera: {}'.format(self.camera.cameraID))
+        print('Stopped camera: {}'.format(self.camera.getName()))
         # Signal to event loop to stop camera and plugins
         self.camera._running = False
         self.stop_plugin_pipeline()

@@ -140,11 +140,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for cam in cam_list:
                 camID = cam.getName()
                 # Initialize all camera-specific items
-                if camID not in self.cameras.keys():
-                    self.cameras[camID] = cam
-                    self.camera_widgets[camID] = None
-                    self.camera_configs[camID] = ConfigManager()
-                    self.camera_names[camID] = str(camID)
+                duplicates = 0
+                while camID in self.cameras.keys():
+                    duplicates += 1
+                    print(f"Warning: CameraID: {camID} is already taken. Renaming to {camID + str(duplicates)}")
+                    camID += str(duplicates)
+
+                self.cameras[camID] = cam
+                self.camera_widgets[camID] = None
+                self.camera_configs[camID] = ConfigManager()
+                self.camera_names[camID] = str(camID)
                 
                 item = QtWidgets.QListWidgetItem(self.camera_names[camID])
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
@@ -457,7 +462,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     item = self.plugin_pipeline.item(row, col)
                     if item.text() == "Enabled":
                         enabled_plugins.append((self.plugins[plugin_name], self.plugin_configs[plugin_name]))
-                        plugin_names.append(plugin_name)
                 if len(enabled_plugins) == 0:
                     # print("At least one plugin must be selected")
                     continue
@@ -691,12 +695,17 @@ def add_config_handler(config, key, value):
             widget = QtWidgets.QLineEdit()
         elif isinstance(value, int):
             widget = QtWidgets.QSpinBox()
+            widget.setRange(int(-1e6), int(1e6))
             widget.setMinimum(-1)
         elif isinstance(value, float):
             widget = QtWidgets.QDoubleSpinBox()
+            widget.setRange(int(-1e6), int(1e6))
             widget.setSingleStep(0.1)
         elif isinstance(value, tuple):
-            widget = QtWidgets.QSpinBox()
+            if isinstance(value[0], int): 
+                widget = QtWidgets.QSpinBox()
+            elif isinstance(value[0], float):
+                widget = QtWidgets.QDoubleSpinBox()
             if len(value) == 3:
                 widget.setRange(value[1], value[2])
             config.set_default(key, value[0])

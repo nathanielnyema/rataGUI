@@ -46,9 +46,6 @@ class FrameDisplay(BasePlugin):
             qt_image = qt_image.scaled(self.frame_width, self.frame_height, Qt.AspectRatioMode.IgnoreAspectRatio)
         
         self.signal.image.emit(qt_image)
-
-        # pixmap = QtGui.QPixmap.fromImage(qt_image)
-        # self.video_frame.setPixmap(pixmap)
         
         return frame, metadata
 

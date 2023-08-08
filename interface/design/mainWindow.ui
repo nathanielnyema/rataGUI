@@ -52,7 +52,9 @@
          <widget class="QLabel" name="camListLabel">
           <property name="font">
            <font>
-            <pointsize>10</pointsize>
+            <pointsize>11</pointsize>
+            <weight>50</weight>
+            <bold>false</bold>
            </font>
           </property>
           <property name="frameShape">
@@ -91,7 +93,9 @@
          <widget class="QLabel" name="triggerListLabel">
           <property name="font">
            <font>
-            <pointsize>10</pointsize>
+            <pointsize>11</pointsize>
+            <weight>50</weight>
+            <bold>false</bold>
            </font>
           </property>
           <property name="frameShape">
@@ -349,7 +353,9 @@
          <widget class="QLabel" name="pluginListLabel">
           <property name="font">
            <font>
-            <pointsize>10</pointsize>
+            <pointsize>11</pointsize>
+            <weight>50</weight>
+            <bold>false</bold>
            </font>
           </property>
           <property name="frameShape">
