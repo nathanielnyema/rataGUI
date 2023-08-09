@@ -1,7 +1,10 @@
 from cameras import BaseCamera, ConfigManager
 
 import cv2
-import numpy as np
+
+import os
+import logging
+logger = logging.getLogger(__name__)
 
 
 class WebCamera(BaseCamera):
@@ -9,7 +12,6 @@ class WebCamera(BaseCamera):
     PROPS = {
         "FPS": 30,
     }
-
 
     def __init__(self, cameraID):
         super().__init__(cameraID)
@@ -59,7 +61,7 @@ class WebCamera(BaseCamera):
             self._running = False
             return True
         except Exception as err:
-            print('ERROR--WebCamera: %s' % err)
+            logger.exception(err)
             return False
     
     def isOpened(self):

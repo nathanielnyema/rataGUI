@@ -1,12 +1,14 @@
-import os
-import traceback
 
 __all__ = ['ConfigManager', 'BaseTrigger']
 from pyqtconfig import ConfigManager
 from .base_trigger import BaseTrigger
-
-from importlib import util
 from config import enabled_trigger_types
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+from importlib import util
 
 # Automatically load trigger modules
 def load_module(path):
@@ -27,6 +29,6 @@ for fname in os.listdir(dirpath):
             try:
                 load_module(os.path.join(dirpath, fname))
             except ModuleNotFoundError:
-                print(f"Unable to load trigger module {fname}")
-            except Exception:
-                traceback.print_exc()
+                logging.debug(f"Unable to load trigger module {fname}")
+            except Exception as err:
+                logging.exception(err)

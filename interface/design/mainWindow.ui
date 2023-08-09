@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>760</width>
+    <width>780</width>
     <height>690</height>
    </rect>
   </property>
@@ -39,19 +39,35 @@
      <number>5</number>
     </property>
     <item>
-     <layout class="QHBoxLayout" name="camControl" stretch="2,6">
+     <layout class="QHBoxLayout" name="camControl" stretch="1,3">
       <item>
        <layout class="QVBoxLayout" name="camListLayout" stretch="0,0,0,0">
         <property name="spacing">
          <number>6</number>
         </property>
+        <property name="topMargin">
+         <number>2</number>
+        </property>
         <property name="rightMargin">
-         <number>3</number>
+         <number>2</number>
         </property>
         <item>
          <widget class="QLabel" name="camListLabel">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>260</width>
+            <height>16777215</height>
+           </size>
+          </property>
           <property name="font">
            <font>
+            <family>Segoe UI Semibold</family>
             <pointsize>11</pointsize>
             <weight>50</weight>
             <bold>false</bold>
@@ -73,6 +89,12 @@
         </item>
         <item>
          <widget class="QListWidget" name="cam_list">
+          <property name="maximumSize">
+           <size>
+            <width>240</width>
+            <height>16777215</height>
+           </size>
+          </property>
           <property name="font">
            <font>
             <pointsize>10</pointsize>
@@ -91,8 +113,21 @@
         </item>
         <item>
          <widget class="QLabel" name="triggerListLabel">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>240</width>
+            <height>16777215</height>
+           </size>
+          </property>
           <property name="font">
            <font>
+            <family>Segoe UI Semibold</family>
             <pointsize>11</pointsize>
             <weight>50</weight>
             <bold>false</bold>
@@ -124,6 +159,12 @@
            <size>
             <width>180</width>
             <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>240</width>
+            <height>16777215</height>
            </size>
           </property>
           <property name="font">
@@ -158,7 +199,7 @@
          </font>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="camPropsTab">
          <attribute name="title">
@@ -175,7 +216,7 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>538</width>
+               <width>553</width>
                <height>371</height>
               </rect>
              </property>
@@ -258,6 +299,11 @@
               <string>Buffer Size</string>
              </property>
             </column>
+            <column>
+             <property name="text">
+              <string>Total Latency</string>
+             </property>
+            </column>
            </widget>
           </item>
          </layout>
@@ -300,7 +346,7 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>538</width>
+               <width>553</width>
                <height>371</height>
               </rect>
              </property>
@@ -331,7 +377,7 @@
      </layout>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="pluginControl" stretch="3,7,2">
+     <layout class="QHBoxLayout" name="pluginControl" stretch="5,12,3">
       <property name="sizeConstraint">
        <enum>QLayout::SetMinimumSize</enum>
       </property>
@@ -347,12 +393,25 @@
          <number>6</number>
         </property>
         <property name="rightMargin">
-         <number>0</number>
+         <number>2</number>
         </property>
         <item>
          <widget class="QLabel" name="pluginListLabel">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>240</width>
+            <height>16777215</height>
+           </size>
+          </property>
           <property name="font">
            <font>
+            <family>Segoe UI Semibold</family>
             <pointsize>11</pointsize>
             <weight>50</weight>
             <bold>false</bold>
@@ -374,6 +433,12 @@
         </item>
         <item>
          <widget class="QListWidget" name="plugin_list">
+          <property name="maximumSize">
+           <size>
+            <width>240</width>
+            <height>16777215</height>
+           </size>
+          </property>
           <property name="font">
            <font>
             <pointsize>10</pointsize>
@@ -418,13 +483,37 @@
       </item>
       <item>
        <widget class="QFrame" name="frame">
+        <property name="maximumSize">
+         <size>
+          <width>120</width>
+          <height>16777215</height>
+         </size>
+        </property>
         <property name="frameShape">
-         <enum>QFrame::Box</enum>
+         <enum>QFrame::NoFrame</enum>
         </property>
         <property name="frameShadow">
-         <enum>QFrame::Plain</enum>
+         <enum>QFrame::Raised</enum>
+        </property>
+        <property name="lineWidth">
+         <number>0</number>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="spacing">
+          <number>8</number>
+         </property>
+         <property name="leftMargin">
+          <number>1</number>
+         </property>
+         <property name="topMargin">
+          <number>3</number>
+         </property>
+         <property name="rightMargin">
+          <number>3</number>
+         </property>
+         <property name="bottomMargin">
+          <number>3</number>
+         </property>
          <item>
           <widget class="QPushButton" name="start_button">
            <property name="sizePolicy">
@@ -515,7 +604,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>760</width>
+     <width>780</width>
      <height>18</height>
     </rect>
    </property>

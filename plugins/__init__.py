@@ -7,12 +7,13 @@ Stores utility functions available to every plugin in folder
 __all__ = ['ConfigManager', 'BasePlugin']
 from pyqtconfig import ConfigManager
 from .base_plugin import BasePlugin
+from config import enabled_plugins
+
+import logging
+logger = logging.getLogger(__name__)
 
 import os
-import traceback
-
 from importlib import util
-from config import enabled_plugins
 
 # Automatically load plugin modules
 def load_module(path):
@@ -33,6 +34,6 @@ for fname in os.listdir(dirpath):
             try:
                 load_module(os.path.join(dirpath, fname))
             except ModuleNotFoundError:
-                print(f"Unable to load plugin module {fname}")
-            except Exception:
-                traceback.print_exc()
+                logger.debug(f"Unable to load plugin module {fname}")
+            except Exception as err:
+                logger.exception(err)

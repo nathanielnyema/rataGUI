@@ -4,15 +4,16 @@ Loads camera modules listed in config.py (defaults to all camera models if none 
 Stores utility functions available to every camera model in folder
 """
 
-import os
-import traceback
-
 __all__ = ['ConfigManager', 'BaseCamera']
 from pyqtconfig import ConfigManager
 from .BaseCamera import BaseCamera
-
-from importlib import util
 from config import enabled_camera_models
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+from importlib import util
 
 # Automatically load camera modules
 def load_module(path):
@@ -33,6 +34,6 @@ for fname in os.listdir(dirpath):
             try:
                 load_module(os.path.join(dirpath, fname))
             except ModuleNotFoundError:
-                print(f"Unable to load camera module {fname}")
-            except Exception:
-                traceback.print_exc()
+                logger.debug(f"Unable to load camera module {fname}")
+            except Exception as err:
+                logger.exception(err)

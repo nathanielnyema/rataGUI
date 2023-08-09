@@ -2,7 +2,6 @@ import os
 # import sys
 import time
 import json
-import asyncio
 from collections import OrderedDict
 
 from pyqtconfig import ConfigManager
@@ -14,6 +13,9 @@ from interface.camera_widget import CameraWidget
 from config import restore_session, save_directory
 
 import psutil
+import logging
+logger = logging.getLogger(__name__)
+
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, camera_models = [], plugins = [], trigger_types = [], dark_mode=True):
@@ -92,7 +94,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             print("CPU (%): "+str(cpu)+"\tRAM: "+str(mem), file=f)
 
     def update_camera_stats(self): # Save stats?
-        for row, camera in enumerate(self.cameras.values()):
+        for row, (camID, camera) in enumerate(self.cameras.items()):
             # self.cam_stats.item(row, 0).setText(self.camera_names[camera.getName()])
             self.cam_stats.item(row, 0).setText(camera.getName())
             self.cam_stats.item(row, 1).setText(str(camera.frames_acquired))
@@ -105,9 +107,43 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.cam_stats.item(row, 3).setText(str(camera.buffer_size))
             else:
                 self.cam_stats.item(row, 3).setText("N/A")
+
+            cam_widget = self.camera_widgets.get(camID)
+            if cam_widget is not None:
+                latency_str = str(round(cam_widget.avg_latency, 3)) + " ms"
+                self.cam_stats.setItem(row, 4, QtWidgets.QTableWidgetItem(latency_str))
+            else:
+                self.cam_stats.setItem(row, 4, QtWidgets.QTableWidgetItem("N/A"))
     
     # def update_plugin_stats(self):
     #     pass
+
+    def populate_camera_stats(self):
+        self.cam_stats.setRowCount(len(self.cameras))
+        for row, (camID, camera) in enumerate(self.cameras.items()):
+            name_item = QtWidgets.QTableWidgetItem(camera.getName())
+            name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.cam_stats.setItem(row, 0, name_item)
+            self.cam_stats.setItem(row, 1, QtWidgets.QTableWidgetItem(str(camera.frames_acquired)))
+
+            if hasattr(camera, "frames_dropped"):
+                self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem(str(camera.frames_dropped)))
+            else:
+                self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem("N/A"))
+
+            if hasattr(camera, "buffer_size"):
+                self.cam_stats.setItem(row, 3, QtWidgets.QTableWidgetItem(str(camera.buffer_size)))
+            else:
+                self.cam_stats.setItem(row, 3, QtWidgets.QTableWidgetItem("N/A"))
+
+            cam_widget = self.camera_widgets.get(camID)
+            if cam_widget is not None:
+                self.cam_stats.setItem(row, 4, QtWidgets.QTableWidgetItem(str(cam_widget.avg_latency)))
+            else:
+                self.cam_stats.setItem(row, 4, QtWidgets.QTableWidgetItem("N/A"))
+
+        self.cam_stats.resizeColumnsToContents()
+
 
     def populate_camera_list(self):
         def rename_camera(item):
@@ -117,7 +153,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if cur_item is not None and new_name == cur_item.text(): # Ignore checkbox changes
                 camID, prev_name = list(self.camera_names.items())[cur_index]
                 if new_name in self.camera_names.values() and new_name != prev_name:
-                    print("Warning: Display name is already used by another camera.")
+                    logger.warning("Display name is already used by another camera")
                     self.cam_list.itemChanged.disconnect(rename_camera)
                     item.setText(prev_name)
                     self.cam_list.itemChanged.connect(rename_camera)
@@ -143,7 +179,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 duplicates = 0
                 while camID in self.cameras.keys():
                     duplicates += 1
-                    print(f"Warning: CameraID: {camID} is already taken. Renaming to {camID + str(duplicates)}")
+                    logger.warning(f"CameraID: {camID} is already taken. Renaming to {camID + str(duplicates)}")
                     camID += str(duplicates)
 
                 self.cameras[camID] = cam
@@ -176,37 +212,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.cam_props.addTab(tab, self.camera_names[camID])
 
 
-    def populate_camera_stats(self):
-        self.cam_stats.setRowCount(len(self.cameras))
-        for row, camera in enumerate(self.cameras.values()):
-            name_item = QtWidgets.QTableWidgetItem(camera.getName())
-            name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.cam_stats.setItem(row, 0, name_item)
-            self.cam_stats.setItem(row, 1, QtWidgets.QTableWidgetItem(str(camera.frames_acquired)))
-
-            if hasattr(camera, "frames_dropped"):
-                self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem(str(camera.frames_dropped)))
-            else:
-                self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem("N/A"))
-
-            if hasattr(camera, "buffer_size"):
-                self.cam_stats.setItem(row, 3, QtWidgets.QTableWidgetItem(str(camera.buffer_size)))
-            else:
-                self.cam_stats.setItem(row, 3, QtWidgets.QTableWidgetItem("N/A"))
-
-        self.cam_stats.resizeColumnsToContents()
-
-
     def populate_plugin_list(self):
+        def jump_to_config(item):
+            item.setCheckState(Qt.CheckState.Checked 
+                if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked
+            )
+            for idx in range(self.plugin_settings.count()):
+                if self.plugin_settings.tabText(idx) == item.text():
+                    self.plugin_settings.setCurrentIndex(idx)
+                    break
+
         self.plugin_list.clear()
         self.plugin_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
         self.plugin_list.itemChanged.connect(self.populate_plugin_pipeline)
         self.plugin_list.model().rowsMoved.connect(self.populate_plugin_pipeline)
-        self.plugin_list.itemDoubleClicked.connect(
-            lambda item: item.setCheckState(Qt.CheckState.Checked 
-                if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked
-            )
-        )
+        self.plugin_list.itemDoubleClicked.connect(jump_to_config)
 
         for name in self.plugins.keys():
             item = QtWidgets.QListWidgetItem(name)
@@ -433,12 +453,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def remove_trigger_config(self, config_box, options):
         deviceID = config_box.title()
+        # Delete from trigger list
         for idx in range(self.trigger_list.count()):
             if self.trigger_list.item(idx).text() == deviceID:
                 item = self.trigger_list.takeItem(idx)
-                if item.checkState() == Qt.CheckState.Checked:
-                    pass # TODO: Deactivate
+                trigger = self.triggers[item.text()]
+                if trigger.initialized:
+                    trigger.close()
 
+        # Delete from config
         config_box.setParent(None)
         config_box.deleteLater()
         self.trigger_configs.pop(deviceID)
@@ -463,7 +486,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     if item.text() == "Enabled":
                         enabled_plugins.append((self.plugins[plugin_name], self.plugin_configs[plugin_name]))
                 if len(enabled_plugins) == 0:
-                    # print("At least one plugin must be selected")
                     continue
 
                 # Initialize all enabled triggers
@@ -516,7 +538,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for item in get_checked_items(self.trigger_list):
             trigger = self.triggers[item.text()]
             if trigger.initialized:
-                trigger.stop()
+                trigger.close()
             item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
 
 
@@ -564,7 +586,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def restore_session(self):
         save_dir = os.path.abspath(save_directory)
         cam_config_path = os.path.join(save_dir, "camera_settings.json")
-        if os.path.exists(cam_config_path): 
+        if os.path.isfile(cam_config_path): 
             with open(cam_config_path, 'r') as file:
                 saved_configs = json.load(file)
             for camID, config in self.camera_configs.items():
@@ -572,10 +594,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     config.set_many(saved_configs[camID])
                     # TODO: Catch error when saved setting is not in config
         else:
-            print("No saved camera settings ... using defaults")
+            logger.info("No saved camera settings ... using defaults")
 
         plugin_config_path = os.path.join(save_dir, "plugin_settings.json")
-        if os.path.exists(plugin_config_path): 
+        if os.path.isfile(plugin_config_path): 
             with open(plugin_config_path, 'r') as file:
                 saved_configs = json.load(file)
             for name, config in self.plugin_configs.items():
@@ -583,10 +605,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     config.set_many(saved_configs[name])
                     # TODO: Catch error when saved setting is not in config
         else:
-            print("No saved plugin settings ... using defaults")
+            logger.info("No saved plugin settings ... using defaults")
 
         trigger_config_path = os.path.join(save_dir, "trigger_settings.json")
-        if os.path.exists(trigger_config_path): 
+        if os.path.isfile(trigger_config_path): 
             with open(trigger_config_path, 'r') as file:
                 saved_configs = json.load(file)
             for deviceID, trigger in self.triggers.items():
@@ -598,10 +620,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     options.setCurrentText(deviceID)
                     self.add_trigger_config(options)
         else:
-            print("No saved trigger settings ... using defaults")
+            logger.info("No saved trigger settings ... using defaults")
 
         ui_config_path = os.path.join(save_dir, "interface_settings.json")
-        if os.path.exists(ui_config_path): 
+        if os.path.isfile(ui_config_path): 
             with open(ui_config_path, 'r') as file:
                 saved_configs = json.load(file)
 
@@ -652,7 +674,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.resize(saved_configs["window_width"], saved_configs["window_height"])
             self.move(saved_configs["window_x"], saved_configs["window_y"])
         else:
-            print("No saved interface settings ... using defaults")
+            logger.info("No saved interface settings ... using defaults")
         
 
     def closeEvent(self, event):
@@ -724,8 +746,8 @@ def add_config_handler(config, key, value):
 
         config.add_handler(key, widget, mapper) 
     except Exception as err:
-        print('ERROR--GUI: %s' % err)
-        print("Failed to create setting handler. Each setting must correspond to a valid set of values")
+        logger.exception(err)
+        logger.error("Failed to create setting handler. Each setting must correspond to a valid set of values")
 
 
 def make_config_layout(config, cols=2):

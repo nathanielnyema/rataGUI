@@ -3,6 +3,11 @@ from cameras import BaseCamera, ConfigManager
 import cv2
 import PySpin
 
+import os
+import logging
+logger = logging.getLogger(__name__)
+
+
 READ_TIMEOUT = 10000    # 10 sec
 
 class FLIRCamera(BaseCamera):
@@ -99,7 +104,7 @@ class FLIRCamera(BaseCamera):
             if not self._stream.IsInitialized():
                 self._stream.Init()
         except (Exception, PySpin.SpinnakerException) as err:
-            print('ERROR--FLIRCamera: %s' % err)
+            logger.exception(err)
             return False
         finally:
             cam_list.Clear()
@@ -123,7 +128,7 @@ class FLIRCamera(BaseCamera):
                         self._stream.LineMode.SetValue(PySpin.LineMode_Output)
                         self._stream.LineSource.SetValue(value)
                     except PySpin.SpinnakerException as ex:
-                        print(f"Warning: Unable to write enum entry to Line {line_num}")
+                        logger.debug(f"Unable to write enum entry to Line {line_num}")
                         pass
                 elif prop_name == "TriggerSource":
                     self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
@@ -141,15 +146,15 @@ class FLIRCamera(BaseCamera):
                         node_max = node.GetMax()
                         clipped = min(max(value, node_min), node_max)
                         if clipped != value:
-                            print(f"Warning: {prop_name} must be in the range [{node_min}, {node_max}] \
-                                    so {value} was clipped to {clipped}.")
+                            logger.warning(f"{prop_name} must be in the range [{node_min}, {node_max}] \
+                                    so {value} was clipped to {clipped}")
                             value = clipped
 
                     if node.GetAccessMode() == PySpin.RW:
                         node.SetValue(value)
 
         except (Exception, PySpin.SpinnakerException) as err:
-            print('ERROR--FLIRCamera: %s' % err)
+            logger.exception(err)
             return False  
         
         if prop_config.get("Limit Framerate"):
@@ -179,7 +184,7 @@ class FLIRCamera(BaseCamera):
         try:
             img_data = self._stream.GetNextImage(READ_TIMEOUT)
             if img_data.IsIncomplete():
-                print('Image incomplete with image status %d ...' % img_data.GetImageStatus())
+                logger.error('Image incomplete with image status %d ...' % img_data.GetImageStatus())
                 return False, None
 
             # Parse image metadata
@@ -211,7 +216,7 @@ class FLIRCamera(BaseCamera):
             return True, self.last_frame
 
         except PySpin.SpinnakerException as ex:
-            print('ERROR--PySpin: %s' % ex)
+            logger.exception(ex)
             return False, None
 
 
@@ -233,7 +238,7 @@ class FLIRCamera(BaseCamera):
             self._running = False
             return True
         except Exception as err:
-            print('ERROR--FLIRCamera: %s' % err)
+            logger.exception(err)
             return False
 
 
@@ -261,7 +266,7 @@ class FLIRCamera(BaseCamera):
                 chunk_selector = PySpin.CEnumerationPtr(nodemap.GetNode('ChunkSelector'))
 
                 if not PySpin.IsAvailable(chunk_selector) or not PySpin.IsReadable(chunk_selector):
-                    print('Unable to retrieve chunk selector. Aborting...\n')
+                    logger.error('Unable to retrieve chunk selector. Aborting...\n')
                     return False
 
                 # Retrieve entries from enumeration ptr
@@ -285,12 +290,12 @@ class FLIRCamera(BaseCamera):
                         # Enable the corresponding chunk data
                         if enable:
                             if chunk_enable.GetValue() is True:
-                                print(f'{chunk_str} enabled for FLIR camera: {self.cameraID}')
+                                logger.info(f'{chunk_str} enabled for FLIR camera: {self.cameraID}')
                             elif PySpin.IsWritable(chunk_enable):
                                 chunk_enable.SetValue(True)
-                                print(f'{chunk_str} enabled for FLIR camera: {self.cameraID}')
+                                logger.info(f'{chunk_str} enabled for FLIR camera: {self.cameraID}')
                             else:
-                                print(f'{chunk_str} not writable for FLIR cameraa: {self.cameraID}')
+                                logger.error(f'{chunk_str} not writable for FLIR cameraa: {self.cameraID}')
                                 result = False
                         else:
                             # Disable the boolean to disable the corresponding chunk data
@@ -300,7 +305,7 @@ class FLIRCamera(BaseCamera):
                                 result = False
 
             except PySpin.SpinnakerException as ex:
-                print('ERROR--PySpin: %s' % ex)
+                logger.exception(ex)
                 result = False
 
             return result

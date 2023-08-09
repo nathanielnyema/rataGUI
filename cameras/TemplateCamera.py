@@ -2,6 +2,10 @@ from cameras import BaseCamera, ConfigManager
 
 import cv2
 
+import os
+import logging
+logger = logging.getLogger(__name__)
+
 
 def get_default_settings():
     return {}

@@ -1,11 +1,13 @@
 from plugins import BasePlugin, ConfigManager
 from config import FFMPEG_BINARY
+from utils import slugify
 
 import os
-import cv2
 import numpy as np
-
 from datetime import datetime
+
+import logging
+logger = logging.getLogger(__name__)
 
 class VideoWriter(BasePlugin):
     """
@@ -32,7 +34,6 @@ class VideoWriter(BasePlugin):
 
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
-        print("Started Video Writer for: {}".format(cam_widget.camera.getName()))
         self.input_params = {}
         self.output_params = {}
         # self.cpu_bound = True
@@ -46,9 +47,9 @@ class VideoWriter(BasePlugin):
                 self.save_dir = os.path.normpath(value)
             elif prop_name == "filename":
                 if value == "": # default value
-                    file_name = str(cam_widget.camera.getName()) + "_" + datetime.now().strftime('%H-%M-%S')
+                    file_name = slugify(cam_widget.camera.getName()) + "_" + datetime.now().strftime('%H-%M-%S')
                 else:
-                    file_name = value
+                    file_name = slugify(value)
             elif prop_name in ["framerate",] and value >= 0: # input parameters
                 self.input_params['-'+prop_name] = str(value)
 
@@ -74,14 +75,12 @@ class VideoWriter(BasePlugin):
         self.writer = FFMPEG_Writer(str(self.file_path), input_dict=self.input_params, output_dict=self.output_params, verbosity=0)
 
     def process(self, frame, metadata):
-        # print("frame saved")
-        
         self.writer.write_frame(frame)
 
         return frame, metadata
 
     def close(self):
-        print("Video writer closed")
+        logger.info("Video writer closed")
         self.active = False
         self.writer.close()
 
@@ -104,7 +103,7 @@ class FFMPEG_Writer():
 
         # Check for write permissions
         if not os.access(dir_path, os.W_OK): 
-            print("Cannot write to directory: " + dir_path)
+            logger.error("Cannot write to directory: " + dir_path)
 
         self.input_dict = input_dict
         self.output_dict = output_dict
@@ -117,8 +116,7 @@ class FFMPEG_Writer():
             self._FFMPEG_PATH = which("ffmpeg")
         
         if self._FFMPEG_PATH is None:
-            print("Could not find ffmpeg executable ... aborting")
-            return
+            logger.error("Could not find ffmpeg executable")
 
 
     def start_process(self, H, W, C):
@@ -152,11 +150,11 @@ class FFMPEG_Writer():
         self._cmd = " ".join(cmd)
         
         if self.verbosity >= 2:
-            print(cmd)
+            logger.info(cmd)
             self._proc = sp.Popen(cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=None)
         elif self.verbosity == 1:
             cmd += ["-v", "warning"]
-            print(cmd)
+            logger.info(cmd)
             self._proc = sp.Popen(cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=None)
         else:
             self._proc = sp.Popen(cmd, stdin=sp.PIPE, stdout=sp.DEVNULL, stderr=sp.STDOUT)
@@ -171,7 +169,7 @@ class FFMPEG_Writer():
             self.start_process(H, W, C)
 
         # print(img_array.dtype)
-        # img_array = img_array.astype(np.uint8)
+        img_array = img_array.astype(np.uint8)
 
         try:
             self._proc.stdin.write(img_array.tobytes())

@@ -2,6 +2,11 @@ from cameras import BaseCamera, ConfigManager
 
 from pypylon import pylon
 
+import os
+import logging
+logger = logging.getLogger(__name__)
+
+
 READ_TIMEOUT = 10000    # 10 sec
 
 class BaslerCamera(BaseCamera):
@@ -85,12 +90,12 @@ class BaslerCamera(BaseCamera):
                     )
                     break
             if self._stream is None:
-                raise KeyError("Camera not found")
+                raise OSError(f"Camera {self.getName()} not found")
 
             if not self._stream.IsOpen():
                 self._stream.Open()
         except (Exception, pylon.GenericException) as err:
-            print('ERROR--BaslerCamera: %s' % err)
+            logger.exception(err)
             return False
 
         # Start video stream
@@ -122,8 +127,8 @@ class BaslerCamera(BaseCamera):
             grab_data.Release()
             return True, self.last_frame
 
-        except pylon.GenericException as ex:
-            print('ERROR--pylon: %s' % ex)
+        except pylon.GenericException as err:
+            logger.exception(err)
             return False, None
 
 
@@ -141,7 +146,7 @@ class BaslerCamera(BaseCamera):
             self._running = False
             return True
         except Exception as err:
-            print('ERROR--BaslerCamera: %s' % err)
+            logger.exception(err)
             return False
 
 

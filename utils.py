@@ -1,17 +1,29 @@
-import traceback, sys
-import numpy as np
-import time
+import unicodedata
+import re
 
-import cv2
+def slugify(value, allow_unicode=False):
+    """
+    Taken from https://github.com/django/django/blob/master/django/utils/text.py
+    Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
+    dashes to single dashes. Remove characters that aren't alphanumerics,
+    underscores, or hyphens. Convert to lowercase. Also strip leading and
+    trailing whitespace, dashes, and underscores.
+    """
+    value = str(value)
+    if allow_unicode:
+        value = unicodedata.normalize('NFKC', value)
+    else:
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(r'[^\w\s-]', '', value)
+    return re.sub(r'[-\s]+', '-', value).strip('-_')
 
-from PyQt6 import QtWidgets, QtGui
-from PyQt6.QtCore import Qt, QRunnable, QObject, QTimer, pyqtSlot, pyqtSignal
+
+from PyQt6.QtCore import QRunnable, QObject, pyqtSlot, pyqtSignal
 
 class ThreadSignals(QObject):
     finished = pyqtSignal()
-    error = pyqtSignal(tuple)
+    error = pyqtSignal(Exception)
     result = pyqtSignal(object)
-
 
 class WorkerThread(QRunnable):
     '''
@@ -47,10 +59,9 @@ class WorkerThread(QRunnable):
         # Retrieve args/kwargs here; and fire processing using them
         try:
             result = self.func(*self.args, **self.kwargs)
-        except:
-            traceback.print_exc() # TODO: Understand error handling
-            exctype, value = sys.exc_info()[:2]
-            self.signals.error.emit((exctype, value, traceback.format_exc()))
+        except Exception as err:
+            self.signals.error.emit(err)
+            raise err
         else:
             self.signals.result.emit(result)  # Return the result of the process
         finally:

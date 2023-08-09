@@ -1,21 +1,24 @@
 # import sys
 import time
-import numpy as np
-import os
 from datetime import datetime
-# import logging
 
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
 
-from threads import WorkerThread
+from utils import WorkerThread
 from interface.design.Ui_CameraWidget import Ui_CameraWidget
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
+import os
+import logging
+logger = logging.getLogger(__name__)
+
 # process_pool = ProcessPoolExecutor()
 thread_pool = ThreadPoolExecutor()
+
+EXP_AVG_DECAY = 0.5
 
 # Change to camera widget
 class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
@@ -42,9 +45,17 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.camera_config = cam_config
 
         # Instantiate plugins with camera-specific settings
-        self.plugins = [Plugin(self, config) for Plugin, config in plugins]
-        self.plugin_names = [cls.__name__ for cls, _ in plugins]
+        self.plugins = []
+        for Plugin, config in plugins:
+            try:
+                self.plugins.append(Plugin(self, config))
+            except Exception as err:
+                logger.exception(err)
+                logger.error(f"Failed to initialize {type(Plugin).__name__} for camera {camera.getName()}")
+
+        self.plugin_names = [type(p).__name__ for p in self.plugins]
         self.active = True
+        self.avg_latency = 0    # in milliseconds
 
         if "FrameDisplay" in self.plugin_names: self.show()
 
@@ -101,18 +112,52 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
                     else:
                         raise IOError("Camera frame not found ... stopping")
                 except Exception as err:
-                    print('ERROR--Acquisition: %s' % err)
+                    logger.exception(err)
                     break
 
             else: # Pass to next coroutine
                 await asyncio.sleep(0)
 
         t1 = time.time()
-        print(self.camera.frames_acquired, str(t1-t0))
-        print('FPS: '+str(self.camera.frames_acquired / (t1-t0)))
+        logger.debug('FPS: '+str(self.camera.frames_acquired / (t1-t0)))
 
         # Close camera if camera stops streaming
         self.camera.closeCamera()
+
+    # Asynchronous execution loop for an arbitrary plugin 
+    async def plugin_process(self, plugin):
+        loop = asyncio.get_running_loop()
+        failures = 0
+        while True:
+            frame, metadata = await plugin.in_queue.get()
+            # print(f'{type(plugin).__name__} queue: ' + str(plugin.in_queue.qsize()))
+            try:
+                # Execute plugin
+                if plugin.active:
+                    if plugin.cpu_bound or plugin.io_bound: # possibly move queues outside plugins
+                        result = await loop.run_in_executor(None, plugin.process, frame, metadata)
+                    else:
+                        result = plugin.process(frame, metadata)
+                else:
+                    result = (frame, metadata)
+
+                # Send output to next plugin
+                if plugin.out_queue != None:
+                    await plugin.out_queue.put(result)
+                else:
+                    delta_t = datetime.now() - metadata['Timestamp']
+                    self.avg_latency = delta_t.total_seconds()*1000 * EXP_AVG_DECAY + self.avg_latency * (1 - EXP_AVG_DECAY)
+            except Exception as err:
+                logger.exception(err)
+                failures += 1
+                if failures > 5: # close plugin after 5 failures
+                    plugin.active = False
+                    plugin.close()
+            finally:
+                plugin.in_queue.task_done()
+
+            # TODO: Add plugin-specific data
+            # TODO: Parallelize with Thread Executor
 
     async def process_plugin_pipeline(self):
         # Add process to continuously acquire frames from camera
@@ -123,9 +168,9 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         for cur_plugin, next_plugin in zip(self.plugins, self.plugins[1:]):
             # Connect outputs and inputs of consecutive plugin pairs
             cur_plugin.out_queue = next_plugin.in_queue
-            plugin_tasks.append(asyncio.create_task(plugin_process(cur_plugin)))
+            plugin_tasks.append(asyncio.create_task(self.plugin_process(cur_plugin)))
         # Add terminating plugin
-        plugin_tasks.append(asyncio.create_task(plugin_process(self.plugins[-1])))
+        plugin_tasks.append(asyncio.create_task(self.plugin_process(self.plugins[-1])))
 
         # Wait until camera stops running
         await acquisition_task
@@ -149,16 +194,16 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 
     @pyqtSlot()
     def start_camera_pipeline(self):
-        print('Started camera: {}'.format(self.camera.getName()))
+        logger.info('Started camera: {}'.format(self.camera.getName()))
         try:
             self.camera.initializeCamera(self.camera_config, self.plugin_names)
             asyncio.run(self.process_plugin_pipeline(), debug=False)
         except Exception as err:
-            print('ERROR--Camera Loop: %s' % err)
+            logger.exception(err)
             self.close_widget()
 
     def stop_camera_pipeline(self):
-        print('Stopped camera: {}'.format(self.camera.getName()))
+        logger.info('Stopped camera: {}'.format(self.camera.getName()))
         # Signal to event loop to stop camera and plugins
         self.camera._running = False
         self.stop_plugin_pipeline()
@@ -173,38 +218,6 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.pipeline_thread.signals.finished.connect(self.close_plugin_pipeline)
         self.pipeline_thread.signals.finished.connect(self.deleteLater)
 
-
-# Asynchronous execution loop for an arbitrary plugin 
-async def plugin_process(plugin):
-    loop = asyncio.get_running_loop()
-    failures = 0
-    while True:
-        frame, metadata = await plugin.in_queue.get()
-        # print(f'{type(plugin).__name__} queue: ' + str(plugin.in_queue.qsize()))
-        try:
-            # Execute plugin
-            if plugin.active:
-                if plugin.cpu_bound or plugin.io_bound: # possibly move queues outside plugins
-                    result = await loop.run_in_executor(None, plugin.process, frame, metadata)
-                else:
-                    result = plugin.process(frame, metadata)
-            else:
-                result = (frame, metadata)
-
-            # Send output to next plugin
-            if plugin.out_queue != None:
-                await plugin.out_queue.put(result)
-        except Exception as err:
-            print('ERROR--%s: %s' % (type(plugin).__name__, err))
-            failures += 1
-            if failures > 5: # close plugin after 5 failures
-                plugin.active = False
-                plugin.close()
-        finally:
-            plugin.in_queue.task_done()
-
-        # TODO: Add plugin-specific data
-        # TODO: Parallelize with Thread Executor
 
 # async def repeat_trigger(trigger, interval):
 #     """
