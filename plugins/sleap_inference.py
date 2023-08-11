@@ -5,6 +5,9 @@ import numpy as np
 import cv2
 import tensorflow as tf
 
+import logging
+logger = logging.getLogger(__name__)
+
 class SleapInference(BasePlugin):
     """
     Plugin that inferences on frames using trained SLEAP model to predict animal pose and write keypoints as metadata
@@ -19,22 +22,20 @@ class SleapInference(BasePlugin):
 
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
-
-        print("Started Sleap Inference for: {}".format(cam_widget.camera.getName()))
-        self.model_path = os.path.normpath(config.get("Model directory"))
+        self.model_dir = os.path.normpath(config.get("Model directory"))
 
         try:
-            self.model = load_frozen_graph(self.model_path)
+            self.model = load_frozen_model(self.model_dir)
             self.model_input = self.model.inputs[0]
 
             # Warm start to load cuDNN
             input_shape = self.model_input.shape.as_list()
             input_shape[0] = 1 # Batch size
             dummy_frame = tf.zeros(input_shape, self.model_input.dtype)
-            self.model(x=dummy_frame)
+            self.model(tf.constant(dummy_frame))
         except Exception as err:
-            print('ERROR--SLEAP: %s' % err)
-            print("Unable to load model ... auto-disabling SLEAP plugin")
+            logger.exception(err)
+            logger.debug("Unable to load model ... auto-disabling SLEAP plugin")
             self.active = False
 
         # self.cpu_bound = True
@@ -45,7 +46,7 @@ class SleapInference(BasePlugin):
         self.num_channels = input_shape[3]
         self.count = 0
         self.keypoints = np.zeros((1,4,2))
-        self.keypoint_scores = np.zeros((4,1))
+        self.keypoint_scores = np.zeros((1,4,1))
 
     def process(self, frame, metadata):
         img_h, img_w, num_ch = frame.shape
@@ -55,9 +56,10 @@ class SleapInference(BasePlugin):
             image = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
             image = cv2.resize(image, (self.input_width, self.input_height)) # resize uses reverse order
             image = np.reshape(image, (-1, self.input_height, self.input_width, 1))
-            prediction = self.model(x=tf.constant(image))
+            prediction = self.model(x=tf.constant(image)) # outputs list of tensors
             self.keypoints = prediction[3].numpy()[0]
-            self.keypoint_scores = np.squeeze(prediction[2].numpy())
+            self.keypoint_scores = prediction[2].numpy()[0]
+            # print(self.keypoint_scores.shape)
             fps_mode = self.config.get("Inference FPS")
             if fps_mode == "Match Camera":
                 self.interval = 0
@@ -70,11 +72,12 @@ class SleapInference(BasePlugin):
             # print(prediction[0])
 
         threshold = self.config.get("Score Threshold")
-        for idx, instance in enumerate(self.keypoints):
+        for num, instance in enumerate(self.keypoints):
             color = [0,0,0]
-            color[idx % 3] = 255
+            color[num % 3] = 255
+            point_scores = self.keypoint_scores[num]
             for idx, point in enumerate(instance):
-                if not(np.isnan(point[0]) or np.isnan(point[0])) and self.keypoint_scores[idx] > threshold: 
+                if not(np.isnan(point[0]) or np.isnan(point[0])) and point_scores[idx] > threshold: 
                     resized_x = point[0] * (img_w/self.input_width)
                     resized_y = point[1] * (img_h/self.input_height)
                     frame = cv2.circle(frame, (int(resized_x), int(resized_y)), 5, color, -1)
@@ -82,12 +85,21 @@ class SleapInference(BasePlugin):
         return frame, metadata
 
     def close(self):
-        print("Sleap Inference closed")
+        logger.info("Sleap Inference closed")
         self.active = False
 
-def load_frozen_graph(model_path):
+
+def load_frozen_model(model_dir):
     # Load frozen graph using TensorFlow 1.x functions
-    with tf.io.gfile.GFile(model_path + "/frozen_graph.pb", "rb") as f:
+    model_file = [file for file in os.listdir(model_dir) if file.endswith('.pb')]
+    if len(model_file) > 1:
+        raise IOError("Multiple model files found. Model folder should only contain one .pb file")
+    elif len(model_file) == 0:
+        raise IOError("Could not fild frozen model (.pb) file in specified folder")
+    else:
+        model_file = model_file[0]
+
+    with tf.io.gfile.GFile(os.path.join(model_dir, model_file), "rb") as f:
         graph_def = tf.compat.v1.GraphDef()
         graph_def.ParseFromString(f.read())
 
@@ -104,7 +116,7 @@ def load_frozen_graph(model_path):
         tf.nest.map_structure(import_graph.as_graph_element, outputs)
     )
 
-    print("-" * 50)
+    # print("-" * 50)
     # print("Frozen model inputs: ")
     # print(model.inputs)
     # print("Frozen model outputs: ")

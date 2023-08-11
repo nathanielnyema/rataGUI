@@ -5,6 +5,10 @@ from datetime import datetime
 from PyQt6 import QtGui
 from PyQt6.QtCore import Qt, QObject, pyqtSignal
 
+import os
+import logging
+logger = logging.getLogger(__name__)
+
 class DisplaySignal(QObject):
     image = pyqtSignal(QtGui.QImage)
 
@@ -20,8 +24,6 @@ class FrameDisplay(BasePlugin):
 
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
-        
-        print("Started Frame Display for: {}".format(cam_widget.camera.getName()))
         self.frame_width = cam_widget.frame_width
         self.frame_height = cam_widget.frame_height
         self.signal = DisplaySignal()
@@ -46,12 +48,9 @@ class FrameDisplay(BasePlugin):
             qt_image = qt_image.scaled(self.frame_width, self.frame_height, Qt.AspectRatioMode.IgnoreAspectRatio)
         
         self.signal.image.emit(qt_image)
-
-        # pixmap = QtGui.QPixmap.fromImage(qt_image)
-        # self.video_frame.setPixmap(pixmap)
         
         return frame, metadata
 
     def close(self):
-        print("Frame display closed")
+        logger.info("Frame display closed")
         self.active = False

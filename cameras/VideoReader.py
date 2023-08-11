@@ -1,8 +1,12 @@
 from cameras import BaseCamera, ConfigManager
 from config import video_file_paths
 
-import os
 import cv2
+
+import os
+import logging
+logger = logging.getLogger(__name__)
+
 
 class VideoReader(BaseCamera):
 

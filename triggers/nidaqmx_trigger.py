@@ -3,7 +3,9 @@ from triggers import BaseTrigger, ConfigManager
 import nidaqmx
 from nidaqmx.stream_writers import CounterWriter
 from nidaqmx.constants import AcquisitionType
-import time
+
+import logging
+logger = logging.getLogger(__name__)
 
 class NIDAQmxCounter(BaseTrigger):
     """
@@ -31,24 +33,23 @@ class NIDAQmxCounter(BaseTrigger):
         self.interval = -1
 
     def initialize(self, config: ConfigManager):
-        print("trigger initialized")
         task = nidaqmx.Task()
         task.co_channels.add_co_pulse_chan_time(counter=self.deviceID)
         task.timing.cfg_implicit_timing(sample_mode=AcquisitionType.CONTINUOUS)
         cw = CounterWriter(task.out_stream, auto_start=True)
         task.start()
-        cw.write_one_sample_pulse_frequency(frequency=30, duty_cycle=0.5, timeout=10)
+        cw.write_one_sample_pulse_frequency(frequency=config.get("FPS"), duty_cycle=0.5, timeout=10)
         
         self._task = task
         self.initialized = True
 
 
     def execute(self):
-        print("Warning: NIDAQmxCounter execute funciton shouldn't be called")
-        # print("NI-DAQmx triggered")
+        logger.warning("NIDAQmxCounter execute funciton shouldn't be called")
     
-    def stop(self):
-        print("NIDAQmxCounter stopped")
+    
+    def close(self):
+        logger.info("NIDAQmxCounter stopped")
         self.initialized = False
         if self._task is not None:
             self._task.stop()

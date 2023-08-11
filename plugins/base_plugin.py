@@ -7,6 +7,9 @@ from pyqtconfig import ConfigManager
 from typing import Dict, Tuple
 from numpy.typing import NDArray
 
+import logging
+logger = logging.getLogger(__name__)
+
 class BasePlugin(ABC):
     """
     Abstract plugin class with generic functions. All custom plugins should be subclassed
@@ -25,8 +28,8 @@ class BasePlugin(ABC):
     # def execute_process(plugin, frame, metadata):
     #     return plugin.process(frame, metadata)
 
-    @abstractmethod
     def __init__(self, cam_widget: QWidget, config: ConfigManager, queue_size=0):
+        logger.info(f"Started {type(self).__name__} for: {cam_widget.camera.getName()}")
         self.active = True
         self.cpu_bound = False
         self.io_bound = False
@@ -36,7 +39,8 @@ class BasePlugin(ABC):
 
     @abstractmethod
     def process(self, frame: NDArray, metadata: Dict) -> Tuple[NDArray, Dict]:
-        raise NotImplementedError()
+        # logger.error("Plugin process function not implemented")
+        raise NotImplementedError("Plugin process function not implemented")
 
     # Overrite for custom behavior
     def close(self):
@@ -44,7 +48,7 @@ class BasePlugin(ABC):
         Deactivates plugin and closes any plugin-dependent objects
         """
         self.active = False
-        print(f"{type(self).__name__} closed")
+        logger.info(f"{type(self).__name__} closed")
 
     # @abstractmethod
     # def close(self):

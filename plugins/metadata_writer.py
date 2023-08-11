@@ -2,6 +2,10 @@ from plugins import BasePlugin, ConfigManager
 
 import cv2
 
+import os
+import logging
+logger = logging.getLogger(__name__)
+
 class MetadataWriter(BasePlugin):
     """
     Plugin that overlays metadata onto frames and/or into a log file
@@ -16,7 +20,6 @@ class MetadataWriter(BasePlugin):
 
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
-        print("Started Metadata Writer for: {}".format(cam_widget.camera.getName()))
 
 
     def process(self, frame, metadata):
@@ -35,7 +38,7 @@ class MetadataWriter(BasePlugin):
                         overlay = value.strftime('%H:%M:%S.%f')
                     
                     if abbreviate:
-                        overlay = overlay[:-3]
+                        overlay = overlay
                 else:
                     if abbreviate:
                         name = ''.join([word[0] for word in name.split(' ')]) # find initials
@@ -49,10 +52,7 @@ class MetadataWriter(BasePlugin):
 
         return frame, metadata
 
-        # if self.config.get('save timestamp'):
-        #     cv2.rectangle(frame, (img_w-190,0), (img_w,50), color=(0,0,0), thickness=-1)
-        #     cv2.putText(frame, datetime.now().strftime('%H:%M:%S'), (img_w-185,37), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255,255,255), lineType=cv2.LINE_AA)
 
     def close(self):
-        print("Metadata writer closed")
+        logger.info("Metadata writer closed")
         self.active = False

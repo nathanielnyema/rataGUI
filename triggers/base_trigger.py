@@ -5,6 +5,9 @@ from pyqtconfig import ConfigManager
 from typing import Dict, Tuple
 from numpy.typing import NDArray
 
+import logging
+logger = logging.getLogger(__name__)
+
 class BaseTrigger(ABC):
     """
     Abstract trigger class with generic functions. All custom triggers should be subclassed
@@ -40,13 +43,9 @@ class BaseTrigger(ABC):
     def execute(self) -> bool:
         raise NotImplementedError()
 
-    def stop(self):
+    def close(self):
         """
         Deactivates trigger and closes any trigger-dependent objects
         """
         self.active = False  # Overwrite for custom behavior
-        print(f"{type(self).__name__} closed")
-
-    # @abstractmethod
-    # def stop(self):
-    #     raise NotImplementedError()
+        logger.info(f"{type(self).__name__} closed")

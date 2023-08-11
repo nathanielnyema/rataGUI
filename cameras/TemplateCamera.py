@@ -2,10 +2,20 @@ from cameras import BaseCamera, ConfigManager
 
 import cv2
 
+import os
+import logging
+logger = logging.getLogger(__name__)
+
+
+def get_default_settings():
+    return {}
+
 class TemplateCamera(BaseCamera):
     """
     Example subclass to rewrite with the required basic functionality for a custom camera model
     """
+
+    DEFAULT_PROPS = get_default_settings()
 
     @staticmethod
     def getAvailableCameras():
