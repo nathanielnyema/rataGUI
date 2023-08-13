@@ -15,12 +15,13 @@ class SleapInference(BasePlugin):
 
     DEFAULT_CONFIG = {
         "Model directory": "",
+        "Save directory": "",
         "Inference FPS": ["Match Camera", "Every Interval"],
         "Fixed Interval": 0, 
-        # "Skip Frames": False
         "Score Threshold": 0.5,
-        "Draw keypoints": False, # Save Mode: None, draw frame, log file
-        "Write to file": False,
+        "Draw on frame": {"Enabled": True, "Disabled": False},
+        "Batch Processing": {"Disabled": False, "Enabled": True},
+        "Write to file": {"Disabled": False, "Enabled": True},
     }
 
     def __init__(self, cam_widget, config, queue_size=0):
@@ -82,7 +83,7 @@ class SleapInference(BasePlugin):
                 self.interval = self.config.get("Fixed Interval")
                 self.blocking = False
 
-        if self.config.get("Draw keypoints"):
+        if self.config.get("Draw on frame"):
             threshold = self.config.get("Score Threshold")
             for num, pose in enumerate(self.poses):
                 color = [0,0,0]
@@ -92,6 +93,8 @@ class SleapInference(BasePlugin):
                     h_pos, w_pos = point
                     if not(np.isnan(h_pos) or np.isnan(w_pos)) and score >= threshold:
                         frame = cv2.circle(frame, (round(w_pos), round(h_pos)), 5, color, -1)
+
+        
 
         metadata["SLEAP Poses"] = self.poses
 

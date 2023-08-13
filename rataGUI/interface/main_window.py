@@ -502,7 +502,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             cam_name = self.plugin_pipeline.verticalHeaderItem(row).text()
             camID = list(self.camera_names.keys())[list(self.camera_names.values()).index(cam_name)] # cam_name -> camID
             widget = self.camera_widgets[camID]
-            print(camID, widget)
             if widget is None: # Create new widget 
                 enabled_plugins = []
                 for col in range(self.plugin_pipeline.columnCount()):
@@ -801,10 +800,10 @@ def make_config_layout(config, cols=2):
 
     forms = [QtWidgets.QFormLayout() for _ in range(cols)]
     for form in forms:
-        form.setContentsMargins(5,0,5,0)
+        form.setContentsMargins(8,0,8,0)
         form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         form.setVerticalSpacing(10)
-        layout.addLayout(form, stretch=5)
+        layout.addLayout(form)
 
     line_edits = []
     count = 0

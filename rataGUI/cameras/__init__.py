@@ -10,6 +10,7 @@ from .BaseCamera import BaseCamera
 from config import enabled_camera_models
 
 import logging
+print(__name__)
 logger = logging.getLogger(__name__)
 
 import os

@@ -1,3 +1,8 @@
+"""
+Loads trigger modules listed in config.py
+
+Stores utility functions available to every trigger in folder
+"""
 
 __all__ = ['ConfigManager', 'BaseTrigger']
 from pyqtconfig import ConfigManager

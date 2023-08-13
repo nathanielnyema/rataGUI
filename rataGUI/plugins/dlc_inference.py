@@ -17,14 +17,15 @@ class DLCInference(BasePlugin):
 
     DEFAULT_CONFIG = {
         "Model directory": "",
-        "Model type": ["TensorRT", "TFLite", "Default"],
-        "Score Threshold": 0.5,
+        "Save directory": "",
+        "Model type": ["Default"], # "TensorRT", "TFLite"
+        "Scale factor": 1.0,
         "Inference FPS": ["Match Camera", "Every Interval"],
         "Fixed Interval": 0, 
-        "Scale factor": 1.0,
-        "Draw keypoints": False,
-        "Write to file": False,
-        # Batch processing
+        "Score Threshold": 0.5,
+        "Draw on frame": {"Enabled": True, "Disabled": False},
+        "Batch Processing": {"Disabled": False, "Enabled": True},
+        "Write to file": {"Disabled": False, "Enabled": True},
     }
 
     def __init__(self, cam_widget, config, queue_size=0):
@@ -92,7 +93,7 @@ class DLCInference(BasePlugin):
                 self.interval = self.config.get("Fixed Interval")
                 self.blocking = False
 
-        if self.config.get("Draw keypoints"):
+        if self.config.get("Draw on frame"):
             threshold = self.config.get("Score Threshold")
             for num, pose in enumerate(self.poses):
                 color = [0,0,0]

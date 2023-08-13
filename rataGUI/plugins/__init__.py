@@ -10,6 +10,7 @@ from .base_plugin import BasePlugin
 from config import enabled_plugins
 
 import logging
+print(__name__)
 logger = logging.getLogger(__name__)
 
 import os
