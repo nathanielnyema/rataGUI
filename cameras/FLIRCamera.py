@@ -74,7 +74,6 @@ class FLIRCamera(BaseCamera):
     def __init__(self, cameraID: str):
         super().__init__(cameraID)
         self.display_name = "FLIR:" + cameraID
-        self.initialized = False
         self.last_frame = None
         self.frames_dropped = 0
         self.last_index = -1
@@ -167,7 +166,6 @@ class FLIRCamera(BaseCamera):
         # print(self._stream.TLStream.StreamOutputBufferCount.GetValue())
         # print(self._stream.AcquisitionMode.ToString())
 
-        self.initialized = True
         self.startStream()
 
         return True
@@ -234,7 +232,6 @@ class FLIRCamera(BaseCamera):
                 self._stream.DeInit()
                 del self._stream
 
-            self.initialized = False
             self._running = False
             return True
         except Exception as err:

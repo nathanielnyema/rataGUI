@@ -23,10 +23,13 @@ class VideoReader(BaseCamera):
         return [VideoReader(path) for path in video_file_paths]
 
 
-    def __init__(self, file_path=""):
+    def __init__(self, file_path="User Input"):
         super().__init__(cameraID = "File: " + str(file_path[-10:]))
         self.file_path = file_path
         self.last_frame = None
+        if file_path == "User Input":
+            self.file_path = ""
+            self.cameraID = "VideoReader"
 
     def initializeCamera(self, prop_config: ConfigManager, plugin_names=[]):
         self.input_params = {}
@@ -63,10 +66,3 @@ class VideoReader(BaseCamera):
             self._stream.release()
 
         self._running = False
-
-    def getName(self):
-        if self.display_name is not None:
-            return self.display_name
-        elif self.file_path == "":
-            return "VideoReader"
-        return self.cameraID

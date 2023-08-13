@@ -17,9 +17,9 @@ logging.basicConfig(level=logging.INFO,
 # set up logging DEBUG messages or higher to sys.stderr
 console = logging.StreamHandler(sys.stdout)
 console.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(levelname)-8s %(name)-20s %(message)s')
+formatter = logging.Formatter('%(levelname)-8s %(name)-24s %(message)s')
 console.setFormatter(formatter)
-logging.getLogger().addHandler(console)
+logging.getLogger("").addHandler(console)
 
 
 import darkdetect

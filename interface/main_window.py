@@ -42,7 +42,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.cameras = {}
         self.camera_widgets = {}
         self.camera_configs = {}
-        self.camera_names = OrderedDict() # map camID to display name
+        self.camera_names = OrderedDict() # holds camera display name and order 
         self.camera_models = {c.__name__ : c for c in camera_models}
         self.populate_camera_list()
         self.populate_camera_properties()
@@ -80,7 +80,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Update camera stats occasionally
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.update_camera_stats)
-        self.update_timer.start(500)
+        self.update_timer.start(250)
 
         self.logging_timer = QTimer()
         self.logging_timer.timeout.connect(self.log_computer_stats)
@@ -94,58 +94,69 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             print("CPU (%): "+str(cpu)+"\tRAM: "+str(mem), file=f)
 
     def update_camera_stats(self): # Save stats?
-        for row, (camID, camera) in enumerate(self.cameras.items()):
-            # self.cam_stats.item(row, 0).setText(self.camera_names[camera.getName()])
-            self.cam_stats.item(row, 0).setText(camera.getName())
+        for row, camID in enumerate(self.camera_names.keys()):
+            camera = self.cameras[camID]
+            self.cam_stats.item(row, 0).setText(camera.getDisplayName())
             self.cam_stats.item(row, 1).setText(str(camera.frames_acquired))
             if hasattr(camera, "frames_dropped"):
                 self.cam_stats.item(row, 2).setText(str(camera.frames_dropped))
-            else:
-                self.cam_stats.item(row, 2).setText("N/A")
 
             if hasattr(camera, "buffer_size"):
                 self.cam_stats.item(row, 3).setText(str(camera.buffer_size))
-            else:
-                self.cam_stats.item(row, 3).setText("N/A")
 
             cam_widget = self.camera_widgets.get(camID)
             if cam_widget is not None:
                 latency_str = str(round(cam_widget.avg_latency, 3)) + " ms"
-                self.cam_stats.setItem(row, 4, QtWidgets.QTableWidgetItem(latency_str))
-            else:
-                self.cam_stats.setItem(row, 4, QtWidgets.QTableWidgetItem("N/A"))
+                self.cam_stats.item(row, 4).setText(latency_str)
     
     # def update_plugin_stats(self):
     #     pass
 
     def populate_camera_stats(self):
         self.cam_stats.setRowCount(len(self.cameras))
-        for row, (camID, camera) in enumerate(self.cameras.items()):
-            name_item = QtWidgets.QTableWidgetItem(camera.getName())
+        for row, camID in enumerate(self.camera_names.keys()):
+            camera = self.cameras[camID]
+            name_item = QtWidgets.QTableWidgetItem(camera.getDisplayName())
             name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.cam_stats.setItem(row, 0, name_item)
-            self.cam_stats.setItem(row, 1, QtWidgets.QTableWidgetItem(str(camera.frames_acquired)))
+
+            stat_item = QtWidgets.QTableWidgetItem(str(camera.frames_acquired))
+            stat_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.cam_stats.setItem(row, 1, stat_item)
 
             if hasattr(camera, "frames_dropped"):
-                self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem(str(camera.frames_dropped)))
+                stat_item = QtWidgets.QTableWidgetItem(str(camera.frames_dropped))
+                stat_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.cam_stats.setItem(row, 2, stat_item)
             else:
-                self.cam_stats.setItem(row, 2, QtWidgets.QTableWidgetItem("N/A"))
+                nan_item = QtWidgets.QTableWidgetItem("N/A")
+                nan_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.cam_stats.setItem(row, 2, nan_item)
 
             if hasattr(camera, "buffer_size"):
-                self.cam_stats.setItem(row, 3, QtWidgets.QTableWidgetItem(str(camera.buffer_size)))
+                stat_item = QtWidgets.QTableWidgetItem(str(camera.buffer_size))
+                stat_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.cam_stats.setItem(row, 3, stat_item)
             else:
-                self.cam_stats.setItem(row, 3, QtWidgets.QTableWidgetItem("N/A"))
+                nan_item = QtWidgets.QTableWidgetItem("N/A")
+                nan_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.cam_stats.setItem(row, 3, nan_item)
 
             cam_widget = self.camera_widgets.get(camID)
             if cam_widget is not None:
-                self.cam_stats.setItem(row, 4, QtWidgets.QTableWidgetItem(str(cam_widget.avg_latency)))
+                stat_item = QtWidgets.QTableWidgetItem(str(cam_widget.avg_latency))
+                stat_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.cam_stats.setItem(row, 4, stat_item)
             else:
-                self.cam_stats.setItem(row, 4, QtWidgets.QTableWidgetItem("N/A"))
+                nan_item = QtWidgets.QTableWidgetItem("N/A")
+                nan_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.cam_stats.setItem(row, 4, nan_item)
 
         self.cam_stats.resizeColumnsToContents()
 
 
     def populate_camera_list(self):
+
         def rename_camera(item):
             new_name = item.text()
             cur_index = self.cam_list.currentRow()
@@ -174,7 +185,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for camera_cls in self.camera_models.values():
             cam_list = camera_cls.getAvailableCameras()
             for cam in cam_list:
-                camID = cam.getName()
+                camID = cam.cameraID
                 # Initialize all camera-specific items
                 duplicates = 0
                 while camID in self.cameras.keys():
@@ -191,15 +202,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
                 item.setCheckState(Qt.CheckState.Unchecked)
                 self.cam_list.addItem(item)
-
-        
-        # Ensure consistent ordering throughout interface
-        self.cameras = dict(sorted(self.cameras.items()))
-        self.camera_widgets = dict(sorted(self.camera_widgets.items()))
     
 
     def populate_camera_properties(self):
-        for camID, config in self.camera_configs.items():
+        for camID in self.camera_names.keys():
+            config = self.camera_configs[camID]
             cls = self.cameras[camID].__class__
             tab = QtWidgets.QWidget()
             if hasattr(cls, "DEFAULT_PROPS"):
@@ -213,20 +220,34 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def populate_plugin_list(self):
+
         def jump_to_config(item):
-            item.setCheckState(Qt.CheckState.Checked 
-                if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked
-            )
             for idx in range(self.plugin_settings.count()):
                 if self.plugin_settings.tabText(idx) == item.text():
                     self.plugin_settings.setCurrentIndex(idx)
                     break
 
+        def toggle_check_box(item):
+            if item.checkState() == Qt.CheckState.Unchecked:
+                item.setCheckState(Qt.CheckState.Checked)
+                jump_to_config(item)
+            else:
+                item.setCheckState(Qt.CheckState.Unchecked)
+
+        def sync_tab_order(start, dest):
+            if dest > start:
+                dest -= 1   # Account for other rows shifting up
+            self.plugin_settings.tabBar().moveTab(start, dest)
+            self.populate_plugin_pipeline()
+            jump_to_config(self.plugin_list.item(dest))
+
         self.plugin_list.clear()
         self.plugin_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
         self.plugin_list.itemChanged.connect(self.populate_plugin_pipeline)
-        self.plugin_list.model().rowsMoved.connect(self.populate_plugin_pipeline)
-        self.plugin_list.itemDoubleClicked.connect(jump_to_config)
+        self.plugin_list.itemDoubleClicked.connect(toggle_check_box)
+        self.plugin_list.model().rowsMoved.connect(
+            lambda p, start, end, _, dest: sync_tab_order(start, dest)
+        )
 
         for name in self.plugins.keys():
             item = QtWidgets.QListWidgetItem(name)
@@ -245,16 +266,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 for key, setting in cls.DEFAULT_CONFIG.items():
                     add_config_handler(config, key, setting)
 
-                if cls.__name__ == "MetadataWriter": # add missing metadata to UI
-                    for camera in self.cameras.values():
-                        metadata = camera.getMetadata()
-                        settings =  config.get_visible_keys()
-                        for name in metadata.keys():
-                            key = 'Overlay ' + name
-                            if key not in settings:
-                                add_config_handler(config, key, value=False)
-            
-            layout = make_config_layout(config)
+            if cls.__name__ == "MetadataWriter": # add missing metadata to UI
+                settings =  config.get_visible_keys()
+                for camera in self.cameras.values():
+                    metadata = camera.getMetadata()
+                    for name in metadata.keys():
+                        key = 'Overlay ' + name
+                        if key not in settings:
+                            add_config_handler(config, key, value=False)
+
+            layout = make_config_layout(config, cols = 2)
+
             tab.setLayout(layout)
             self.plugin_settings.addTab(tab, plugin_name)
 
@@ -271,7 +293,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # TODO: Use self.cam_list directly if order can change
         checked_camera_names = [c.text() for c in get_checked_items(self.cam_list)]
 
-        for row, (camID, widget) in enumerate(self.camera_widgets.items()):
+        for row, camID in enumerate(self.camera_names.keys()):
+            widget = self.camera_widgets[camID]
             for col in range(self.plugin_list.count()):
                 plugin_item = self.plugin_list.item(col)
                 plugin_name = plugin_item.text()
@@ -319,8 +342,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     item.setText("")
                     item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
 
-        cam_names = [self.camera_names[camID] for camID in self.camera_widgets.keys()]
-        self.plugin_pipeline.setVerticalHeaderLabels(cam_names)
+        self.plugin_pipeline.setVerticalHeaderLabels(self.camera_names.values())
         self.plugin_pipeline.setHorizontalHeaderLabels(column_labels)
         
         self.plugin_pipeline.itemChanged.connect(self.toggle_camera_plugin)
@@ -410,13 +432,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.trigger_tabs[trigger_cls.__name__] = tab
 
     def add_trigger_config(self, options):
+
         def sync_check_box(group_box):
             deviceID = group_box.title()
             for idx in range(self.trigger_list.count()):
                 item = self.trigger_list.item(idx)
                 if item.text() == deviceID:
-                    item.setCheckState(Qt.CheckState.Checked if group_box.isChecked() 
-                                       else Qt.CheckState.Unchecked)
+                    item.setCheckState(
+                        Qt.CheckState.Checked if group_box.isChecked() else Qt.CheckState.Unchecked)
                     break
 
         deviceID = options.currentText()
@@ -460,6 +483,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 trigger = self.triggers[item.text()]
                 if trigger.initialized:
                     trigger.close()
+                break
 
         # Delete from config
         config_box.setParent(None)
@@ -478,6 +502,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             cam_name = self.plugin_pipeline.verticalHeaderItem(row).text()
             camID = list(self.camera_names.keys())[list(self.camera_names.values()).index(cam_name)] # cam_name -> camID
             widget = self.camera_widgets[camID]
+            print(camID, widget)
             if widget is None: # Create new widget 
                 enabled_plugins = []
                 for col in range(self.plugin_pipeline.columnCount()):
@@ -500,14 +525,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 
                 config = self.camera_configs[camID]
                 widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins, triggers=enabled_triggers)
+                # Update interface when camera widget exits
+                widget.pipeline_initialized.connect(lambda item=self.cam_list.item(row): item.setBackground(self.active_color))
                 x_pos = min(widget.width() * row, screen_width - widget.width())
                 y_pos = (widget.height() // 2) * (row * widget.width() // screen_width)
                 widget.move(x_pos,y_pos)
-                # Update interface when camera widget exits
-                widget.destroyed.connect(lambda widget, item=self.cam_list.item(row): 
-                                         item.setData(Qt.ItemDataRole.BackgroundRole, None))
                 self.camera_widgets[camID] = widget
-                self.cam_list.item(row).setBackground(self.active_color)
             elif not widget.active: # Toggle paused widget to resume
                 widget.active = True
                 self.camera_widgets[camID].show()
@@ -530,9 +553,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             camID = list(self.camera_names.keys())[list(self.camera_names.values()).index(cam_name)] # cam_name -> camID
             cam_widget = self.camera_widgets[camID]
             if cam_widget is not None:
-                self.camera_widgets[camID] = None
-                cam_widget.close_widget()
-                cam_item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
+                cam_widget.close_widget(self.camera_widgets) # cam_widget removes itself from dict when closing
+                cam_widget.destroyed.connect(lambda _, item=cam_item: item.setData(Qt.ItemDataRole.BackgroundRole, None))
 
         # Stop all checked triggers
         for item in get_checked_items(self.trigger_list):
@@ -657,6 +679,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 item = QtWidgets.QListWidgetItem(name)
                 item.setCheckState(Qt.CheckState.Unchecked)
                 self.plugin_list.addItem(item)
+
+            # Move tabs to match plugin order
+            tab_bar = self.plugin_settings.tabBar()
+            for dest in range(self.plugin_list.count()):
+                name = self.plugin_list.item(dest).text()
+                for idx in range(tab_bar.count()):
+                    if tab_bar.tabText(idx) == name:
+                        tab_bar.moveTab(idx, dest)
+                        break
             
             self.populate_plugin_pipeline()
             self.show()
@@ -678,15 +709,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         
 
     def closeEvent(self, event):
+        widgets_active = False
         for cam_widget in self.camera_widgets.values():
             if cam_widget is not None:
-                cam_widget.close_widget()
+                cam_widget.close_widget(self.camera_widgets)
+                widgets_active = True
 
         # Save session configuration as json files
         self.save_session()
 
-        # Wait for threads to stop TODO: More sophisticated way to wait for threads to stop
-        time.sleep(0.2)
+        # Wait for all camera widgets to close
+        while widgets_active:
+            time.sleep(0.05)
+            widgets_active = all(widget is None for widget in self.camera_widgets.values())
 
         # Release camera-specific resources
         for cam_type in self.camera_models.values():
