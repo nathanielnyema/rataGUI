@@ -6,6 +6,7 @@ import os
 import logging
 logger = logging.getLogger(__name__)
 
+
 class MetadataWriter(BasePlugin):
     """
     Plugin that overlays metadata onto frames and/or into a log file
@@ -30,6 +31,15 @@ class MetadataWriter(BasePlugin):
         count = 0
         for name, value in metadata.items():
             key = 'Overlay ' + name
+
+            # # check if write function was passed with data
+            # if isinstance(value, tuple) and len(value) == 2:
+            #     # don't do anything if 2nd element is not a function
+            #     if callable(value[1]):
+            #         write_function = value[1]
+            #         write_function()
+
+            # Check config to determine what to write
             if self.config.get(key):
                 if name == "Timestamp":
                     if self.config.get('Include date'):
@@ -43,7 +53,7 @@ class MetadataWriter(BasePlugin):
                     if abbreviate:
                         name = ''.join([word[0] for word in name.split(' ')]) # find initials
                     overlay = name+": "+str(value)
-                
+
                 (text_w, text_h), _ = cv2.getTextSize(overlay, cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.75, thickness=2)
                 pos = (6, img_h - count*(text_h+6))
                 cv2.rectangle(frame, pos, (pos[0] + text_w, pos[1] - text_h), (0, 0, 0), cv2.FILLED)

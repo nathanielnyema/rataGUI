@@ -90,7 +90,7 @@ class BaslerCamera(BaseCamera):
                     )
                     break
             if self._stream is None:
-                raise OSError(f"Camera {self.getName()} not found")
+                raise OSError(f"Camera {self.getDisplayName()} not found")
 
             if not self._stream.IsOpen():
                 self._stream.Open()

@@ -19,6 +19,17 @@ class BasePlugin(ABC):
     # Static variable to contain all plugin subclasses
     plugins = []
 
+    # # Overwrite with any metadata produced by plugin
+    # @staticmethod
+    # def get_metadata_names(self) -> list:
+    #     """ 
+    #     Returns list of metadata names produced by plugin (ex. DLC Pose)
+        
+    #     Used to populate metadata 
+    #     """
+    #     return list()
+
+
     # For every class that inherits from BasePlugin, the class name will be added to triggers
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -29,27 +40,20 @@ class BasePlugin(ABC):
     #     return plugin.process(frame, metadata)
 
     def __init__(self, cam_widget: QWidget, config: ConfigManager, queue_size=0):
-        logger.info(f"Started {type(self).__name__} for: {cam_widget.camera.getName()}")
+        logger.info(f"Started {type(self).__name__} for: {cam_widget.camera.getDisplayName()}")
         self.active = True
-        self.cpu_bound = False
-        self.io_bound = False
+        self.blocking = False
         self.config = config
         self.in_queue = Queue(queue_size)
         self.out_queue = None
 
+
     @abstractmethod
     def process(self, frame: NDArray, metadata: Dict) -> Tuple[NDArray, Dict]:
-        # logger.error("Plugin process function not implemented")
         raise NotImplementedError("Plugin process function not implemented")
 
     # Overrite for custom behavior
     def close(self):
-        """
-        Deactivates plugin and closes any plugin-dependent objects
-        """
+        """ Deactivates plugin and closes any plugin-dependent objects """
         self.active = False
         logger.info(f"{type(self).__name__} closed")
-
-    # @abstractmethod
-    # def close(self):
-    #     raise NotImplementedError()

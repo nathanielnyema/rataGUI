@@ -33,7 +33,7 @@ class BaseCamera(ABC):
         self.display_name = None
         self._running = False
         self.frames_acquired = 0
-        # TODO: Add required properties
+
 
     @abstractmethod
     def initializeCamera(self, prop_config: ConfigManager, plugin_names: list) -> bool:
@@ -59,7 +59,7 @@ class BaseCamera(ABC):
         """
         raise NotImplementedError()
 
-    def getName(self) -> str:
+    def getDisplayName(self) -> str:
         """
         Returns the display name of the camera. Defaults to cameraID if display is not set.
         """
@@ -75,7 +75,7 @@ class BaseCamera(ABC):
 
     def getMetadata(self) -> Dict[str, Any]:
         """
-        Returns metadata associated with last acquired frame
+        Returns camera metadata associated with last acquired frame
         """
         return {"Frame Index": self.frames_acquired}
 

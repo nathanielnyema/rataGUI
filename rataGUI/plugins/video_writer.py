@@ -36,7 +36,6 @@ class VideoWriter(BasePlugin):
         super().__init__(cam_widget, config, queue_size)
         self.input_params = {}
         self.output_params = {}
-        # self.cpu_bound = True
 
         for name, value in config.as_dict().items():
             prop_name = VideoWriter.DISPLAY_CONFIG_MAP.get(name)
@@ -47,7 +46,7 @@ class VideoWriter(BasePlugin):
                 self.save_dir = os.path.normpath(value)
             elif prop_name == "filename":
                 if value == "": # default value
-                    file_name = slugify(cam_widget.camera.getName()) + "_" + datetime.now().strftime('%H-%M-%S')
+                    file_name = slugify(cam_widget.camera.getDisplayName()) + "_" + datetime.now().strftime('%H-%M-%S')
                 else:
                     file_name = slugify(value)
             elif prop_name in ["framerate",] and value >= 0: # input parameters
@@ -74,10 +73,12 @@ class VideoWriter(BasePlugin):
 
         self.writer = FFMPEG_Writer(str(self.file_path), input_dict=self.input_params, output_dict=self.output_params, verbosity=0)
 
-    def process(self, frame, metadata):
-        self.writer.write_frame(frame)
 
+    def process(self, frame, metadata):
+
+        self.writer.write_frame(frame)
         return frame, metadata
+
 
     def close(self):
         logger.info("Video writer closed")

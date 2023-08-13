@@ -34,6 +34,6 @@ for fname in os.listdir(dirpath):
             try:
                 load_module(os.path.join(dirpath, fname))
             except ModuleNotFoundError:
-                logger.debug(f"Unable to load camera module {fname}")
+                logger.info(f"Unable to load camera module {fname}")
             except Exception as err:
                 logger.exception(err)

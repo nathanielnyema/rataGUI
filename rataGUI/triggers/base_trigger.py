@@ -32,7 +32,6 @@ class BaseTrigger(ABC):
     def releaseResources():
         pass
 
-    @abstractmethod
     def __init__(self, deviceID):
         # self.config = config
         self.initialized = False

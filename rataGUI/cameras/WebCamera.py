@@ -67,5 +67,5 @@ class WebCamera(BaseCamera):
     def isOpened(self):
         return self._running
 
-    def getName(self):
+    def getDisplayName(self):
         return "Web Camera " + str(self.cameraID)
