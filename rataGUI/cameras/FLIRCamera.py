@@ -13,19 +13,23 @@ READ_TIMEOUT = 10000    # 10 sec
 class FLIRCamera(BaseCamera):
 
     DEFAULT_PROPS = {
-        "Limit Framerate": {"On": True, "Off": False},
-        "Framerate": 30,
-        "Height": 1000,
-        "Width": 1000,  
-        "TriggerSource": {"Off": "TriggerMode_Off", 
-                          "Line 3": PySpin.TriggerSource_Line3, "Line 0": PySpin.TriggerSource_Line0, 
-                          "Line 1": PySpin.TriggerSource_Line1, "Line 2": PySpin.TriggerSource_Line2,},
-        "Buffer Mode": {"OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
-                        "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,},
         "Line0 Output": {"None": PySpin.LineSource_Off,},
         "Line1 Output": {"None": PySpin.LineSource_Off,},
         "Line2 Output": {"User Output 0": PySpin.LineSource_UserOutput0, "Frame Acquired": PySpin.LineSource_ExposureActive,},
         "Line3 Output": {"None": PySpin.LineSource_Off,},
+        "Buffer Mode": {"OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
+                        "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,},
+        "Limit Framerate": {"On": True, "Off": False},
+        "Framerate": 30,
+        "TriggerSource": {"Off": "TriggerMode_Off", 
+                          "Line 3": PySpin.TriggerSource_Line3, "Line 0": PySpin.TriggerSource_Line0, 
+                          "Line 1": PySpin.TriggerSource_Line1, "Line 2": PySpin.TriggerSource_Line2,},
+        "Buffer Size": 10,
+        "Gain": 0,
+        "Exposure": 0,
+        "Brightness": 0,
+        "Height": 1000,
+        "Width": 1000,  
         # "PixelFormat": {"RGB8": PySpin.PixelFormat_RGB8Packed, "BGR8": PySpin.PixelFormat_BGR8} # TODO: Ensure consistency
     }
 

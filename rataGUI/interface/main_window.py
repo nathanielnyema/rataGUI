@@ -49,7 +49,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.populate_camera_stats()
 
         # Create mappings from name to plugin class and configs
-        self.plugins = {p.__name__ : p for p in plugins}
+        self.plugins = OrderedDict([(p.__name__, p) for p in plugins])
         self.plugin_configs = {}
         self.populate_plugin_list()
         self.populate_plugin_settings()
@@ -196,7 +196,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.cameras[camID] = cam
                 self.camera_widgets[camID] = None
                 self.camera_configs[camID] = ConfigManager()
-                self.camera_names[camID] = str(camID)
+                self.camera_names[camID] = cam.getDisplayName()
                 
                 item = QtWidgets.QListWidgetItem(self.camera_names[camID])
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
@@ -249,9 +249,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             lambda p, start, end, _, dest: sync_tab_order(start, dest)
         )
 
+        if 'MetadataWriter' in self.plugins:
+            self.plugins.move_to_end('MetadataWriter')
+        if 'VideoWriter' in self.plugins:
+            self.plugins.move_to_end('VideoWriter')
+        if 'FrameDisplay' in self.plugins:
+            self.plugins.move_to_end('FrameDisplay')
+
         for name in self.plugins.keys():
             item = QtWidgets.QListWidgetItem(name)
-            # item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Unchecked)
             self.plugin_list.addItem(item)
             self.plugin_configs[name] = ConfigManager()
@@ -518,7 +524,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     deviceID = item.text()
                     trigger = self.triggers[deviceID]
                     if not trigger.initialized:
-                        trigger.initialize(self.trigger_configs[deviceID])
+                        try:
+                            trigger.initialize(self.trigger_configs[deviceID])
+                            trigger.initialized = True
+                            logger.info(f"Trigger: {deviceID} initialized")
+                        except Exception as err:
+                            logger.exception(err)
+                            logger.error(f"Trigger: {deviceID} failed to initialize")
+                            trigger.initialized = False
+
                     enabled_triggers.append(trigger)
                     item.setBackground(self.active_color)
                 
@@ -559,7 +573,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for item in get_checked_items(self.trigger_list):
             trigger = self.triggers[item.text()]
             if trigger.initialized:
-                trigger.close()
+                try:
+                    trigger.close()
+                except Exception as err:
+                    logger.exception(err)
+                    logger.error(f"Trigger: {item.text()} failed to close")
             item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
 
 
@@ -603,6 +621,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         ui_settings["window_y"] = self.pos().y()
         with open(os.path.join(save_dir, "interface_settings.json"), 'w') as file:
             json.dump(ui_settings, file, indent=2)
+        logger.info("Saved session settings")
+
 
     def restore_session(self):
         save_dir = os.path.abspath(save_directory)
@@ -612,8 +632,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 saved_configs = json.load(file)
             for camID, config in self.camera_configs.items():
                 if camID in saved_configs.keys():
-                    config.set_many(saved_configs[camID])
-                    # TODO: Catch error when saved setting is not in config
+                    try:
+                        config.set_many(saved_configs[camID])
+                    except:
+                        logger.warning(f"Some saved settings for camera: {camID} could not be restored \
+                                        as it no longer exists in the camera's DEFAULT_PROPS") # TODO: Catch error when saved setting is not in config
+            logger.info("Restored saved camera settings")
         else:
             logger.info("No saved camera settings ... using defaults")
 
@@ -623,8 +647,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 saved_configs = json.load(file)
             for name, config in self.plugin_configs.items():
                 if name in saved_configs.keys():
-                    config.set_many(saved_configs[name])
-                    # TODO: Catch error when saved setting is not in config
+                    try:
+                        config.set_many(saved_configs[name])
+                    except:
+                        logger.warning(f"Some saved settings for plugin: {name} could not be restored \
+                                        as it no longer exists in the plugin's DEFAULT_CONFIG")
+            logger.info("Restored saved plugin settings")
         else:
             logger.info("No saved plugin settings ... using defaults")
 
@@ -640,6 +668,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     options = layout.itemAt(layout.count()-1).itemAt(0).widget()
                     options.setCurrentText(deviceID)
                     self.add_trigger_config(options)
+            logger.info("Restored saved trigger settings")
         else:
             logger.info("No saved trigger settings ... using defaults")
 
@@ -703,6 +732,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if "window_width" in saved_configs and "window_height" in saved_configs:
                 self.resize(saved_configs["window_width"], saved_configs["window_height"])
                 self.move(saved_configs["window_x"], saved_configs["window_y"])
+
+            logger.info("Restored saved interface settings")
         else:
             logger.info("No saved interface settings ... using defaults")
         
@@ -803,6 +834,7 @@ def make_config_layout(config, cols=2):
         form.setContentsMargins(8,0,8,0)
         form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         form.setVerticalSpacing(10)
+        form.setHorizontalSpacing(8)
         layout.addLayout(form)
 
     line_edits = []

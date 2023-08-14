@@ -67,7 +67,7 @@
           </property>
           <property name="font">
            <font>
-            <family>Segoe UI Semibold</family>
+            <family>Arial</family>
             <pointsize>11</pointsize>
             <weight>50</weight>
             <bold>false</bold>
@@ -84,6 +84,9 @@
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
+          </property>
+          <property name="margin">
+           <number>1</number>
           </property>
          </widget>
         </item>
@@ -127,7 +130,7 @@
           </property>
           <property name="font">
            <font>
-            <family>Segoe UI Semibold</family>
+            <family>Arial</family>
             <pointsize>11</pointsize>
             <weight>50</weight>
             <bold>false</bold>
@@ -144,6 +147,9 @@
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
+          </property>
+          <property name="margin">
+           <number>1</number>
           </property>
          </widget>
         </item>
@@ -392,6 +398,9 @@
         <property name="spacing">
          <number>6</number>
         </property>
+        <property name="topMargin">
+         <number>2</number>
+        </property>
         <property name="rightMargin">
          <number>2</number>
         </property>
@@ -411,7 +420,7 @@
           </property>
           <property name="font">
            <font>
-            <family>Segoe UI Semibold</family>
+            <family>Arial</family>
             <pointsize>11</pointsize>
             <weight>50</weight>
             <bold>false</bold>
@@ -428,6 +437,9 @@
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
+          </property>
+          <property name="margin">
+           <number>1</number>
           </property>
          </widget>
         </item>

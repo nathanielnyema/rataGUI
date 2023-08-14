@@ -80,4 +80,4 @@ class BaseCamera(ABC):
         return {"Frame Index": self.frames_acquired}
 
     def __str__(self):
-        return 'Camera ID: {}'.format(self.cameraID)
+        return 'Camera ID: {}'.format(str(self.cameraID))

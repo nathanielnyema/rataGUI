@@ -52,7 +52,8 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
                 self.plugin_names.append(Plugin.__name__)
             except Exception as err:
                 logger.exception(err)
-                logger.error(f"Failed to initialize {type(Plugin).__name__} for camera {self.camera.getDisplayName()}")
+                logger.error(f"Plugin: {type(Plugin).__name__} for camera: {self.camera.getDisplayName()} failed to initialize")
+
         
         if "FrameDisplay" in self.plugin_names: self.show() # Show widget UI if displaying 
         self.avg_latency = 0    # in milliseconds
@@ -73,13 +74,15 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 
     @pyqtSlot()
     def start_camera_pipeline(self):
-        logger.info('Started pipeline for camera: {}'.format(self.camera.getDisplayName()))
         try:
             self.camera.initializeCamera(self.camera_config, self.plugin_names)
+            self.camera._running = True
             self.pipeline_initialized.emit()
+            logger.info('Started pipeline for camera: {}'.format(self.camera.getDisplayName()))
             asyncio.run(self.process_plugin_pipeline(), debug=False)
         except Exception as err:
             logger.exception(err)
+            logger.error(f"Camera: {self.camera.getDisplayName()} failed to initialize")
             self.close_widget()
 
     def stop_camera_pipeline(self):
@@ -90,28 +93,12 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.stop_plugins()
 
 
-    # async def run_triggering(self):
-    #     tasks = []
-    #     for trigger in self.triggers:
-    #         tasks.append(asyncio.create_task(repeat_trigger(trigger, trigger.interval)))
-
-    #     await asyncio.gather(*tasks)
-
-    # def start_camera_triggers(self):
-    #     print('Started camera trigger: {}'.format(self.camera.getDisplayName()))
-    #     try:
-    #         asyncio.run(self.run_triggering(), debug=False)
-    #     except Exception as err:
-    #         print('ERROR--Trigger Loop: %s' % err)
-    #         os._exit(42)
-
-
     async def acquire_frames(self):
-        loop = asyncio.get_running_loop()
-        t0 = time.time()
-        while self.camera._running:
-            if self.active:
-                try:
+        try:
+            loop = asyncio.get_running_loop()
+            t0 = time.time()
+            while self.camera._running:
+                if self.active:
                     status, frame = await loop.run_in_executor(None, self.camera.readCamera)
                     metadata = self.camera.getMetadata()
                     metadata['Camera Name'] = self.camera.getDisplayName()
@@ -125,18 +112,18 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
                         await asyncio.sleep(0)
                     else:
                         raise IOError("Camera frame not found ... stopping")
-                except Exception as err:
-                    logger.exception(err)
-                    break
 
-            else: # Pass to next coroutine
-                await asyncio.sleep(0)
+                else: # Pass to next coroutine
+                    await asyncio.sleep(0)
+            t1 = time.time()
+            logger.info('FPS: '+str(self.camera.frames_acquired / (t1-t0)))
 
-        t1 = time.time()
-        print('FPS: '+str(self.camera.frames_acquired / (t1-t0)))
+            # Close camera when camera stops streaming
+            self.camera.closeCamera()
 
-        # Close camera if camera stops streaming
-        self.camera.closeCamera()
+        except Exception as err:
+            logger.exception(err)
+
 
     # Asynchronous execution loop for an arbitrary plugin 
     async def plugin_process(self, plugin):
@@ -203,7 +190,11 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 
     def close_plugins(self):
         for plugin in self.plugins:
-            plugin.close()
+            try:
+                plugin.close()
+            except Exception as err:
+                logger.exception(err)
+                logger.error(f"Plugin: {type(plugin).__name__} failed to close")
 
 
     @pyqtSlot(QtGui.QImage)
@@ -222,6 +213,22 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.stop_camera_pipeline()
         # Wait for thread to finish and queues to empty before shutting down
         self.pipeline_thread.signals.finished.connect(shut_down)
+
+
+    # async def run_triggering(self):
+    #     tasks = []
+    #     for trigger in self.triggers:
+    #         tasks.append(asyncio.create_task(repeat_trigger(trigger, trigger.interval)))
+
+    #     await asyncio.gather(*tasks)
+
+    # def start_camera_triggers(self):
+    #     print('Started camera trigger: {}'.format(self.camera.getDisplayName()))
+    #     try:
+    #         asyncio.run(self.run_triggering(), debug=False)
+    #     except Exception as err:
+    #         print('ERROR--Trigger Loop: %s' % err)
+    #         os._exit(42)
 
 
 # async def repeat_trigger(trigger, interval):

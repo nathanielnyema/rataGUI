@@ -33,7 +33,8 @@ for fname in os.listdir(dirpath):
         if fname in enabled_trigger_types: # len(enabled_trigger_types) == 0 or
             try:
                 load_module(os.path.join(dirpath, fname))
+                logger.info(f"Loaded trigger module {fname}")
             except ModuleNotFoundError:
-                logging.info(f"Unable to load trigger module {fname}")
+                logger.info(f"Unable to load trigger module {fname}")
             except Exception as err:
-                logging.exception(err)
+                logger.exception(err)

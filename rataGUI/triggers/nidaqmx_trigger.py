@@ -32,6 +32,7 @@ class NIDAQmxCounter(BaseTrigger):
         self._task = None
         self.interval = -1
 
+
     def initialize(self, config: ConfigManager):
         task = nidaqmx.Task()
         task.co_channels.add_co_pulse_chan_time(counter=self.deviceID)

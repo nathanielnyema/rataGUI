@@ -15,7 +15,7 @@ class SleapInference(BasePlugin):
 
     DEFAULT_CONFIG = {
         "Model directory": "",
-        "Save directory": "",
+        "Save file (.csv)": "data",
         "Inference FPS": ["Match Camera", "Every Interval"],
         "Fixed Interval": 0, 
         "Score Threshold": 0.5,

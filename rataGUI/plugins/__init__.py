@@ -33,6 +33,7 @@ for fname in os.listdir(dirpath):
         if len(enabled_plugins) == 0 or fname in enabled_plugins:
             try:
                 load_module(os.path.join(dirpath, fname))
+                logger.info(f"Loaded plugin module {fname}")
             except ModuleNotFoundError:
                 logger.info(f"Unable to load plugin module {fname}")
             except Exception as err:

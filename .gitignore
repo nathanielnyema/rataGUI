@@ -3,6 +3,8 @@ basic_multicam/
 temp.py
 videos/*
 !videos/.gitkeep 
+data/*
+!data/.gitkeep 
 tests/
 archive/
 session/
@@ -10,6 +12,9 @@ nvvm/
 exported_models/
 log.txt
 profile.txt
+
+# VScode
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

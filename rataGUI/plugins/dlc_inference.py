@@ -1,11 +1,14 @@
 from plugins import BasePlugin, ConfigManager
 
+from utils import slugify
+
 import os
+import csv
 import numpy as np
 import cv2
-
 import tensorflow as tf
-from tensorflow.python.compiler.tensorrt import trt_convert as trt
+from datetime import datetime
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -17,7 +20,7 @@ class DLCInference(BasePlugin):
 
     DEFAULT_CONFIG = {
         "Model directory": "",
-        "Save directory": "",
+        "Save file (.csv)": "data",
         "Model type": ["Default"], # "TensorRT", "TFLite"
         "Scale factor": 1.0,
         "Inference FPS": ["Match Camera", "Every Interval"],
@@ -56,6 +59,18 @@ class DLCInference(BasePlugin):
 
         self.interval = 0
         self.poses = []
+        self.save_file = None
+
+        if config.get("Write to file"):
+            file_path = config.get("Save file (.csv)")
+            if len(file_path) == 0: # Use default file name
+                file_path = slugify(cam_widget.camera.getDisplayName()) + "_DLCInference_" + datetime.now().strftime('%H-%M-%S') + ".csv"
+            elif not file_path.endswith('.csv'):
+                file_path += '.csv'
+
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            self.save_file = open(file_path, 'w')
+            self.csv_writer = csv.writer(self.save_file)
 
     def process(self, frame, metadata):
 
@@ -104,6 +119,9 @@ class DLCInference(BasePlugin):
                     if not(np.isnan(h_pos) or np.isnan(w_pos)) and score >= threshold:
                         frame = cv2.circle(frame, (round(w_pos), round(h_pos)), 5, color, -1)
 
+        if self.config.get("Save file (.csv)"):
+            self.csv_writer.writerow(self.poses)
+
         metadata["DLC Poses"] = self.poses
 
         return frame, metadata
@@ -111,6 +129,9 @@ class DLCInference(BasePlugin):
     def close(self):
         logger.info("DLC Inference closed")
         self.active = False
+
+        if self.save_file is not None:
+            self.save_file.close()
 
 
 def load_frozen_model(model_dir):

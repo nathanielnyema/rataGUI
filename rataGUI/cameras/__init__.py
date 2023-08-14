@@ -33,6 +33,7 @@ for fname in os.listdir(dirpath):
         if len(enabled_camera_models) == 0 or fname in enabled_camera_models:
             try:
                 load_module(os.path.join(dirpath, fname))
+                logger.info(f"Loaded camera module {fname}")
             except ModuleNotFoundError:
                 logger.info(f"Unable to load camera module {fname}")
             except Exception as err:

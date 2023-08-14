@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file './interface/design/mainWindow.ui'
+# Form implementation generated from reading ui file './rataGUI/interface/design/mainWindow.ui'
 #
 # Created by: PyQt6 UI code generator 6.5.2
 #
@@ -36,7 +36,7 @@ class Ui_MainWindow(object):
         self.camListLabel.setSizePolicy(sizePolicy)
         self.camListLabel.setMaximumSize(QtCore.QSize(260, 16777215))
         font = QtGui.QFont()
-        font.setFamily("Segoe UI Semibold")
+        font.setFamily("Arial")
         font.setPointSize(11)
         font.setBold(False)
         font.setWeight(50)
@@ -62,7 +62,7 @@ class Ui_MainWindow(object):
         self.triggerListLabel.setSizePolicy(sizePolicy)
         self.triggerListLabel.setMaximumSize(QtCore.QSize(240, 16777215))
         font = QtGui.QFont()
-        font.setFamily("Segoe UI Semibold")
+        font.setFamily("Arial")
         font.setPointSize(11)
         font.setBold(False)
         font.setWeight(50)
@@ -185,7 +185,7 @@ class Ui_MainWindow(object):
         self.pluginControl.setContentsMargins(0, -1, 0, -1)
         self.pluginControl.setObjectName("pluginControl")
         self.pluginListLayout = QtWidgets.QVBoxLayout()
-        self.pluginListLayout.setContentsMargins(-1, -1, 2, -1)
+        self.pluginListLayout.setContentsMargins(-1, 2, 2, -1)
         self.pluginListLayout.setSpacing(6)
         self.pluginListLayout.setObjectName("pluginListLayout")
         self.pluginListLabel = QtWidgets.QLabel(parent=self.centralwidget)
@@ -196,7 +196,7 @@ class Ui_MainWindow(object):
         self.pluginListLabel.setSizePolicy(sizePolicy)
         self.pluginListLabel.setMaximumSize(QtCore.QSize(240, 16777215))
         font = QtGui.QFont()
-        font.setFamily("Segoe UI Semibold")
+        font.setFamily("Arial")
         font.setPointSize(11)
         font.setBold(False)
         font.setWeight(50)
