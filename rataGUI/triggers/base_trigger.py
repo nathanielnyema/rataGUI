@@ -33,14 +33,24 @@ class BaseTrigger(ABC):
         pass
 
     def __init__(self, deviceID):
-        # self.config = config
         self.initialized = False
         self.interval = 0
         self.deviceID = deviceID
 
+
+    def initialize(self, config: ConfigManager) -> bool:
+        """
+        Initializes the trigger and returns whether or not it was successful
+
+        :param config: ConfigManager that stores settings to initialize trigger
+        """
+        raise NotImplementedError()
+
+
     @abstractmethod
     def execute(self) -> bool:
         raise NotImplementedError()
+
 
     def close(self):
         """

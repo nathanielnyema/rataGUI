@@ -491,6 +491,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def start_camera_widgets(self):
+
+        def reset_interface(camID, item):
+            self.camera_widgets[camID] = None
+            item.setData(Qt.ItemDataRole.BackgroundRole, None)
+
         screen_width = self.screen.width()
         for row in range(self.plugin_pipeline.rowCount()):
             cam_name = self.plugin_pipeline.verticalHeaderItem(row).text()
@@ -513,12 +518,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     trigger = self.triggers[deviceID]
                     if not trigger.initialized:
                         try:
-                            trigger.initialize(self.trigger_configs[deviceID])
+                            success = trigger.initialize(self.trigger_configs[deviceID])
+                            if not success:
+                                raise IOError(f"Trigger: {deviceID} failed to initialize") 
                             trigger.initialized = True
                             logger.info(f"Trigger: {deviceID} initialized")
                         except Exception as err:
                             logger.exception(err)
-                            logger.error(f"Trigger: {deviceID} failed to initialize")
                             trigger.initialized = False
 
                     enabled_triggers.append(trigger)
@@ -526,8 +532,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 
                 config = self.camera_configs[camID]
                 widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins, triggers=enabled_triggers)
-                # Update interface when camera widget exits
-                widget.pipeline_initialized.connect(lambda item=self.cam_list.item(row): item.setBackground(self.active_color))
+
+                # Update interface when camera widget opens or closes
+                cam_item = self.cam_list.item(row)
+                widget.pipeline_initialized.connect(lambda item=cam_item: item.setBackground(self.active_color))
+                widget.destroyed.connect(lambda _, id=camID, item=cam_item: reset_interface(id, item))
+
                 x_pos = min(widget.width() * row, screen_width - widget.width())
                 y_pos = (widget.height() // 2) * (row * widget.width() // screen_width)
                 widget.move(x_pos,y_pos)
@@ -554,8 +564,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             camID = list(self.camera_names.keys())[list(self.camera_names.values()).index(cam_name)] # cam_name -> camID
             cam_widget = self.camera_widgets[camID]
             if cam_widget is not None:
-                cam_widget.close_widget(self.camera_widgets) # cam_widget removes itself from dict when closing
-                cam_widget.destroyed.connect(lambda _, item=cam_item: item.setData(Qt.ItemDataRole.BackgroundRole, None))
+                cam_widget.close_widget()
 
         # Stop all checked triggers
         for item in get_checked_items(self.trigger_list):
@@ -730,7 +739,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         widgets_active = False
         for cam_widget in self.camera_widgets.values():
             if cam_widget is not None:
-                cam_widget.close_widget(self.camera_widgets)
+                cam_widget.close_widget()
                 widgets_active = True
 
         # Save session configuration as json files

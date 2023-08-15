@@ -24,6 +24,7 @@ class TemplateTrigger(BaseTrigger):
 
     def initialize(self, config: ConfigManager):
         self.initialized = True
+        return True
 
 
     def execute(self):

@@ -32,7 +32,7 @@ class DLCInference(BasePlugin):
 
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
-        self.model_dir = os.path.normpath(config.get("Model directory"))
+        self.model_dir = os.path.normpath(os.path.abspath(config.get("Model directory")))
 
         try:
             self.model_type = config.get("Model type")
@@ -58,15 +58,17 @@ class DLCInference(BasePlugin):
         self.interval = 0
         self.poses = []
         self.save_file = None
+        self.csv_writer = None
 
-        file_path = config.get("Save file (.csv)")
-        if len(file_path) == 0: # Use default file name
-            file_path = slugify(cam_widget.camera.getDisplayName()) + "_DLCInference_" + datetime.now().strftime('%H-%M-%S') + ".csv"
-        elif not file_path.endswith('.csv'):
-            file_path += '.csv'
+        if config.get("Write to file"):
+            file_path = config.get("Save file (.csv)")
+            if len(file_path) == 0: # Use default file name
+                file_path = slugify(cam_widget.camera.getDisplayName()) + "_DLCInference_" + datetime.now().strftime('%H-%M-%S') + ".csv"
+            elif not file_path.endswith('.csv'):
+                file_path += '.csv'
 
-        self.save_file = open(file_path, 'w')
-        self.csv_writer = csv.writer(self.save_file)
+            self.save_file = open(file_path, 'w')
+            self.csv_writer = csv.writer(self.save_file)
 
     def process(self, frame, metadata):
 
@@ -115,7 +117,7 @@ class DLCInference(BasePlugin):
                     if not(np.isnan(h_pos) or np.isnan(w_pos)) and score >= threshold:
                         frame = cv2.circle(frame, (round(w_pos), round(h_pos)), 5, color, -1)
 
-        if self.config.get("Write to file"):
+        if self.csv_writer is not None:
             self.csv_writer.writerow(self.poses)
 
         metadata["DLC Poses"] = self.poses

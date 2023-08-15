@@ -1,4 +1,4 @@
-from rataGUI.cameras.BaseCamera import BaseCamera
+from rataGUI.cameras.BaseCamera import BaseCamera, ConfigManager
 
 import cv2
 
@@ -13,12 +13,12 @@ class WebCamera(BaseCamera):
     }
 
     @staticmethod
-    def getAvailableCameras(search = 2):
+    def getAvailableCameras(search = 1):
         '''Returns list of all available web cameras'''
         cameras = []
         for i in range(search):
             cam = WebCamera(i)
-            cam.initializeCamera()
+            cam.initializeCamera(ConfigManager())
             # Try to read a couple frames
             for _ in range(2):
                 if cam.readCamera()[0]:

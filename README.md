@@ -18,10 +18,8 @@ python -m pip install rataGUI
 For real-time model inference, using a GPU is strongly encouraged to minimize latency. If you have a NVIDIA GPU, make sure the latest [driver](https://www.nvidia.com/download/index.aspx) version is installed. 
 > Note: CUDA is automatically installed in the conda environment.
 
-<!-- If you have a NVIDIA GPU, make sure the latest [driver](https://www.nvidia.com/download/index.aspx) and [CUDA](https://www.nvidia.com/download/index.aspx) versions installed before creating the conda environment. You can verify your CUDA and driver versions by running the command: `nvidia-smi`.  -->
-
 ```
-conda create -n rataGUI -c conda-forge -c nvidia ffmpeg pip python=3.10 cudnn=8.2 cudatoolkit=11.3 cuda-nvcc=11.3
+conda create -n rataGUI -c conda-forge ffmpeg pip python=3.10 cudnn=8.2 cudatoolkit=11.3 nvidia::cuda-nvcc=11.3
 conda activate rataGUI
 python -m pip install rataGUI
 ```
@@ -29,11 +27,11 @@ python -m pip install rataGUI
 ## Pip Installation (CPU-only)
 
 If you don't want to download Anaconda or its lightweight variants (miniconda, miniforge etc.), you can install RataGUI as a standalone pip package in any python>=3.10 environment. However, creating a separate virtual environment is strongly suggested so that RataGUI doesn't conflict with other installed packages. 
+> Note: Unlike conda, pip can't automatically install ffmpeg for video encoding so it needs to be installed through the official download [links](https://ffmpeg.org/download.html) or using a package manager (e.g. `sudo apt install ffmpeg` on Debian/Ubuntu, `brew install ffmpeg` on macOS, etc.).
 
 ```
 python -m pip install rataGUI
 ```
-> Note: Unlike conda, pip can't automatically install ffmpeg for video encoding so it needs to be installed through the official download [links](https://ffmpeg.org/download.html) or using a package manager (e.g. `sudo apt install ffmpeg` on Debian/Ubuntu, `brew install ffmpeg` on macOS, etc.).
 
 ## External Hardware
 

@@ -75,14 +75,16 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     @pyqtSlot()
     def start_camera_pipeline(self):
         try:
-            self.camera.initializeCamera(self.camera_config, self.plugin_names)
+            success = self.camera.initializeCamera(self.camera_config, self.plugin_names)
+            if not success:
+                raise IOError(f"Camera: {self.camera.getDisplayName()} failed to initialize")
             self.camera._running = True
             self.pipeline_initialized.emit()
             logger.info('Started pipeline for camera: {}'.format(self.camera.getDisplayName()))
             asyncio.run(self.process_plugin_pipeline(), debug=False)
+
         except Exception as err:
             logger.exception(err)
-            logger.error(f"Camera: {self.camera.getDisplayName()} failed to initialize")
             self.close_widget()
 
     def stop_camera_pipeline(self):
@@ -203,17 +205,12 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.video_frame.setPixmap(pixmap)
 
         
-    def close_widget(self, cam_widgets: dict):
-        def shut_down():
-            self.close_plugins()
-            cam_widgets[self.camera.cameraID] = None            
-            self.setParent(None)
-            self.deleteLater()
-
+    def close_widget(self):
         self.stop_camera_pipeline()
-        # Wait for thread to finish and queues to empty before shutting down
-        self.pipeline_thread.signals.finished.connect(shut_down)
-
+        
+        # Wait for thread to finish and queues to empty before closing
+        self.pipeline_thread.signals.finished.connect(self.close_plugins)
+        self.pipeline_thread.signals.finished.connect(self.deleteLater)
 
     # async def run_triggering(self):
     #     tasks = []

@@ -2,7 +2,7 @@
 FFMPEG_BINARY = None
 
 # Specify which modules to use in the cameras folder or program defaults to all
-enabled_camera_models = ["BaslerCamera.py", "FLIRCamera.py", "VideoReader.py"]
+enabled_camera_models = []
 
 # Specify which modules to use in the plugins folder or program defaults to all
 enabled_plugins = []

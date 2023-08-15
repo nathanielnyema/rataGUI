@@ -43,6 +43,7 @@ class NIDAQmxCounter(BaseTrigger):
         
         self._task = task
         self.initialized = True
+        return True
 
 
     def execute(self):
