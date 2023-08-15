@@ -33,6 +33,6 @@ for fname in os.listdir(dirpath):
                 logger.info(f"Loaded plugin module {fname}")
             except ModuleNotFoundError as err:
                 logger.warning(f"Unable to load plugin module {fname}")
-                logger.debug(err.msg)
+                logger.error(err.msg)
             except Exception as err:
                 logger.exception(err)

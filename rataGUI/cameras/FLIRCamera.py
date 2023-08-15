@@ -71,9 +71,10 @@ class FLIRCamera(BaseCamera):
 
     @staticmethod
     def releaseResources():
-        if FLIRCamera._SYSTEM is not None:
+        if FLIRCamera._SYSTEM is not None and not FLIRCamera._SYSTEM.IsInUse():
             FLIRCamera._SYSTEM.ReleaseInstance()
             del FLIRCamera._SYSTEM
+
 
     def __init__(self, cameraID: str):
         super().__init__(cameraID)
@@ -106,8 +107,9 @@ class FLIRCamera(BaseCamera):
 
             if not self._stream.IsInitialized():
                 self._stream.Init()
-        except (Exception, PySpin.SpinnakerException) as err:
+        except PySpin.SpinnakerException as err:
             logger.exception(err)
+            logger.error("PySpin failed to find and initialize camera")
             return False
         finally:
             cam_list.Clear()
@@ -156,8 +158,9 @@ class FLIRCamera(BaseCamera):
                     if node.GetAccessMode() == PySpin.RW:
                         node.SetValue(value)
 
-        except (Exception, PySpin.SpinnakerException) as err:
+        except PySpin.SpinnakerException as err:
             logger.exception(err)
+            logger.error("PySpin failed to configure camera property values")
             return False  
         
         if prop_config.get("Limit Framerate"):
@@ -170,17 +173,11 @@ class FLIRCamera(BaseCamera):
         # print(self._stream.TLStream.StreamOutputBufferCount.GetValue())
         # print(self._stream.AcquisitionMode.ToString())
 
-        self.startStream()
-
-        return True
-
-    def startStream(self):
         self._stream.BeginAcquisition()
         self._running = True
 
-    def stopStream(self):
-        self._stream.EndAcquisition()
-        self._running = False
+        return True
+
 
     def readCamera(self, colorspace="RGB"):
         try:
@@ -231,7 +228,7 @@ class FLIRCamera(BaseCamera):
         try:
             if self._stream is not None:
                 if self._stream.IsStreaming():
-                    self.stopStream()
+                    self._stream.EndAcquisition()
                 
                 self._stream.DeInit()
                 del self._stream
@@ -241,10 +238,6 @@ class FLIRCamera(BaseCamera):
         except Exception as err:
             logger.exception(err)
             return False
-
-
-    def isOpened(self):
-        return self._running
 
 
     def configure_chunk_data(self, nodemap, selected_chucks, enable = True) -> bool:

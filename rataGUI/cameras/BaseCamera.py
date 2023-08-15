@@ -23,7 +23,7 @@ class BaseCamera(ABC):
         """ Returns list of camera objects wrapping every available device """
         pass
 
-    # Optional method to release static resources upon exiting
+    # Optional method to release static resources upon exiting program
     @staticmethod
     def releaseResources():
         pass

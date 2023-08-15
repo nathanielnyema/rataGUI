@@ -1,4 +1,4 @@
-from .BaseCamera import BaseCamera
+from rataGUI.cameras.BaseCamera import BaseCamera
 
 from pypylon import pylon
 
@@ -52,12 +52,6 @@ class BaslerCamera(BaseCamera):
             cameras.append(BaslerCamera(serial_number))
         return cameras
 
-    @staticmethod
-    def releaseResources():
-        pass
-        # if FLIRCamera._SYSTEM is not None:
-        #     FLIRCamera._SYSTEM.ReleaseInstance()
-        #     del FLIRCamera._SYSTEM
 
     def __init__(self, cameraID: str):
         super().__init__(cameraID)
@@ -108,15 +102,11 @@ class BaslerCamera(BaseCamera):
 
         return True
 
-    # def stopStream(self):
-    #     pass
-    #     # self._stream.EndAcquisition()
-    #     # self._running = False
 
     def readCamera(self):
         try:
-            grab_data = self.cam.RetrieveResult(READ_TIMEOUT, pylon.TimeoutHandling_ThrowException)
-            if not grab_data.GrabSucceeded():
+            grab_data = self._stream.RetrieveResult(READ_TIMEOUT, pylon.TimeoutHandling_ThrowException)
+            if grab_data is None or not grab_data.GrabSucceeded():
                 return False, None
 
             img_data = self.converter.Convert(grab_data)
@@ -139,8 +129,7 @@ class BaslerCamera(BaseCamera):
     def closeCamera(self):
         try:
             if self._stream is not None:
-                self.cam.StopGrabbing()
-                del self._stream
+                self._stream.StopGrabbing()
 
             self._running = False
             return True
