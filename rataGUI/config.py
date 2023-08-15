@@ -18,7 +18,7 @@ restore_session = True
 save_directory = "./session"
 
 # Path to log file that contains session info
-logging_file = "./session/info.txt"
+logging_file = "./session/info.log"
 
 # # Specify color mode (Light or Dark) or program matches computer setting (None)
 # color_mode = "Dark"

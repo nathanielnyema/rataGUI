@@ -54,6 +54,6 @@ class BasePlugin(ABC):
 
     # Overrite for custom behavior
     def close(self):
-        """ Deactivates plugin and closes any plugin-dependent objects """
+        """ Deactivates plugin and closes any plugin-specific resources """
         self.active = False
         logger.info(f"{type(self).__name__} closed")

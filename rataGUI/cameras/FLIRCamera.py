@@ -1,4 +1,4 @@
-from cameras import BaseCamera, ConfigManager
+from rataGUI.cameras.BaseCamera import BaseCamera
 
 import cv2
 import PySpin
@@ -24,10 +24,10 @@ class FLIRCamera(BaseCamera):
         "TriggerSource": {"Off": "TriggerMode_Off", 
                           "Line 3": PySpin.TriggerSource_Line3, "Line 0": PySpin.TriggerSource_Line0, 
                           "Line 1": PySpin.TriggerSource_Line1, "Line 2": PySpin.TriggerSource_Line2,},
-        "Buffer Size": 10,
-        "Gain": 0,
-        "Exposure": 0,
-        "Brightness": 0,
+        # "Buffer Size": 10,
+        # "Gain": 0,
+        # "Exposure": 0,
+        # "Brightness": 0,
         "Height": 1000,
         "Width": 1000,  
         # "PixelFormat": {"RGB8": PySpin.PixelFormat_RGB8Packed, "BGR8": PySpin.PixelFormat_BGR8} # TODO: Ensure consistency
@@ -96,7 +96,7 @@ class FLIRCamera(BaseCamera):
             prop_config.set("Line2 Output", PySpin.LineSource_UserOutput0)
 
 
-    def initializeCamera(self, prop_config: ConfigManager, plugin_names=[]) -> bool:
+    def initializeCamera(self, prop_config, plugin_names=[]) -> bool:
         # Reset camera session variables
         self.__init__(self.cameraID)
 

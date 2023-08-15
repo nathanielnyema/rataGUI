@@ -1,35 +1,3 @@
-import os
-import sys
-import logging.handlers
-
-def get_project_logger(logging_file):
-    logging_file = os.path.abspath(logging_file)
-    os.makedirs(os.path.dirname(logging_file), exist_ok=True)
-    with open(logging_file, 'a') as f:
-        f.write('\n\n')
-
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    # set up logging INFO messages or higher to log file
-    file_handler = logging.handlers.RotatingFileHandler(logging_file, mode='a', maxBytes=1e7, backupCount=3)
-    file_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s.%(msecs)03d  %(levelname)-8s %(name)-24s %(message)s')
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-
-    # set up logging INFO messages or higher to sys.stdout
-    console = logging.StreamHandler(sys.stdout)
-    console.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(levelname)-8s %(name)-24s %(message)s')
-    console.setFormatter(formatter)
-    logger.addHandler(console)
-
-    logger.info(f"Logging to {logging_file}")
-
-    return logger
-
-
 import unicodedata
 import re
 

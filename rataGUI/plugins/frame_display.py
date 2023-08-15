@@ -1,13 +1,11 @@
-from plugins import BasePlugin, ConfigManager
+from rataGUI.plugins.base_plugin import BasePlugin
 
-import cv2
-from datetime import datetime
 from PyQt6 import QtGui
 from PyQt6.QtCore import Qt, QObject, pyqtSignal
 
-import os
 import logging
 logger = logging.getLogger(__name__)
+
 
 class DisplaySignal(QObject):
     image = pyqtSignal(QtGui.QImage)

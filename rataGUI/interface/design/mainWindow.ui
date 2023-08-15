@@ -205,7 +205,7 @@
          </font>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>3</number>
         </property>
         <widget class="QWidget" name="camPropsTab">
          <attribute name="title">
@@ -695,7 +695,7 @@
   <customwidget>
    <class>VerticalTabWidget</class>
    <extends>QTabWidget</extends>
-   <header>interface.design.vtab_widget</header>
+   <header>.vtab_widget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -1,8 +1,7 @@
-from plugins import BasePlugin, ConfigManager
+from rataGUI.plugins.base_plugin import BasePlugin
 
 import cv2
 
-import os
 import logging
 logger = logging.getLogger(__name__)
 

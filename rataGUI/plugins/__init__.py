@@ -4,16 +4,13 @@ Loads plugin modules listed in config.py (defaults to all plugins if none are sp
 Stores utility functions available to every plugin in folder
 """
 
-__all__ = ['ConfigManager', 'BasePlugin']
-from pyqtconfig import ConfigManager
-from .base_plugin import BasePlugin
-from config import enabled_plugins
-
 import logging
 logger = logging.getLogger(__name__)
 
 import os
 from importlib import util
+from rataGUI.config import enabled_plugins
+
 
 # Automatically load plugin modules
 def load_module(path):
@@ -34,7 +31,8 @@ for fname in os.listdir(dirpath):
             try:
                 load_module(os.path.join(dirpath, fname))
                 logger.info(f"Loaded plugin module {fname}")
-            except ModuleNotFoundError:
-                logger.info(f"Unable to load plugin module {fname}")
+            except ModuleNotFoundError as err:
+                logger.warning(f"Unable to load plugin module {fname}")
+                logger.debug(err.msg)
             except Exception as err:
                 logger.exception(err)

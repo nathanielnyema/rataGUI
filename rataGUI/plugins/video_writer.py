@@ -1,6 +1,6 @@
-from plugins import BasePlugin, ConfigManager
-from config import FFMPEG_BINARY
-from utils import slugify
+from rataGUI.plugins.base_plugin import BasePlugin
+from rataGUI.config import FFMPEG_BINARY
+from rataGUI.utils import slugify
 
 import os
 import numpy as np

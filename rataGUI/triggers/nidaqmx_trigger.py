@@ -1,4 +1,4 @@
-from triggers import BaseTrigger, ConfigManager
+from rataGUI.triggers.base_trigger import BaseTrigger
 
 import nidaqmx
 from nidaqmx.stream_writers import CounterWriter

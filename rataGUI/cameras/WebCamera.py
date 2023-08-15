@@ -1,8 +1,7 @@
-from cameras import BaseCamera, ConfigManager
+from rataGUI.cameras.BaseCamera import BaseCamera
 
 import cv2
 
-import os
 import logging
 logger = logging.getLogger(__name__)
 
@@ -13,29 +12,29 @@ class WebCamera(BaseCamera):
         "FPS": 30,
     }
 
+    @staticmethod
+    def getAvailableCameras(search = 2):
+        '''Returns list of all available web cameras'''
+        cameras = []
+        for i in range(search):
+            cam = WebCamera(i)
+            cam.initializeCamera()
+            # Try to read a couple frames
+            for _ in range(2):
+                if cam.readCamera()[0]:
+                    cameras.append(cam)
+                    cam.frames_acquired = 0
+                    break
+            cam.closeCamera()
+        return cameras
+
+
     def __init__(self, cameraID):
         super().__init__(cameraID)
         self.last_frame = None
 
-    @staticmethod
-    def getAvailableCameras(search = 2):
-        '''Returns list of all available web cameras'''
-        # cameras = []
-        # for i in range(search):
-        #     cam = WebCamera(i)
-        #     cam.initializeCamera()
-        #     # Try to read a couple frames
-        #     for _ in range(2):
-        #         if cam.readCamera()[0]:
-        #             cameras.append(cam)
-        #             cam.frames_acquired = 0
-        #             break
-        #     cam.closeCamera()
-        # return cameraså
 
-        return [WebCamera(0)]
-
-    def initializeCamera(self, prop_config: ConfigManager, plugin_names=[]):
+    def initializeCamera(self, prop_config, plugin_names=[]):
         self._stream = cv2.VideoCapture(self.cameraID)
         self._running = True
         return True

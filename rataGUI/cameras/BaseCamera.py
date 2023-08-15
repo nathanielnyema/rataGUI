@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pyqtconfig import ConfigManager
-from typing import Any, Tuple, Dict
+from typing import Any, Tuple, List, Dict
 from numpy.typing import NDArray
 
 class BaseCamera(ABC):
@@ -19,7 +19,8 @@ class BaseCamera(ABC):
 
     @staticmethod
     @abstractmethod
-    def getAvailableCameras() -> Dict[str, Any]:
+    def getAvailableCameras() -> List[Any]:
+        """ Returns list of camera objects wrapping every available device """
         pass
 
     # Optional method to release static resources upon exiting
@@ -36,7 +37,7 @@ class BaseCamera(ABC):
 
 
     @abstractmethod
-    def initializeCamera(self, prop_config: ConfigManager, plugin_names: list) -> bool:
+    def initializeCamera(self, prop_config: ConfigManager, plugin_names: List[str]) -> bool:
         """
         Initializes the camera and returns whether it was successful
 

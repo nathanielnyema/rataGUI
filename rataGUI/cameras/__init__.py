@@ -4,16 +4,13 @@ Loads camera modules listed in config.py (defaults to all camera models if none 
 Stores utility functions available to every camera model in folder
 """
 
-__all__ = ['ConfigManager', 'BaseCamera']
-from pyqtconfig import ConfigManager
-from .BaseCamera import BaseCamera
-from config import enabled_camera_models
-
 import logging
 logger = logging.getLogger(__name__)
 
 import os
 from importlib import util
+from rataGUI.config import enabled_camera_models
+
 
 # Automatically load camera modules
 def load_module(path):
@@ -34,7 +31,8 @@ for fname in os.listdir(dirpath):
             try:
                 load_module(os.path.join(dirpath, fname))
                 logger.info(f"Loaded camera module {fname}")
-            except ModuleNotFoundError:
-                logger.info(f"Unable to load camera module {fname}")
+            except ModuleNotFoundError as err:
+                logger.warning(f"Unable to load camera module {fname}")
+                logger.debug(err.msg)
             except Exception as err:
                 logger.exception(err)

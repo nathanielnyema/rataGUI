@@ -1,17 +1,16 @@
-from plugins import BasePlugin, ConfigManager
-
-from utils import slugify
+from rataGUI.plugins.base_plugin import BasePlugin
+from rataGUI.utils import slugify
 
 import os
 import csv
-import numpy as np
 import cv2
+import numpy as np
 import tensorflow as tf
 from datetime import datetime
 
-
 import logging
 logger = logging.getLogger(__name__)
+
 
 class DLCInference(BasePlugin):
     """
@@ -50,7 +49,6 @@ class DLCInference(BasePlugin):
                 self.num_channels = input_shape[3]  # 3 (no grayscale)
 
                 dummy_frame = tf.zeros(shape=(self.batch_size, 1, 1, self.num_channels), dtype=self.model_input.dtype) # Arbitrary size
-                # dummy_frame = tf.zeros(input_shape, self.model_input.dtype)
                 self.model(tf.constant(dummy_frame))
         except Exception as err:
             logger.exception(err)
@@ -61,16 +59,14 @@ class DLCInference(BasePlugin):
         self.poses = []
         self.save_file = None
 
-        if config.get("Write to file"):
-            file_path = config.get("Save file (.csv)")
-            if len(file_path) == 0: # Use default file name
-                file_path = slugify(cam_widget.camera.getDisplayName()) + "_DLCInference_" + datetime.now().strftime('%H-%M-%S') + ".csv"
-            elif not file_path.endswith('.csv'):
-                file_path += '.csv'
+        file_path = config.get("Save file (.csv)")
+        if len(file_path) == 0: # Use default file name
+            file_path = slugify(cam_widget.camera.getDisplayName()) + "_DLCInference_" + datetime.now().strftime('%H-%M-%S') + ".csv"
+        elif not file_path.endswith('.csv'):
+            file_path += '.csv'
 
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            self.save_file = open(file_path, 'w')
-            self.csv_writer = csv.writer(self.save_file)
+        self.save_file = open(file_path, 'w')
+        self.csv_writer = csv.writer(self.save_file)
 
     def process(self, frame, metadata):
 
@@ -119,7 +115,7 @@ class DLCInference(BasePlugin):
                     if not(np.isnan(h_pos) or np.isnan(w_pos)) and score >= threshold:
                         frame = cv2.circle(frame, (round(w_pos), round(h_pos)), 5, color, -1)
 
-        if self.config.get("Save file (.csv)"):
+        if self.config.get("Write to file"):
             self.csv_writer.writerow(self.poses)
 
         metadata["DLC Poses"] = self.poses

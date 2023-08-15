@@ -371,4 +371,4 @@ class Ui_MainWindow(object):
         self.actionNew.setText(_translate("MainWindow", "New"))
         self.actionOpen.setText(_translate("MainWindow", "Open"))
         self.actionSave.setText(_translate("MainWindow", "Save"))
-from interface.design.vtab_widget import VerticalTabWidget
+from .vtab_widget import VerticalTabWidget

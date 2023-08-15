@@ -1,4 +1,4 @@
-from plugins import BasePlugin, ConfigManager
+from rataGUI.plugins.base_plugin import BasePlugin
 
 import os
 import numpy as np

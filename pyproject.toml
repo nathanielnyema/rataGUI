@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "rataGUI"
+version = "0.1.1"
+description = "Customizable and intuitive video acquisition system for real-time animal tracking and behavior quantification"
+authors = [
+    { name="Brian Hu", email="brainhu42@gmail.com" }
+]
+license = { file="LICENSE" }
+readme = "README.md"
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+    "Operating System :: OS Independent",
+]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"]}
+
+
+[project.scripts]
+rataGUI = "rataGUI.main:main"
+
+
+[project.urls]
+"Homepage" = "https://github.com/BrainHu42/rataGUI"

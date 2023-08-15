@@ -1,32 +1,32 @@
-from cameras import BaseCamera, ConfigManager
+from rataGUI.cameras.BaseCamera import BaseCamera
 
 import cv2
 
-import os
 import logging
 logger = logging.getLogger(__name__)
 
-
-def get_default_settings():
-    return {}
 
 class TemplateCamera(BaseCamera):
     """
     Example subclass to rewrite with the required basic functionality for a custom camera model
     """
 
-    DEFAULT_PROPS = get_default_settings()
+    DEFAULT_PROPS = {
+        # TODO: Put user-configurable properties here (see other camera models for examples)
+    }
 
     @staticmethod
     def getAvailableCameras():
-        # Return list of available camera objects for custom model
+        # TODO: Return list of camera objects wrapping every available device
         return []
+
 
     def __init__(self, cameraID):
         super().__init__(cameraID)
         self.last_frame = None
 
-    def initializeCamera(self, prop_config: ConfigManager, plugin_names=[]):
+
+    def initializeCamera(self, prop_config, plugin_names=[]):
         cap = cv2.VideoCapture(self.cameraID)
         if cap.isOpened():
             self._running = True
@@ -36,6 +36,7 @@ class TemplateCamera(BaseCamera):
             self._running = False
             cap.release()
             return False
+
 
     def readCamera(self, colorspace="RGB"):
         ret, frame = self._stream.read()
@@ -49,6 +50,7 @@ class TemplateCamera(BaseCamera):
                 self.last_frame = frame
         
         return ret, self.last_frame
+    
     
     def closeCamera(self):
         if self._stream is not None:

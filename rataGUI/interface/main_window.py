@@ -1,5 +1,4 @@
 import os
-# import sys
 import time
 import json
 from collections import OrderedDict
@@ -8,17 +7,16 @@ from pyqtconfig import ConfigManager
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QTimer
 
-from interface.design.Ui_MainWindow import Ui_MainWindow
-from interface.camera_widget import CameraWidget
-from config import restore_session, save_directory
+from rataGUI.interface.design.Ui_MainWindow import Ui_MainWindow
+from rataGUI.interface.camera_widget import CameraWidget
+from rataGUI.config import restore_session, save_directory
 
-import psutil
 import logging
 logger = logging.getLogger(__name__)
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    def __init__(self, camera_models = [], plugins = [], trigger_types = [], dark_mode=True):
+    def __init__(self, camera_models = [], plugins = [], trigger_types = [], dark_mode=True, defaults=False):
         super().__init__()
         self.setupUi(self)
 
@@ -82,16 +80,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_timer.timeout.connect(self.update_camera_stats)
         self.update_timer.start(250)
 
-        self.logging_timer = QTimer()
-        self.logging_timer.timeout.connect(self.log_computer_stats)
-        self.logging_timer.start(30000)
-
-    def log_computer_stats(self):
-        process = psutil.Process(os.getpid())
-        cpu = process.cpu_percent(interval=1)
-        mem = process.memory_info().rss / float(2 ** 20)
-        with open("log.txt", "a") as f:
-            print("CPU (%): "+str(cpu)+"\tRAM: "+str(mem), file=f)
 
     def update_camera_stats(self): # Save stats?
         for row, camID in enumerate(self.camera_names.keys()):

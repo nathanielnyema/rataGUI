@@ -4,16 +4,13 @@ Loads trigger modules listed in config.py
 Stores utility functions available to every trigger in folder
 """
 
-__all__ = ['ConfigManager', 'BaseTrigger']
-from pyqtconfig import ConfigManager
-from .base_trigger import BaseTrigger
-from config import enabled_trigger_types
-
 import logging
 logger = logging.getLogger(__name__)
 
 import os
 from importlib import util
+from rataGUI.config import enabled_trigger_types
+
 
 # Automatically load trigger modules
 def load_module(path):
@@ -34,7 +31,8 @@ for fname in os.listdir(dirpath):
             try:
                 load_module(os.path.join(dirpath, fname))
                 logger.info(f"Loaded trigger module {fname}")
-            except ModuleNotFoundError:
-                logger.info(f"Unable to load trigger module {fname}")
+            except ModuleNotFoundError as err:
+                logger.warning(f"Unable to load trigger module {fname}")
+                logger.debug(err.msg)
             except Exception as err:
                 logger.exception(err)

@@ -5,8 +5,8 @@ from datetime import datetime
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
 
-from utils import WorkerThread
-from interface.design.Ui_CameraWidget import Ui_CameraWidget
+from rataGUI.utils import WorkerThread
+from rataGUI.interface.design.Ui_CameraWidget import Ui_CameraWidget
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor

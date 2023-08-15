@@ -1,8 +1,7 @@
-from cameras import BaseCamera, ConfigManager
+from .BaseCamera import BaseCamera
 
 from pypylon import pylon
 
-import os
 import logging
 logger = logging.getLogger(__name__)
 
@@ -77,7 +76,7 @@ class BaslerCamera(BaseCamera):
     #     else:
     #         prop_config.set("Line2 Output", "User Output 0")
 
-    def initializeCamera(self, prop_config: ConfigManager, plugin_names=[]) -> bool:
+    def initializeCamera(self, prop_config, plugin_names=[]) -> bool:
         # Reset camera session variables
         self.__init__(self.cameraID)
 

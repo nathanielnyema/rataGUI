@@ -1,9 +1,9 @@
-from cameras import BaseCamera, ConfigManager
-from config import video_file_paths
-
-import cv2
+from rataGUI.cameras.BaseCamera import BaseCamera
+from rataGUI.config import video_file_paths
 
 import os
+import cv2
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class VideoReader(BaseCamera):
             self.file_path = ""
             self.cameraID = "VideoReader"
 
-    def initializeCamera(self, prop_config: ConfigManager, plugin_names=[]):
+    def initializeCamera(self, prop_config, plugin_names=[]):
         self.input_params = {}
         self.output_params = {}
         for prop_name, value in prop_config.as_dict().items():
