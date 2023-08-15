@@ -1,10 +1,8 @@
 # Project specific
 basic_multicam/
 temp.py
-videos/*
-!videos/.gitkeep 
-data/*
-!data/.gitkeep 
+videos/
+data/
 tests/
 archive/
 session/

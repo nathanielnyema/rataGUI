@@ -3,7 +3,5 @@ numpy==1.25.*
 opencv-python-headless==4.8.*
 pillow
 pyqt6==6.5.*
-pyqt6-qt6==6.5.*
-pyqt6-sip==13.5.*
 pyqtconfig
-tensorflow<2.11
+tensorflow>=2.7,<2.11
