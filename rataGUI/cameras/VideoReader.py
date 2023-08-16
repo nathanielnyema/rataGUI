@@ -1,5 +1,5 @@
 from rataGUI.cameras.BaseCamera import BaseCamera
-from rataGUI.config import video_file_paths
+from rataGUI.config import num_video_readers
 
 import os
 import cv2
@@ -16,20 +16,13 @@ class VideoReader(BaseCamera):
 
     @staticmethod
     def getAvailableCameras():
-        # Specify video path later
-        if len(video_file_paths) == 0:
-            return [VideoReader()]
-        
-        return [VideoReader(path) for path in video_file_paths]
+        return [VideoReader(f"Video Reader {i+1}") for i in range(num_video_readers)]
 
 
-    def __init__(self, file_path="User Input"):
-        super().__init__(cameraID = "File: " + str(file_path[-10:]))
-        self.file_path = os.path.abspath(file_path)
+    def __init__(self, readerID):
+        super().__init__(readerID)
         self.last_frame = None
-        if file_path == "User Input":
-            self.file_path = ""
-            self.cameraID = "VideoReader"
+        self.file_path = ""
 
     def initializeCamera(self, prop_config, plugin_names=[]):
         self.input_params = {}

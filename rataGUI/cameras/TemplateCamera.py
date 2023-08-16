@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class TemplateCamera(BaseCamera):
     """
-    Example subclass to rewrite with the required basic functionality for a custom camera model
+    Example subclass to overwrite with the required functionality for a custom camera model
     """
 
     DEFAULT_PROPS = {

@@ -10,8 +10,8 @@ enabled_plugins = []
 # Specify which modules to use in the triggers folder
 enabled_trigger_types = []
 
-# Specify paths to video files for VideoReader
-video_file_paths = []
+# Specify number of VideoReader cameras
+num_video_readers = 1
 
 # Save and restore settings between sessions
 restore_session = True

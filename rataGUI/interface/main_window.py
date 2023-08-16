@@ -19,6 +19,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, camera_models = [], plugins = [], trigger_types = [], dark_mode=True, defaults=False):
         super().__init__()
         self.setupUi(self)
+        self.setWindowIcon(QtGui.QIcon('rataGUI/interface/design/ratagui-icon.png'))
 
         # Set geometry relative to screen
         self.screen = QtGui.QGuiApplication.primaryScreen().availableGeometry()
@@ -581,26 +582,35 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def save_session(self):
         save_dir = os.path.abspath(save_directory)
         os.makedirs(save_dir, exist_ok=True)
-        cam_settings = {}
-        for camID, config in self.camera_configs.items():
-            cam_settings[camID] = config.as_dict()
-        with open(os.path.join(save_dir, "camera_settings.json"), 'w') as file:
+
+        with open(os.path.join(save_dir, "camera_settings.json"), 'w+') as file:
+            cam_settings = {}
+            contents = file.read()
+            if len(contents) != 0:
+                cam_settings = json.loads(contents)
+            for camID, config in self.camera_configs.items():
+                cam_settings[camID] = config.as_dict()
             json.dump(cam_settings, file, indent=2)
 
-        plugin_settings = {}
-        for name, config in self.plugin_configs.items():
-            plugin_settings[name] = config.as_dict()
-        with open(os.path.join(save_dir, "plugin_settings.json"), 'w') as file:
+        with open(os.path.join(save_dir, "plugin_settings.json"), 'w+') as file:
+            plugin_settings = {}
+            contents = file.read()
+            if len(contents) != 0:
+                plugin_settings = json.loads(contents)
+            for name, config in self.plugin_configs.items():
+                plugin_settings[camID] = config.as_dict()
             json.dump(plugin_settings, file, indent=2)
 
-        trigger_settings = {}
-        for name, config in self.trigger_configs.items():
-            trigger_settings[name] = config.as_dict()
-        with open(os.path.join(save_dir, "trigger_settings.json"), 'w') as file:
+        with open(os.path.join(save_dir, "trigger_settings.json"), 'w+') as file:
+            trigger_settings = {}
+            contents = file.read()
+            if len(contents) != 0:
+                trigger_settings = json.loads(contents)
+            for deviceID, config in self.trigger_configs.items():
+                trigger_settings[deviceID] = config.as_dict()
             json.dump(trigger_settings, file, indent=2)
 
         ui_settings = {}
-        ui_settings["camera_names"] = self.camera_names
         ui_settings["checked_cameras"] = [c.text() for c in get_checked_items(self.cam_list)]
 
         plugin_states = {}
@@ -616,8 +626,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         ui_settings["window_height"] = self.size().height()
         ui_settings["window_x"] = self.pos().x()
         ui_settings["window_y"] = self.pos().y()
-        with open(os.path.join(save_dir, "interface_settings.json"), 'w') as file:
+        with open(os.path.join(save_dir, "interface_settings.json"), 'w+') as file:
+            contents = file.read()
+            ui_settings["camera_names"] = self.camera_names
+            if len(contents) != 0:
+                old_names = json.loads(contents).get("camera_names")
+                if old_names is not None:
+                    old_names.update(self.camera_names)
+                    ui_settings["camera_names"] = old_names
             json.dump(ui_settings, file, indent=2)
+
         logger.info("Saved session settings")
 
 

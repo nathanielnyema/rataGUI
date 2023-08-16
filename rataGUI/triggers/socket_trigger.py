@@ -1,21 +1,21 @@
-from rataGUI.triggers.base_trigger import BaseTrigger
+from rataGUI.triggers.base_trigger import BaseTrigger, ConfigManager
 
 import logging
 logger = logging.getLogger(__name__)
 
-class TemplateTrigger(BaseTrigger):
+class SocketTrigger(BaseTrigger):
     """
-    Interface for triggering connected National Instrument devices through the NI-DAQmx driver.
-
-    Current implementation produces TTL pulses to trigger cameras at specified FPS and phase.
+    Interface for publishing information to a socket
     """
     DEFAULT_CONFIG = {
+        "Server IP": "127.0.0.1",
+        "Socket Port": "1234",
     }
 
     @staticmethod
     def getAvailableDevices():
         '''Returns list of test trigger(s)'''
-        return [TemplateTrigger("test1")]
+        return [SocketTrigger("Socket Trigger 1")]
 
     def __init__(self, deviceID):
         super().__init__(deviceID)

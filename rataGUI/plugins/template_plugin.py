@@ -4,9 +4,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class MetadataWriter(BasePlugin):
+class TemplatePlugin(BasePlugin):
     """
-    Example plugin to rewrite with custom functionality
+    Example plugin to overwrite with custom processing functionality
     """
 
     DEFAULT_CONFIG = {

@@ -207,25 +207,11 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         
     def close_widget(self):
         self.stop_camera_pipeline()
-        
+
         # Wait for thread to finish and queues to empty before closing
         self.pipeline_thread.signals.finished.connect(self.close_plugins)
         self.pipeline_thread.signals.finished.connect(self.deleteLater)
 
-    # async def run_triggering(self):
-    #     tasks = []
-    #     for trigger in self.triggers:
-    #         tasks.append(asyncio.create_task(repeat_trigger(trigger, trigger.interval)))
-
-    #     await asyncio.gather(*tasks)
-
-    # def start_camera_triggers(self):
-    #     print('Started camera trigger: {}'.format(self.camera.getDisplayName()))
-    #     try:
-    #         asyncio.run(self.run_triggering(), debug=False)
-    #     except Exception as err:
-    #         print('ERROR--Trigger Loop: %s' % err)
-    #         os._exit(42)
 
 
 # async def repeat_trigger(trigger, interval):
