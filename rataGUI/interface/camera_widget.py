@@ -70,6 +70,9 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 
         # Start thread to initialize and process camera stream and plugin pipeline
         self.pipeline_thread = WorkerThread(self.start_camera_pipeline)
+        
+        # Close widget as soon as thread finishes and queues empty
+        self.pipeline_thread.signals.finished.connect(self.close_widget)
         self.threadpool.start(self.pipeline_thread)
 
 
@@ -86,10 +89,9 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 
         except Exception as err:
             logger.exception(err)
-            self.close_widget()
+            self.stop_camera_pipeline()
 
     def stop_camera_pipeline(self):
-        logger.info('Stopped pipeline for camera: {}'.format(self.camera.getDisplayName()))
         # Signal to event loop to stop camera and plugins
         self.camera._running = False
         self.active = False
@@ -97,9 +99,9 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 
 
     async def acquire_frames(self):
+        t0 = time.time()
         try:
             loop = asyncio.get_running_loop()
-            t0 = time.time()
             while self.camera._running:
                 if self.active:
                     status, frame = await loop.run_in_executor(None, self.camera.readCamera)
@@ -109,23 +111,24 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
                     metadata['Average Latency'] = self.avg_latency
 
                     if status: 
-                        # Send acquired frame to first plugin process in pipeline
                         # print('Camera queue: ' + str(self.plugins[0].in_queue.qsize()))
+                        # Send acquired frame to first plugin process in pipeline
                         await self.plugins[0].in_queue.put((frame, metadata))
                         await asyncio.sleep(0)
                     else:
-                        raise IOError("Camera frame not found ... stopping")
+                        raise IOError(f"Frame not found on camera: {self.camera.getDisplayName()}")
 
                 else: # Pass to next coroutine
                     await asyncio.sleep(0)
 
-            t1 = time.time()
-            logger.debug('FPS: '+str(self.camera.frames_acquired / (t1-t0)))
-            # Close camera when camera stops streaming
-            self.camera.closeCamera()
-
         except Exception as err:
             logger.exception(err)
+            logger.error(f"Exception occured acquiring frame from camera: {self.camera.getDisplayName()} ... stopping")
+
+        t1 = time.time()
+        logger.debug('FPS: '+str(self.camera.frames_acquired / (t1-t0)))
+        # Close camera when camera stops streaming
+        self.camera.closeCamera()
 
 
     # Asynchronous execution loop for an arbitrary plugin 
@@ -205,13 +208,12 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         pixmap = QtGui.QPixmap.fromImage(qt_image)
         self.video_frame.setPixmap(pixmap)
 
-        
-    def close_widget(self):
-        self.stop_camera_pipeline()
 
-        # Wait for thread to finish and queues to empty before closing
-        self.pipeline_thread.signals.finished.connect(self.close_plugins)
-        self.pipeline_thread.signals.finished.connect(self.deleteLater)
+    def close_widget(self):
+        logger.info('Stopped pipeline for camera: {}'.format(self.camera.getDisplayName()))
+        self.close_plugins()
+        self.deleteLater()
+
 
 
 

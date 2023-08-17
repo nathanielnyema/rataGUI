@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-READ_TIMEOUT = 10000    # 10 sec
+READ_TIMEOUT = 10000
 
 class FLIRCamera(BaseCamera):
 
@@ -19,17 +19,17 @@ class FLIRCamera(BaseCamera):
         "Line3 Output": {"None": PySpin.LineSource_Off,},
         "Buffer Mode": {"OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
                         "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,},
-        "Limit Framerate": {"On": True, "Off": False},
-        "Framerate": 30,
         "TriggerSource": {"Off": "TriggerMode_Off", 
                           "Line 3": PySpin.TriggerSource_Line3, "Line 0": PySpin.TriggerSource_Line0, 
                           "Line 1": PySpin.TriggerSource_Line1, "Line 2": PySpin.TriggerSource_Line2,},
+        "Limit Framerate": {"On": True, "Off": False},
+        "Framerate": 30,
         # "Buffer Size": 10,
         # "Gain": 0,
         # "Exposure": 0,
         # "Brightness": 0,
-        "Height": 1000,
-        "Width": 1000,  
+        "Height": 10000,
+        "Width": 10000,  
         # "PixelFormat": {"RGB8": PySpin.PixelFormat_RGB8Packed, "BGR8": PySpin.PixelFormat_BGR8} # TODO: Ensure consistency
     }
 
@@ -153,6 +153,7 @@ class FLIRCamera(BaseCamera):
                         if clipped != value:
                             logger.warning(f"{prop_name} must be in the range [{node_min}, {node_max}] \
                                     so {value} was clipped to {clipped}")
+                            prop_config.set(name, clipped)
                             value = clipped
 
                     if node.GetAccessMode() == PySpin.RW:
@@ -225,6 +226,7 @@ class FLIRCamera(BaseCamera):
 
 
     def closeCamera(self):
+        logger.info(f"Closing camera: {self.getDisplayName()}")
         try:
             if self._stream is not None:
                 if self._stream.IsStreaming():

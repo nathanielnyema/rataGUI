@@ -46,6 +46,7 @@ class VideoWriter(BasePlugin):
                 self.save_dir = os.path.normpath(value)
             elif prop_name == "filename":
                 if value == "": # default value
+                    print(cam_widget.camera.getDisplayName())
                     file_name = slugify(cam_widget.camera.getDisplayName()) + "_" + datetime.now().strftime('%H-%M-%S')
                 else:
                     file_name = slugify(value)

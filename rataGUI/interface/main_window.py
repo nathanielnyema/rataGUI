@@ -345,7 +345,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def toggle_camera_plugin(self, item):
-        camID = self.plugin_pipeline.verticalHeaderItem(item.row()).text()
+        cam_name = self.plugin_pipeline.verticalHeaderItem(item.row()).text()
+        camID = list(self.camera_names.keys())[list(self.camera_names.values()).index(cam_name)]
         plugin_name = self.plugin_pipeline.horizontalHeaderItem(item.column()).text()
 
         if item.checkState() == Qt.CheckState.Checked:
@@ -494,16 +495,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def start_camera_widgets(self):
+        def reset_interface(camID, item):
+            self.camera_widgets[camID] = None
+            item.setData(Qt.ItemDataRole.BackgroundRole, None)
+            # Stop all checked triggers
+            for trig_item in get_checked_items(self.trigger_list):
+                try:
+                    trigger = self.triggers[trig_item.text()]
+                    if trigger.initialized:
+                            trigger.close()
+                    trig_item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
+                except Exception as err:
+                    logger.exception(err)
+                    logger.error(f"Trigger: {trig_item.text()} failed to close")
+
         screen_width = self.screen.width()
-        for row in range(self.plugin_pipeline.rowCount()):
-            cam_name = self.plugin_pipeline.verticalHeaderItem(row).text()
+        for cam_idx in range(self.plugin_pipeline.rowCount()):
+            cam_name = self.plugin_pipeline.verticalHeaderItem(cam_idx).text()
             camID = list(self.camera_names.keys())[list(self.camera_names.values()).index(cam_name)] # cam_name -> camID
             widget = self.camera_widgets[camID]
             if widget is None: # Create new widget 
                 enabled_plugins = []
                 for col in range(self.plugin_pipeline.columnCount()):
                     plugin_name = self.plugin_pipeline.horizontalHeaderItem(col).text()
-                    item = self.plugin_pipeline.item(row, col)
+                    item = self.plugin_pipeline.item(cam_idx, col)
                     if item.text() == "Enabled":
                         enabled_plugins.append((self.plugins[plugin_name], self.plugin_configs[plugin_name]))
                 if len(enabled_plugins) == 0:
@@ -532,18 +547,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 config = self.camera_configs[camID]
                 widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins, triggers=enabled_triggers)
 
-                # Update interface once camera widget opens
-                cam_item = self.cam_list.item(row)
+                # Update interface once camera widget opens or closes
+                cam_item = self.cam_list.item(cam_idx)
                 widget.pipeline_initialized.connect(lambda item=cam_item: item.setBackground(self.active_color))
+                widget.destroyed.connect(lambda _, id=camID, item=cam_item: reset_interface(id, item))
 
-                x_pos = min(widget.width() * row, screen_width - widget.width())
-                y_pos = (widget.height() // 2) * (row * widget.width() // screen_width)
+                widgets_per_row = round(screen_width / widget.width())
+                x_pos = min(widget.width() * (cam_idx % widgets_per_row), screen_width, widget.width())
+
+                # x_pos = min((widget.width() * row) % screen_width, screen_width - widget.width())
+                y_pos = (widget.height() // 2) * (cam_idx // widgets_per_row)
                 widget.move(x_pos,y_pos)
                 self.camera_widgets[camID] = widget
             elif not widget.active: # Toggle paused widget to resume
                 widget.active = True
                 self.camera_widgets[camID].show()
-                self.cam_list.item(row).setBackground(self.active_color)
+                self.cam_list.item(cam_idx).setBackground(self.active_color)
 
 
     def pause_camera_widgets(self):
@@ -557,29 +576,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def stop_camera_widgets(self):
-        def reset_interface(camID, item):
-            print("test")
-            self.camera_widgets[camID] = None
-            item.setData(Qt.ItemDataRole.BackgroundRole, None)
-            # Stop all checked triggers
-            for trig_item in get_checked_items(self.trigger_list):
-                trigger = self.triggers[trig_item.text()]
-                if trigger.initialized:
-                    try:
-                        trigger.close()
-                    except Exception as err:
-                        logger.exception(err)
-                        logger.error(f"Trigger: {trig_item.text()} failed to close")
-                trig_item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
-
         for cam_item in get_checked_items(self.cam_list):
             cam_name = cam_item.text()
             camID = list(self.camera_names.keys())[list(self.camera_names.values()).index(cam_name)] # cam_name -> camID
             cam_widget = self.camera_widgets[camID]
             if cam_widget is not None:
-                # Update interface once camera widget closes
-                cam_widget.destroyed.connect(lambda _, id=camID, item=cam_item: reset_interface(id, item))
-                cam_widget.close_widget()
+                cam_widget.stop_camera_pipeline()
 
 
     def save_session(self):
@@ -698,7 +700,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             # Restore camera list to saved state
             for idx in range(self.cam_list.count()):
                 item = self.cam_list.item(idx)
-                camID = item.text()
+                cam_name = item.text()
+                camID = list(self.camera_names.keys())[list(self.camera_names.values()).index(cam_name)] # cam_name -> camID
                 # Rename cameras to saved display names
                 self.cam_list.setCurrentItem(item)
                 if camID in saved_configs["camera_names"]:
@@ -760,7 +763,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         widgets_active = False
         for cam_widget in self.camera_widgets.values():
             if cam_widget is not None:
-                cam_widget.close_widget()
+                cam_widget.stop_camera_pipeline()
                 widgets_active = True
 
         # Save session configuration as json files
