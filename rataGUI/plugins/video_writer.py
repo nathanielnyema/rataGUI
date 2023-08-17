@@ -17,13 +17,13 @@ class VideoWriter(BasePlugin):
     """
 
     DEFAULT_CONFIG = {
+        'save directory': "videos",
+        'filename': "",
         'vcodec': ['libx264', 'libx265', 'h264_nvenc', 'hevc_nvenc', 'rawvideo'],
         'framerate': 30,
         'speed (preset)': ["fast", "veryfast", "ultrafast", "medium", "slow", "slower", "veryslow"], # Defaults to first item
         'quality (0-51)': (32, 0, 51),
         'pixel format': ['yuv420p', 'yuv422p', 'yuv444p', 'rgb24', 'yuv420p10le', 'yuv422p10le', 'yuv444p10le', 'gray'],
-        'save directory': "videos",
-        'filename': "",
     }
 
     DISPLAY_CONFIG_MAP = {

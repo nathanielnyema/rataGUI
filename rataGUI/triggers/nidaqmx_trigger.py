@@ -30,7 +30,6 @@ class NIDAQmxCounter(BaseTrigger):
     def __init__(self, deviceID):
         super().__init__(deviceID)
         self._task = None
-        self.interval = -1
 
 
     def initialize(self, config: ConfigManager):
@@ -46,8 +45,8 @@ class NIDAQmxCounter(BaseTrigger):
         return True
 
 
-    def execute(self):
-        logger.warning("NIDAQmxCounter execute funciton shouldn't be called")
+    def execute(self, signal):
+        logger.warning("NIDAQmxCounter execute funciton should not be called")
     
     
     def close(self):

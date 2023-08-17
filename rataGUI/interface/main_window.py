@@ -56,7 +56,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.triggers = {}          # deviceID -> trigger object
         self.trigger_tabs = {}      # trigger type -> tab widget
-        self.trigger_configs = {}   # enabled trigger -> config manager
+        self.trigger_configs = {}   # added trigger -> config manager
         self.trigger_types = {t.__name__ : t for t in trigger_types}
         self.populate_trigger_list()
         self.populate_trigger_settings()
@@ -82,8 +82,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_timer.start(250)
 
 
-    def update_camera_stats(self): # Save stats?
-        for row, camID in enumerate(self.camera_names.keys()):
+    def update_camera_stats(self):
+        for row, camID in enumerate(self.camera_names.keys()): # save stats?
             camera = self.cameras[camID]
             self.cam_stats.item(row, 0).setText(camera.getDisplayName())
             self.cam_stats.item(row, 1).setText(str(camera.frames_acquired))
@@ -453,7 +453,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 add_config_handler(config, key, setting)
         self.trigger_configs[deviceID] = config
 
-        config_layout = make_config_layout(config)
+        config_layout = make_config_layout(config, extend_line_edits=False)
         delete_btn = QtWidgets.QToolButton()
         delete_btn.setFixedSize(15,15)
         delete_btn.setText('X')
@@ -489,14 +489,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if options.itemText(i) > deviceID:
                 options.insertItem(i, deviceID)
                 break
+        if options.count() == 0:
+            options.addItem(deviceID)
 
 
     def start_camera_widgets(self):
-
-        def reset_interface(camID, item):
-            self.camera_widgets[camID] = None
-            item.setData(Qt.ItemDataRole.BackgroundRole, None)
-
         screen_width = self.screen.width()
         for row in range(self.plugin_pipeline.rowCount()):
             cam_name = self.plugin_pipeline.verticalHeaderItem(row).text()
@@ -527,6 +524,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         except Exception as err:
                             logger.exception(err)
                             trigger.initialized = False
+                            continue
 
                     enabled_triggers.append(trigger)
                     item.setBackground(self.active_color)
@@ -534,10 +532,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 config = self.camera_configs[camID]
                 widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins, triggers=enabled_triggers)
 
-                # Update interface when camera widget opens or closes
+                # Update interface once camera widget opens
                 cam_item = self.cam_list.item(row)
                 widget.pipeline_initialized.connect(lambda item=cam_item: item.setBackground(self.active_color))
-                widget.destroyed.connect(lambda _, id=camID, item=cam_item: reset_interface(id, item))
 
                 x_pos = min(widget.width() * row, screen_width - widget.width())
                 y_pos = (widget.height() // 2) * (row * widget.width() // screen_width)
@@ -560,23 +557,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def stop_camera_widgets(self):
+        def reset_interface(camID, item):
+            print("test")
+            self.camera_widgets[camID] = None
+            item.setData(Qt.ItemDataRole.BackgroundRole, None)
+            # Stop all checked triggers
+            for trig_item in get_checked_items(self.trigger_list):
+                trigger = self.triggers[trig_item.text()]
+                if trigger.initialized:
+                    try:
+                        trigger.close()
+                    except Exception as err:
+                        logger.exception(err)
+                        logger.error(f"Trigger: {trig_item.text()} failed to close")
+                trig_item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
+
         for cam_item in get_checked_items(self.cam_list):
             cam_name = cam_item.text()
             camID = list(self.camera_names.keys())[list(self.camera_names.values()).index(cam_name)] # cam_name -> camID
             cam_widget = self.camera_widgets[camID]
             if cam_widget is not None:
+                # Update interface once camera widget closes
+                cam_widget.destroyed.connect(lambda _, id=camID, item=cam_item: reset_interface(id, item))
                 cam_widget.close_widget()
-
-        # Stop all checked triggers
-        for item in get_checked_items(self.trigger_list):
-            trigger = self.triggers[item.text()]
-            if trigger.initialized:
-                try:
-                    trigger.close()
-                except Exception as err:
-                    logger.exception(err)
-                    logger.error(f"Trigger: {item.text()} failed to close")
-            item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
 
 
     def save_session(self):
@@ -598,7 +601,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if len(contents) != 0:
                 plugin_settings = json.loads(contents)
             for name, config in self.plugin_configs.items():
-                plugin_settings[camID] = config.as_dict()
+                plugin_settings[name] = config.as_dict()
             json.dump(plugin_settings, file, indent=2)
 
         with open(os.path.join(save_dir, "trigger_settings.json"), 'w+') as file:
@@ -667,7 +670,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     except:
                         logger.warning(f"Some saved settings for plugin: {name} could not be restored \
                                         as it no longer exists in the plugin's DEFAULT_CONFIG")
-            logger.info("Restored saved plugin settings")
+            logger.info(f"Restored from {plugin_config_path}")
         else:
             logger.info("No saved plugin settings ... using defaults")
 
@@ -768,6 +771,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             time.sleep(0.05)
             widgets_active = all(widget is None for widget in self.camera_widgets.values())
 
+        # Close all initialized triggers
+        for trigger in self.triggers.values():
+            try:
+                if trigger.initialized:
+                    trigger.close()
+            except Exception as err:
+                logger.exception(err)
+                logger.error(f"Trigger: {trigger.deviceID} failed to close")
+
         # Release camera-specific resources
         for cam_type in self.camera_models.values():
             cam_type.releaseResources()
@@ -830,7 +842,7 @@ def add_config_handler(config, key, value):
         logger.error("Failed to create setting handler. Each setting must correspond to a valid set of values")
 
 
-def make_config_layout(config, cols=2):
+def make_config_layout(config, cols=2, extend_line_edits=True):
     """
     Generate a QHBoxLayout based on the input ConfigManager where each column is a QFormLayout
     For each row, the label is the config dict key, and the field is the config handler for that key.
@@ -852,23 +864,23 @@ def make_config_layout(config, cols=2):
         form.setHorizontalSpacing(8)
         layout.addLayout(form)
 
-    line_edits = []
+    long_line_edits = []
     count = 0
     for key in config.get_visible_keys():
         f_index = count % cols
         handler = config.handlers[key]
         label = QtWidgets.QLabel(key)
 
-        if isinstance(handler, QtWidgets.QLineEdit):
-            line_edits.append((label, handler))
+        if isinstance(handler, QtWidgets.QLineEdit) and extend_line_edits:
+            long_line_edits.append((label, handler))
         else:
             forms[f_index].addRow(label, handler)
             count += 1
 
-    if len(line_edits) > 0:
+    if len(long_line_edits) > 0:
         line_form = QtWidgets.QFormLayout()
         line_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        for label, handler in line_edits:
+        for label, handler in long_line_edits:
             line_form.addRow(label, handler)
         
         new_layout = QtWidgets.QVBoxLayout()

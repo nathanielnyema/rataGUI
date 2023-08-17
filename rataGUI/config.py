@@ -13,6 +13,9 @@ enabled_trigger_types = []
 # Specify number of VideoReader cameras
 num_video_readers = 1
 
+# Specify number of socket readers
+num_socket_triggers = 1
+
 # Save and restore settings between sessions
 restore_session = True
 save_directory = "./session"

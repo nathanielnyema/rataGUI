@@ -71,7 +71,7 @@ class SleapInference(BasePlugin):
                     w_pos, h_pos = point
                     resized_h = h_pos * (img_h/self.input_height)
                     resized_w = w_pos * (img_w/self.input_width)
-                    pose.append(((resized_h, resized_w), score))
+                    pose.append( ((resized_h, resized_w), score) )
 
                 self.poses.append(pose)
 

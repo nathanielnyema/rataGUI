@@ -2,8 +2,7 @@ from abc import ABC, abstractmethod
 
 from pyqtconfig import ConfigManager
 
-from typing import Dict, Tuple
-from numpy.typing import NDArray
+from typing import Any
 
 import logging
 logger = logging.getLogger(__name__)
@@ -34,7 +33,6 @@ class BaseTrigger(ABC):
 
     def __init__(self, deviceID):
         self.initialized = False
-        self.interval = 0
         self.deviceID = deviceID
 
 
@@ -48,7 +46,7 @@ class BaseTrigger(ABC):
 
 
     @abstractmethod
-    def execute(self) -> bool:
+    def execute(self, signal: Any) -> bool:
         raise NotImplementedError()
 
 

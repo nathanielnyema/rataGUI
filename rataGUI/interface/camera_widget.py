@@ -28,7 +28,9 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     :param plugins: List of plugin types and configs in processing pipeline to instantiate
     :param triggers: List of initialized trigger objects to execute when needed
     """
-    pipeline_initialized = pyqtSignal(name='valChanged') # Signal for when camera and plugins have been initialized
+
+    # Signal for when camera and plugins have been initialized
+    pipeline_initialized = pyqtSignal()
 
     def __init__(self, camera=None, cam_config=None, plugins=[], triggers=[]):
         super().__init__()
@@ -43,6 +45,9 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.camera_model = type(camera).__name__
         self.camera_config = cam_config
 
+        # Make triggers available to camera pipeline
+        self.triggers = triggers
+
         # Instantiate plugins with camera-specific settings
         self.plugins = []
         self.plugin_names = []
@@ -54,7 +59,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
                 logger.exception(err)
                 logger.error(f"Plugin: {type(Plugin).__name__} for camera: {self.camera.getDisplayName()} failed to initialize")
 
-        
+
         if "FrameDisplay" in self.plugin_names: self.show() # Show widget UI if displaying 
         self.avg_latency = 0    # in milliseconds
         self.active = True      # acquiring frames
@@ -62,10 +67,6 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         # Threadpool for asynchronous tasks with signals and slots
         self.threadpool = QThreadPool().globalInstance()
 
-        # Start thread to process triggering
-        self.triggers = triggers
-        # self.trigger_thread = WorkerThread(self.start_camera_triggers)
-        # self.threadpool.start(self.trigger_thread)
 
         # Start thread to initialize and process camera stream and plugin pipeline
         self.pipeline_thread = WorkerThread(self.start_camera_pipeline)
@@ -117,9 +118,9 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 
                 else: # Pass to next coroutine
                     await asyncio.sleep(0)
-            t1 = time.time()
-            logger.info('FPS: '+str(self.camera.frames_acquired / (t1-t0)))
 
+            t1 = time.time()
+            logger.debug('FPS: '+str(self.camera.frames_acquired / (t1-t0)))
             # Close camera when camera stops streaming
             self.camera.closeCamera()
 

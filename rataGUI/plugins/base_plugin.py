@@ -35,9 +35,6 @@ class BasePlugin(ABC):
         super().__init_subclass__(**kwargs)
         cls.plugins.append(cls)
 
-    # @staticmethod
-    # def execute_process(plugin, frame, metadata):
-    #     return plugin.process(frame, metadata)
 
     def __init__(self, cam_widget: QWidget, config: ConfigManager, queue_size=0):
         logger.info(f"Started {type(self).__name__} for: {cam_widget.camera.getDisplayName()}")

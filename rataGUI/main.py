@@ -2,7 +2,8 @@ import sys
 import argparse
 import darkdetect
 from PyQt6.QtWidgets import QApplication
-from .interface.main_window import MainWindow
+from rataGUI.interface.main_window import MainWindow
+from rataGUI.interface.start_menu import StartMenu
 
 from rataGUI.cameras.BaseCamera import BaseCamera
 from rataGUI.plugins.base_plugin import BasePlugin
@@ -32,6 +33,10 @@ def main(args = None):
     logger.info("Starting RataGUI session")
     QApplication.setStyle('Fusion')
     app = QApplication([])
+
+    start_menu = StartMenu()
+    start_menu.show()
+    start_menu.exec()
 
     main_window = MainWindow(camera_models=BaseCamera.camera_models, plugins=BasePlugin.plugins, 
                              trigger_types=BaseTrigger.trigger_types, dark_mode=darkdetect.isDark())
