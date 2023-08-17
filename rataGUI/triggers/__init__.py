@@ -29,9 +29,9 @@ import sys
 #                 logger.exception(err)
 #             print(module)
 
-# # Get current path
-# path = os.path.relpath(__file__)
-# dirpath = os.path.dirname(path)
+# Get current path
+path = os.path.relpath(__file__)
+dirpath = os.path.dirname(path)
 # load_all_modules_from_dir(dirpath)
 
 
