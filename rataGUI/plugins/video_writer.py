@@ -112,13 +112,10 @@ class FFMPEG_Writer():
         self.verbosity = verbosity
         self.initialized = False
 
-        if FFMPEG_BINARY is not None and "ffmpeg" in FFMPEG_BINARY:
-            self._FFMPEG_PATH = FFMPEG_BINARY
-        else:
-            self._FFMPEG_PATH = which("ffmpeg")
+        self._FFMPEG_PATH = which("ffmpeg")
         
         if self._FFMPEG_PATH is None:
-            logger.error("Could not find ffmpeg executable")
+            raise IOError("Could not find ffmpeg executable")
 
 
     def start_process(self, H, W, C):

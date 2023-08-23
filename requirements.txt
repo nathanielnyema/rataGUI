@@ -4,4 +4,4 @@ opencv-python-headless==4.8.*
 pillow
 pyqt6==6.5.*
 pyqtconfig
-tensorflow>=2.7,<2.11
+tensorflow==2.8 # Adjust

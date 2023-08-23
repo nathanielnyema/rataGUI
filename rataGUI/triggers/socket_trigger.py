@@ -52,8 +52,6 @@ class SocketTrigger(BaseTrigger):
     
     
     def close(self):
-        # print("test trigger stopped")
-        print(__name__)
         logger.info("Test trigger stopped")
         self._socket.close()
         self.initialized = False

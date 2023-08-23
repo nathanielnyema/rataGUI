@@ -553,10 +553,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 widget.destroyed.connect(lambda _, id=camID, item=cam_item: reset_interface(id, item))
 
                 widgets_per_row = round(screen_width / widget.width())
-                x_pos = min(widget.width() * (cam_idx % widgets_per_row), screen_width, widget.width())
-
-                # x_pos = min((widget.width() * row) % screen_width, screen_width - widget.width())
-                y_pos = (widget.height() // 2) * (cam_idx // widgets_per_row)
+                x_pos = min(widget.width() * (cam_idx % widgets_per_row), screen_width - widget.width())
+                y_pos = (2 * widget.height() // 3) * (cam_idx // widgets_per_row)
                 widget.move(x_pos,y_pos)
                 self.camera_widgets[camID] = widget
             elif not widget.active: # Toggle paused widget to resume

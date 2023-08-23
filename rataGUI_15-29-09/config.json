@@ -1,0 +1,22 @@
+{
+  "Enabled Camera Modules": [
+    "FLIRCamera",
+    "TemplateCamera",
+    "VideoReader",
+    "WebCamera"
+  ],
+  "Enabled Plugin Modules": [
+    "DLCInference",
+    "FrameDisplay",
+    "MetadataWriter",
+    "SleapInference",
+    "TemplatePlugin",
+    "VideoWriter"
+  ],
+  "Enabled Trigger Modules": [
+    "SocketTrigger",
+    "TemplateTrigger"
+  ],
+  "Save Directory": "C:\\Users\\Siapas\\Documents\\video_acquisition\\rataGUI-deploy\\rataGUI_15-29-09",
+  "FFMPEG Path": ""
+}

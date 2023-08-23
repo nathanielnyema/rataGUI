@@ -8,31 +8,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 import os
-from importlib import util
-from rataGUI.config import enabled_camera_models
+from importlib import import_module
 
-
-# Automatically load camera modules
-def load_module(path):
-    name = os.path.split(path)[-1]
-    spec = util.spec_from_file_location(name, path)
-    module = util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-# Get current path
-path = os.path.relpath(__file__)
-dirpath = os.path.dirname(path)
+dirpath = os.path.dirname(__file__)
 
 for fname in os.listdir(dirpath):
     # Load only "real modules"
     if not fname.startswith('.') and not fname.startswith('__') and fname.endswith('.py'):
-        if len(enabled_camera_models) == 0 or fname in enabled_camera_models:
-            try:
-                load_module(os.path.join(dirpath, fname))
-                logger.info(f"Loaded camera module {fname}")
-            except ModuleNotFoundError as err:
-                logger.warning(f"Unable to load camera module {fname}")
-                logger.error(err.msg)
-            except Exception as err:
-                logger.exception(err)
+        try:
+            abs_module_path = f"{__name__}.{fname[:-3]}"
+            import_module(abs_module_path)
+            logger.info(f"Loaded camera module {fname}")
+        except ImportError as err:
+            logger.warning(f"Unable to load camera module {fname}")
+            logger.error(err.msg)
+        except Exception as err:
+            logger.exception(err)

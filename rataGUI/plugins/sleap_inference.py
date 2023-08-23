@@ -65,7 +65,7 @@ class SleapInference(BasePlugin):
             # new list of lists (instances) of tuples (points) with format ((h,w), score)
             self.poses = []
 
-            for points, scores in zip(prediction[3].numpy()[0], prediction[2].numpy()[0]):
+            for points, scores in zip(prediction[1].numpy()[0], prediction[0].numpy()[0]):
                 pose = []
                 for point, score in zip(points, scores):
                     w_pos, h_pos = point

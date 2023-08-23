@@ -19,7 +19,7 @@ For real-time model inference, using a GPU is strongly encouraged to minimize la
 > Note: CUDA is automatically installed in the conda environment.
 
 ```
-conda create -n rataGUI -c conda-forge ffmpeg pip python=3.10 cudnn=8.2 cudatoolkit=11.3 nvidia::cuda-nvcc=11.3
+conda create -n rataGUI ffmpeg pip python=3.10 cudnn=8.2 cudatoolkit=11.3 nvidia::cuda-nvcc=11.3
 conda activate rataGUI
 python -m pip install rataGUI
 ```
@@ -56,7 +56,7 @@ python -m pip install nidaqmx
 
 # Customization
 
-RataGUI's modular framework was built for easy user customizability and integration. You are encouraged to clone the package reponsitory from Github and add additional camera models or plugins for your specific use case. 
+RataGUI's modular framework was built for easy user customizability and integration. You are encouraged to clone the package repository from Github and add additional camera models or plugins for your specific use case. 
 ```
 git clone https://github.com/BrainHu42/rataGUI.git
 ```

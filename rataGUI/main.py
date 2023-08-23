@@ -34,9 +34,11 @@ def main(args = None):
     QApplication.setStyle('Fusion')
     app = QApplication([])
 
-    start_menu = StartMenu()
+    start_menu = StartMenu(camera_models=BaseCamera.camera_models, plugins=BasePlugin.plugins, trigger_types=BaseTrigger.trigger_types)
     start_menu.show()
     start_menu.exec()
+
+    # start_menu.
 
     main_window = MainWindow(camera_models=BaseCamera.camera_models, plugins=BasePlugin.plugins, 
                              trigger_types=BaseTrigger.trigger_types, dark_mode=darkdetect.isDark())
