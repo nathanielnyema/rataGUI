@@ -1,6 +1,6 @@
 from rataGUI.plugins.base_plugin import BasePlugin
-from rataGUI.config import FFMPEG_BINARY
 from rataGUI.utils import slugify
+from rataGUI import launch_config
 
 import os
 import numpy as np
@@ -100,7 +100,7 @@ class FFMPEG_Writer():
 
     def __init__(self, file_path, input_dict={}, output_dict={}, verbosity=0):
        
-        self.file_path = os.path.abspath(file_path)
+        self.file_path = os.path.abspath(os.path.normpath(file_path))
         dir_path = os.path.dirname(self.file_path)
 
         # Check for write permissions
@@ -113,7 +113,9 @@ class FFMPEG_Writer():
         self.initialized = False
 
         self._FFMPEG_PATH = which("ffmpeg")
-        
+        if os.path.isfile(launch_config["FFMPEG Path"]):
+            self._FFMPEG_PATH = launch_config["FFMPEG Path"]
+
         if self._FFMPEG_PATH is None:
             raise IOError("Could not find ffmpeg executable")
 

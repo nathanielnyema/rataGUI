@@ -73,7 +73,7 @@ class DLCInference(BasePlugin):
         if config.get("Publish to socket"):
             triggers = []
             for trigger in cam_widget.triggers:
-                if type(trigger).__name__ == "SocketTrigger":
+                if type(trigger).__name__ == "UDPSocket":
                     triggers.append(trigger)
             if len(triggers) > 1:
                 pass

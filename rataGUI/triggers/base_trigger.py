@@ -13,13 +13,14 @@ class BaseTrigger(ABC):
     to ensure that all the necessary methods are available to the triggering interface.
     """
 
-    # Static variable to contain all trigger subclasses
-    trigger_types = []
+    # Static variable mapping names of loaded trigger modules to their corresponding subclass
+    modules = {}
 
-    # For every class that inherits from BaseTrigger, the class name will be added to triggers
+    # For every class that inherits from BaseTrigger, the module name will be added to trigger_types
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        cls.trigger_types.append(cls)
+        module_name = cls.__module__.split('.')[-1]
+        cls.modules[module_name] = cls
 
     @staticmethod
     @abstractmethod

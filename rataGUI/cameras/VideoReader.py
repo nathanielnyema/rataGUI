@@ -1,5 +1,4 @@
 from rataGUI.cameras.BaseCamera import BaseCamera
-from rataGUI.config import num_video_readers
 
 import os
 import cv2
@@ -16,7 +15,7 @@ class VideoReader(BaseCamera):
 
     @staticmethod
     def getAvailableCameras():
-        return [VideoReader(f"Video Reader {i+1}") for i in range(num_video_readers)]
+        return [VideoReader(f"Video Reader {i+1}") for i in range(1)]
 
 
     def __init__(self, readerID):

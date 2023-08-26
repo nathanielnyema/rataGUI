@@ -9,13 +9,14 @@ class BaseCamera(ABC):
     to ensure that all the necessary methods are available to the camera acquistion engine.
     """
 
-    # Static variable to contain all camera subclasses
-    camera_models = []
+    # Static variable mapping names of loaded camera modules to their corresponding subclass
+    modules = {}
 
-    # For every class that inherits from BaseCamera, the class name will be added to camera_models
+    # For every class that inherits from BaseCamera, the module name will be added to camera_models
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        cls.camera_models.append(cls)
+        module_name = cls.__module__.split('.')[-1]
+        cls.modules[module_name] = cls
 
     @staticmethod
     @abstractmethod

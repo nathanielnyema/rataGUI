@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rataGUI"
-version = "0.1.2"
+version = "0.1.3"
 description = "Customizable and intuitive video acquisition system for real-time animal tracking and behavior quantification"
-keywords = ["live", "tracking", "pose estimation", "video", "neuroscience", "deep learning"]
+keywords = ["tracking", "pose estimation", "video", "neuroscience", "deep learning"]
 authors = [
     { name = "Brian Hu", email = "brainhu42@gmail.com" }
 ]
@@ -29,11 +29,6 @@ dependencies = { file = ["requirements.txt"]}
 
 [tool.setuptools.packages.find]
 include = ["rataGUI*"]
-exclude = [
-    "rataGUI/cameras/TemplateCamera.py"
-    "rataGUI/plugins/template_plugin.py"
-    "rataGUI/triggers/template_trigger.py"
-]
 
 
 [project.scripts]

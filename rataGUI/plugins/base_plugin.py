@@ -16,8 +16,8 @@ class BasePlugin(ABC):
     to ensure that all the necessary methods are available to the processing pipeline.
     """
 
-    # Static variable to contain all plugin subclasses
-    plugins = []
+    # Static variable mapping names of loaded plugin modules to their corresponding subclass
+    modules = {}
 
     # # Overwrite with any metadata produced by plugin
     # @staticmethod
@@ -30,10 +30,11 @@ class BasePlugin(ABC):
     #     return list()
 
 
-    # For every class that inherits from BasePlugin, the class name will be added to triggers
+    # For every class that inherits from BasePlugin, the module name will be added to plugins
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        cls.plugins.append(cls)
+        module_name = cls.__module__.split('.')[-1]
+        cls.modules[module_name] = cls
 
 
     def __init__(self, cam_widget: QWidget, config: ConfigManager, queue_size=0):

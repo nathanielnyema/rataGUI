@@ -1,10 +1,10 @@
-# import sys
 import time
 from datetime import datetime
 
 from PyQt6 import QtWidgets, QtGui
-from PyQt6.QtCore import Qt, QThreadPool, QObject, QTimer, pyqtSlot, pyqtSignal, QRect
+from PyQt6.QtCore import QThreadPool, pyqtSlot, pyqtSignal
 
+from rataGUI import rataGUI_icon
 from rataGUI.utils import WorkerThread
 from rataGUI.interface.design.Ui_CameraWidget import Ui_CameraWidget
 
@@ -35,6 +35,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     def __init__(self, camera=None, cam_config=None, plugins=[], triggers=[]):
         super().__init__()
         self.setupUi(self)
+        self.setWindowIcon(QtGui.QIcon(rataGUI_icon))
 
         # Set widget fields
         self.frame_width = self.frameGeometry().width()
@@ -83,6 +84,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
             if not success:
                 raise IOError(f"Camera: {self.camera.getDisplayName()} failed to initialize")
             self.camera._running = True
+            self.camera.frames_acquired = 0
             self.pipeline_initialized.emit()
             logger.info('Started pipeline for camera: {}'.format(self.camera.getDisplayName()))
             asyncio.run(self.process_plugin_pipeline(), debug=False)
@@ -137,7 +139,6 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         failures = 0
         while True:
             frame, metadata = await plugin.in_queue.get()
-            # print(f'{type(plugin).__name__} queue: ' + str(plugin.in_queue.qsize()))
             try:
                 # Execute plugin
                 if plugin.active:
@@ -163,8 +164,6 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
             finally:
                 plugin.in_queue.task_done()
 
-            # TODO: Add plugin-specific data
-            # TODO: Parallelize with Thread Executor
 
     async def process_plugin_pipeline(self):
         # Add process to continuously acquire frames from camera

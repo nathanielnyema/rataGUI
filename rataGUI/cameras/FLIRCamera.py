@@ -84,7 +84,6 @@ class FLIRCamera(BaseCamera):
         self.last_index = -1
         self.buffer_size = 0
         self.initial_frameID = 0 # on camera transport layer
-        self.FPS = -1
 
 
     def configure_custom_settings(self, prop_config, plugin_names):
@@ -99,7 +98,10 @@ class FLIRCamera(BaseCamera):
 
     def initializeCamera(self, prop_config, plugin_names=[]) -> bool:
         # Reset camera session variables
-        self.__init__(self.cameraID)
+        self.frames_dropped = 0
+        self.last_index = -1
+        self.buffer_size = 0
+        self.initial_frameID = 0
 
         try:
             cam_list = FLIRCamera.getCameraList()
@@ -151,8 +153,8 @@ class FLIRCamera(BaseCamera):
                         node_max = node.GetMax()
                         clipped = min(max(value, node_min), node_max)
                         if clipped != value:
-                            logger.warning(f"{prop_name} must be in the range [{node_min}, {node_max}] \
-                                    so {value} was clipped to {clipped}")
+                            logger.warning(f"{prop_name} must be in the range [{node_min}, {node_max}]"
+                                            f" so {value} was clipped to {clipped}")
                             prop_config.set(name, clipped)
                             value = clipped
 
@@ -163,11 +165,6 @@ class FLIRCamera(BaseCamera):
             logger.exception(err)
             logger.error("PySpin failed to configure camera property values")
             return False  
-        
-        if prop_config.get("Limit Framerate"):
-            self.FPS = int(prop_config.get("Framerate"))
-        else:
-            self.FPS = -1
         
         # print(dir(self._stream.TLStream))
         # print(self._stream.TLStream.StreamBufferHandlingMode.ToString())

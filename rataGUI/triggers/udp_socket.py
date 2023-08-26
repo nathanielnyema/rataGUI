@@ -1,14 +1,12 @@
 from rataGUI.triggers.base_trigger import BaseTrigger, ConfigManager
-from rataGUI.config import num_socket_triggers
-
-import socket
 
 import time
+import socket
 
 import logging
 logger = logging.getLogger(__name__)
 
-class SocketTrigger(BaseTrigger):
+class UDPSocket(BaseTrigger):
     """
     Interface for publishing information to a socket
     """
@@ -20,7 +18,7 @@ class SocketTrigger(BaseTrigger):
     @staticmethod
     def getAvailableDevices():
         '''Returns list of test trigger(s)'''
-        return [SocketTrigger(f"Socket Trigger {i+1}") for i in range(num_socket_triggers)]
+        return [UDPSocket(f"Rasberry Pi {i+1}") for i in range(1)]
 
     def __init__(self, deviceID):
         super().__init__(deviceID)

@@ -9,17 +9,17 @@ from PyQt6.QtCore import Qt, QTimer
 
 from rataGUI.interface.design.Ui_MainWindow import Ui_MainWindow
 from rataGUI.interface.camera_widget import CameraWidget
-from rataGUI.config import restore_session, save_directory
+from rataGUI import launch_config, rataGUI_icon
 
 import logging
 logger = logging.getLogger(__name__)
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    def __init__(self, camera_models = [], plugins = [], trigger_types = [], dark_mode=True, defaults=False):
+    def __init__(self, camera_models = [], plugins = [], trigger_types = [], dark_mode=True, reset=False):
         super().__init__()
         self.setupUi(self)
-        self.setWindowIcon(QtGui.QIcon('rataGUI/interface/design/ratagui-icon.png'))
+        self.setWindowIcon(QtGui.QIcon(rataGUI_icon))
 
         # Set geometry relative to screen
         self.screen = QtGui.QGuiApplication.primaryScreen().availableGeometry()
@@ -74,7 +74,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.stop_button.setStyleSheet("background-color: darkred; color: white; font-weight: bold")
         
         # Load saved session config
-        if restore_session: self.restore_session()
+        if not reset: self.restore_session()
 
         # Update camera stats occasionally
         self.update_timer = QTimer()
@@ -394,8 +394,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.trigger_list.setItemAlignment(Qt.AlignmentFlag.AlignTop)
         self.trigger_list.itemDoubleClicked.connect(
             lambda item: item.setCheckState(Qt.CheckState.Checked 
-                if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked
-            )
+                if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked)
         )
         self.trigger_list.itemChanged.connect(sync_check_box)
         # trigger_list is initially empty as triggers are added dynamically
@@ -583,7 +582,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def save_session(self):
-        save_dir = os.path.abspath(save_directory)
+        save_dir = os.path.join(launch_config["Save Directory"], "session")
         os.makedirs(save_dir, exist_ok=True)
 
         with open(os.path.join(save_dir, "camera_settings.json"), 'w+') as file:
@@ -639,13 +638,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     ui_settings["camera_names"] = old_names
             json.dump(ui_settings, file, indent=2)
 
-        logger.info("Saved session settings")
+        logger.info(f"Saved session settings to {save_dir}")
 
 
     def restore_session(self):
-        save_dir = os.path.abspath(save_directory)
+        save_dir = os.path.join(launch_config["Save Directory"], "session")
         cam_config_path = os.path.join(save_dir, "camera_settings.json")
-        if os.path.isfile(cam_config_path): 
+        if os.path.isfile(cam_config_path) and os.stat(cam_config_path).st_size > 0: 
             with open(cam_config_path, 'r') as file:
                 saved_configs = json.load(file)
             for camID, config in self.camera_configs.items():
@@ -660,7 +659,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             logger.info("No saved camera settings ... using defaults")
 
         plugin_config_path = os.path.join(save_dir, "plugin_settings.json")
-        if os.path.isfile(plugin_config_path): 
+        if os.path.isfile(plugin_config_path) and os.stat(plugin_config_path).st_size > 0: 
             with open(plugin_config_path, 'r') as file:
                 saved_configs = json.load(file)
             for name, config in self.plugin_configs.items():
@@ -670,12 +669,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     except:
                         logger.warning(f"Some saved settings for plugin: {name} could not be restored \
                                         as it no longer exists in the plugin's DEFAULT_CONFIG")
-            logger.info(f"Restored from {plugin_config_path}")
+            logger.info(f"Restored saved plugin settings")
         else:
             logger.info("No saved plugin settings ... using defaults")
 
         trigger_config_path = os.path.join(save_dir, "trigger_settings.json")
-        if os.path.isfile(trigger_config_path): 
+        if os.path.isfile(trigger_config_path) and os.stat(trigger_config_path).st_size > 0: 
             with open(trigger_config_path, 'r') as file:
                 saved_configs = json.load(file)
             for deviceID, trigger in self.triggers.items():
@@ -691,7 +690,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             logger.info("No saved trigger settings ... using defaults")
 
         ui_config_path = os.path.join(save_dir, "interface_settings.json")
-        if os.path.isfile(ui_config_path): 
+        if os.path.isfile(ui_config_path) and os.stat(ui_config_path).st_size > 0: 
             with open(ui_config_path, 'r') as file:
                 saved_configs = json.load(file)
 
