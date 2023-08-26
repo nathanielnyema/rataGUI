@@ -26,7 +26,7 @@ if enabled_plugins is not None:
 
 else: # Load all modules if launch config does not specify
     for fname in os.listdir(os.path.dirname(__file__)):
-        if not fname.startswith('.') and not fname.startswith('__') and fname.endswith('.py'):
+        if fname.endswith('.py') and not fname.startswith('_') and fname not in ["base_plugin.py", "template_plugin.py"]:
             try:
                 abs_module_path = f"{__name__}.{fname[:-3]}"
                 import_module(abs_module_path)

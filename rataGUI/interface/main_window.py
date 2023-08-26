@@ -338,6 +338,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
 
         self.plugin_pipeline.setVerticalHeaderLabels(self.camera_names.values())
+        self.plugin_pipeline.verticalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
         self.plugin_pipeline.setHorizontalHeaderLabels(column_labels)
         
         self.plugin_pipeline.itemChanged.connect(self.toggle_camera_plugin)

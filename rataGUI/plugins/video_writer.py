@@ -65,6 +65,9 @@ class VideoWriter(BasePlugin):
         # if vcodec in ['h264_nvenc', 'hevc_nvenc']:
         #     self.output_params['-cq'] = self.output_params.pop('-crf')
 
+        if not os.path.isabs(self.save_dir):
+            self.save_dir = os.path.join(launch_config["Save Directory"], self.save_dir)
+
         os.makedirs(self.save_dir, exist_ok=True)
         self.file_path = os.path.join(self.save_dir, file_name + extension)
         count = 1

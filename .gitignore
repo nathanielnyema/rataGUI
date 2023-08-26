@@ -1,9 +1,10 @@
 # Project specific
-videos/
-data/
 archive/
 exported_models/
+example/
 session/
+videos/
+data/
 rataGUI/launch_config.json
 
 # Byte-compiled / optimized / DLL files
