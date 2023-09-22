@@ -53,10 +53,10 @@ class MetadataWriter(BasePlugin):
                         name = ''.join([word[0] for word in name.split(' ')]) # find initials
                     overlay = name+": "+str(value)
 
-                (text_w, text_h), _ = cv2.getTextSize(overlay, cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.75, thickness=2)
-                pos = (6, img_h - count*(text_h+6))
+                (text_w, text_h), _ = cv2.getTextSize(overlay, cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7, thickness=2)
+                pos = (5, img_h-5 - count*(text_h+5))
                 cv2.rectangle(frame, pos, (pos[0] + text_w, pos[1] - text_h), (0, 0, 0), cv2.FILLED)
-                cv2.putText(frame, overlay, pos, cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.75, color=(255, 255, 255), thickness=2, lineType=cv2.LINE_4)
+                cv2.putText(frame, overlay, pos, cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7, color=(255, 255, 255), thickness=2, lineType=cv2.LINE_4)
                 count += 1
 
         return frame, metadata

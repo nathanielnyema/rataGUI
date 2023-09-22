@@ -2,7 +2,7 @@ import os
 import json
 from datetime import datetime
 
-from PyQt6.QtWidgets import QDialog, QListWidget, QListWidgetItem, QDialogButtonBox
+from PyQt6.QtWidgets import QDialog, QListWidget, QListWidgetItem, QDialogButtonBox, QFileDialog
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
 
@@ -53,6 +53,11 @@ class StartMenu(QDialog, Ui_StartMenu):
                 if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked)
         )
 
+        # Browse path buttons
+        # self.ffmpeg_path_btn.clicked.connect(lambda state, edit=self.ffmpeg_path: self.open_dir_dialog(edit))
+        self.save_dir_btn.clicked.connect(lambda state, edit=self.save_directory: self.open_dir_dialog(edit))
+
+        # Save and close menu buttons
         self.buttonBox.button(QDialogButtonBox.StandardButton.Save).clicked.connect(self.save_settings)
         self.buttonBox.button(QDialogButtonBox.StandardButton.Close).clicked.connect(self.load_settings)
         self.closeEvent = self.load_settings
@@ -78,7 +83,7 @@ class StartMenu(QDialog, Ui_StartMenu):
         launch_config["Enabled Plugin Modules"] = [module_name(self.plugins[name]) for name in get_checked_names(self.plugin_modules)]
         launch_config["Enabled Trigger Modules"] = [module_name(self.trigger_types[name]) for name in get_checked_names(self.trigger_modules)]
         launch_config["Save Directory"] = save_dir
-        launch_config["FFMPEG Path"] = self.ffmpeg_path.text()
+        # launch_config["FFMPEG Path"] = self.ffmpeg_path.text()
 
     
     def save_settings(self):
@@ -86,6 +91,13 @@ class StartMenu(QDialog, Ui_StartMenu):
         self.load_settings()
         with open(config_path, 'w') as file:
             json.dump(launch_config, file, indent=2)        
+
+
+    def open_dir_dialog(self, line_edit):
+        dir_name = QFileDialog.getExistingDirectory(self, "Select a Directory", directory=os.getcwd(), options=QFileDialog.Option.ShowDirsOnly)
+        if dir_name:
+            path = os.path.normpath(dir_name)
+            line_edit.setText(str(path))
 
 
 def get_checked_names(check_list: QListWidget) -> list:

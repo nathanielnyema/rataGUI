@@ -116,11 +116,11 @@ class FFMPEG_Writer():
         self.initialized = False
 
         self._FFMPEG_PATH = which("ffmpeg")
-        if os.path.isfile(launch_config["FFMPEG Path"]):
-            self._FFMPEG_PATH = launch_config["FFMPEG Path"]
+        # if os.path.isfile(launch_config["FFMPEG Path"]):
+        #     self._FFMPEG_PATH = launch_config["FFMPEG Path"]
 
         if self._FFMPEG_PATH is None:
-            raise IOError("Could not find ffmpeg executable")
+            raise IOError("Could not find ffmpeg executable in the environment PATH.")
 
 
     def start_process(self, H, W, C):

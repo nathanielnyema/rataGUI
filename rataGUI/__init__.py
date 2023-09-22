@@ -17,8 +17,9 @@ logger.addHandler(console)
 
 # set up logging INFO messages or higher to log file
 def configure_file_logger():
+    os.makedirs(os.path.join(launch_config["Save Directory"], "logs"), exist_ok=True)
     file_name = "info_" + datetime.now().strftime("%Y_%m_%d-%H_%M_%S") + ".log"
-    logging_file = os.path.join(launch_config["Save Directory"], file_name)
+    logging_file = os.path.join(launch_config["Save Directory"], "logs", file_name)
     file_handler = logging.FileHandler(logging_file)
     file_handler.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s.%(msecs)03d  %(levelname)-8s %(module)-16s %(message)s', '%Y-%m-%d,%H:%M:%S')
@@ -35,7 +36,6 @@ launch_config = {}
 if os.path.isfile(config_path) and os.stat(config_path).st_size > 0:
     with open(config_path, 'r') as file:
         launch_config = json.load(file)
-    os.makedirs(launch_config["Save Directory"], exist_ok=True)
 
 # Path to rataGUI project icon
 rataGUI_icon = os.path.join(os.path.dirname(__file__), 'interface/design/ratagui-icon.png')

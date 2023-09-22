@@ -13,7 +13,7 @@ class WebCamera(BaseCamera):
     }
 
     @staticmethod
-    def getAvailableCameras(search = 1):
+    def getAvailableCameras(search = 3):
         '''Returns list of all available web cameras'''
         cameras = []
         for i in range(search):
@@ -32,6 +32,7 @@ class WebCamera(BaseCamera):
     def __init__(self, cameraID):
         super().__init__(cameraID)
         self.last_frame = None
+        self.display_name = "Web Camera " + str(self.cameraID)
 
 
     def initializeCamera(self, prop_config, plugin_names=[]):
@@ -65,6 +66,3 @@ class WebCamera(BaseCamera):
     
     def isOpened(self):
         return self._running
-
-    def getDisplayName(self):
-        return "Web Camera " + str(self.cameraID)

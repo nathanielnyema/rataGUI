@@ -2,7 +2,7 @@
 Customizable and intuitive video acquisition system for real-time animal tracking and behavior quantification
 
 # Installation
-RataGUI is written entirely in Python and runs on all major platforms. To get started, clone the repository and create a virtual environment with the required dependencies.
+RataGUI is written entirely in Python and runs on all platforms with minimal dependencies.
 
 ## Conda Installation (Recommended)
 
@@ -65,4 +65,7 @@ git clone https://github.com/BrainHu42/rataGUI.git
 Currently, RataGUI has built-in support for FLIR, Basler and OpenCV-compatible cameras. If you need to add another camera model, simply rename and edit the required functions provided in `cameras/TemplateCamera.py` to fit your camera model's specifications. RataGUI will use these functions to find, initialize, read frames from and close the camera. 
 
 ## Implement Custom Plugins
-Currently, RataGUI has built-in support for multi-animal pose estimation with SLEAP and DeepLabCut (DLC) models as well as writing video stream to file or displaying it on screen. Any metadata collected during acquistion can be written directly on the frame or in a csv file using the **MetadataWriter** plugin. If you need additional functionality, simply rename and edit the required functions provided in `plugins/template_plugin.py` with the custom processing needed for your use case. RataGUI will use these functions to attach your plugin to an active camera widget's processing pipeline.
+Currently, RataGUI has built-in support for multi-animal pose estimation with SLEAP and DeepLabCut (DLC) models as well as writing video stream to file or displaying it on screen. If you need additional functionality, simply rename and edit the required functions provided in `plugins/template_plugin.py` with the custom processing needed for your use case. RataGUI will use these functions to attach your plugin to an active camera widget's processing pipeline. Any configurable plugin settings should be specified in the dictionary named `DEFAULT_CONFIG`. RataGUI will use these default settings to automatically create a dynamic menu and add it to the user interface.
+
+## Implement Custom Triggers
+Currently, RataGUI has built-in support for interfacing with National Instrument cards as well as network devices like a Rasperry Pi through a UDP socket. If you need to interface with other external devices, simply rename and edit the required functions provided in `triggers/template_trigger.py` to fit your custom use case. RataGUI will use these functions to populate the trigger tab in the user interface with all available devices and their configurable settings. Trigger devices can be controlled through the interface as well as within a plugin process. 
