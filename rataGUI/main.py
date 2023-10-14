@@ -26,7 +26,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 if args.start_menu:
-    launch_config.clear()
+    launch_config["Don't show again"] = False
 
 import os
 import darkdetect
@@ -49,7 +49,7 @@ def main():
     QApplication.setStyle('Fusion')
     app = QApplication([])
 
-    if args.start_menu or len(launch_config) < 3:
+    if not launch_config.get("Don't show again") or len(launch_config) < 3:    # Load start menu
         start_menu = StartMenu(camera_modules=BaseCamera.modules.values(), plugin_modules=BasePlugin.modules.values(), 
                                 trigger_modules=BaseTrigger.modules.values())
         start_menu.show()
@@ -59,17 +59,20 @@ def main():
         logger.info(f"Saving all session data to {launch_config['Save Directory']}")
         os.makedirs(launch_config["Save Directory"], exist_ok=True)
     
-    camera_modules = [BaseCamera.modules[module] for module in launch_config["Enabled Camera Modules"]]
-    plugin_modules = [BasePlugin.modules[module] for module in launch_config["Enabled Plugin Modules"]]
-    trigger_modules = [BaseTrigger.modules[module] for module in launch_config["Enabled Trigger Modules"]]
-    configure_file_logger()
+    try:
+        camera_modules = [BaseCamera.modules[module] for module in launch_config["Enabled Camera Modules"]]
+        plugin_modules = [BasePlugin.modules[module] for module in launch_config["Enabled Plugin Modules"]]
+        trigger_modules = [BaseTrigger.modules[module] for module in launch_config["Enabled Trigger Modules"]]
+        configure_file_logger()
+    except:
+        logger.error("Unable to launch RataGUI due to incomplete launch_config")
+        return
 
     main_window = MainWindow(camera_models=camera_modules, plugins=plugin_modules, trigger_types=trigger_modules,
                                 dark_mode=darkdetect.isDark(), reset=args.reset)
     main_window.show()
-
     app.exit(app.exec())
-
+    logger.info("RataGUI successfully exited")
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,7 @@
 import os
 import time
 import json
+from datetime import datetime
 from collections import OrderedDict
 
 from pyqtconfig import ConfigManager
@@ -509,7 +510,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     logger.exception(err)
                     logger.error(f"Trigger: {trig_item.text()} failed to close")
 
+        start_time = datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
         screen_width = self.screen.width()
+
+        # Initialize all enabled triggers
+        enabled_triggers = []
+        for item in get_checked_items(self.trigger_list):
+            deviceID = item.text()
+            trigger = self.triggers[deviceID]
+            if not trigger.initialized:
+                try:
+                    success = trigger.initialize(self.trigger_configs[deviceID])
+                    if not success:
+                        raise IOError(f"Trigger: {deviceID} failed to initialize") 
+                    trigger.initialized = True
+                    logger.info(f"Trigger: {deviceID} initialized")
+                except Exception as err:
+                    logger.exception(err)
+                    trigger.initialized = False
+                    continue
+
+            enabled_triggers.append(trigger)
+            item.setBackground(self.active_color)
+                    
         for cam_idx in range(self.plugin_pipeline.rowCount()):
             cam_name = self.plugin_pipeline.verticalHeaderItem(cam_idx).text()
             camID = list(self.camera_names.keys())[list(self.camera_names.values()).index(cam_name)] # cam_name -> camID
@@ -523,29 +546,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         enabled_plugins.append((self.plugins[plugin_name], self.plugin_configs[plugin_name]))
                 if len(enabled_plugins) == 0:
                     continue
-
-                # Initialize all enabled triggers
-                enabled_triggers = []
-                for item in get_checked_items(self.trigger_list):
-                    deviceID = item.text()
-                    trigger = self.triggers[deviceID]
-                    if not trigger.initialized:
-                        try:
-                            success = trigger.initialize(self.trigger_configs[deviceID])
-                            if not success:
-                                raise IOError(f"Trigger: {deviceID} failed to initialize") 
-                            trigger.initialized = True
-                            logger.info(f"Trigger: {deviceID} initialized")
-                        except Exception as err:
-                            logger.exception(err)
-                            trigger.initialized = False
-                            continue
-
-                    enabled_triggers.append(trigger)
-                    item.setBackground(self.active_color)
                 
                 config = self.camera_configs[camID]
-                widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins, triggers=enabled_triggers)
+                widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins, triggers=enabled_triggers, sessionID=start_time)
 
                 # Update interface once camera widget opens or closes
                 cam_item = self.cam_list.item(cam_idx)

@@ -17,23 +17,22 @@ class FrameDisplay(BasePlugin):
     :param aspect_ratio: Whether to maintain frame aspect ratio or force into frame
     """
     DEFAULT_CONFIG = {
-        'Keep aspect ratio': True,
+        "Frame width": 960, 
+        "Frame height": 720, 
+        "Keep aspect ratio": True,
     }
 
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
-        self.frame_width = cam_widget.frame_width
-        self.frame_height = cam_widget.frame_height
+
+        self.frame_width = config.get("Frame width")
+        self.frame_height = config.get("Frame height")
         self.signal = DisplaySignal()
         self.signal.image.connect(cam_widget.set_window_pixmap)
 
 
     def process(self, frame, metadata):
         """Sets pixmap image to video frame"""
-        # print("frame displayed")
-
-        # print(self.in_queue.qsize())
-
         # Get image dimensions
         img_h, img_w, num_ch = frame.shape
 

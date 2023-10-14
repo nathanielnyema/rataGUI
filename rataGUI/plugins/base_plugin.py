@@ -41,7 +41,7 @@ class BasePlugin(ABC):
         logger.info(f"Started {type(self).__name__} for: {cam_widget.camera.getDisplayName()}")
         self.active = True
         self.blocking = False
-        self.config = config
+        self.config = config.as_dict()  # freeze plugin settings
         self.in_queue = Queue(queue_size)
         self.out_queue = None
 

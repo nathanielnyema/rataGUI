@@ -21,10 +21,14 @@ class StartMenu(QDialog, Ui_StartMenu):
         self.setWindowIcon(QIcon(rataGUI_icon))
 
         self.camera_models = {}
+        enabled_cameras = launch_config.get("Enabled Camera Modules")
         for cls in camera_modules:
             self.camera_models[cls.__name__] = cls
             item = QListWidgetItem(cls.__name__)
-            item.setCheckState(Qt.CheckState.Checked)
+            if enabled_cameras is None or module_name(cls) in enabled_cameras:
+                item.setCheckState(Qt.CheckState.Checked)
+            else:
+                item.setCheckState(Qt.CheckState.Unchecked)
             self.camera_modules.addItem(item)
         self.camera_modules.itemDoubleClicked.connect(
             lambda item: item.setCheckState(Qt.CheckState.Checked 
@@ -32,10 +36,14 @@ class StartMenu(QDialog, Ui_StartMenu):
         )
 
         self.plugins = {}
+        enabled_plugins = launch_config.get("Enabled Plugin Modules")
         for cls in plugin_modules:
             self.plugins[cls.__name__] = cls
             item = QListWidgetItem(cls.__name__)
-            item.setCheckState(Qt.CheckState.Checked)
+            if enabled_plugins is None or module_name(cls) in enabled_plugins:
+                item.setCheckState(Qt.CheckState.Checked)
+            else:
+                item.setCheckState(Qt.CheckState.Unchecked)
             self.plugin_modules.addItem(item)
         self.plugin_modules.itemDoubleClicked.connect(
             lambda item: item.setCheckState(Qt.CheckState.Checked 
@@ -43,24 +51,30 @@ class StartMenu(QDialog, Ui_StartMenu):
         )
 
         self.trigger_types = {}
+        enabled_triggers = launch_config.get("Enabled Trigger Modules")
         for cls in trigger_modules:
             self.trigger_types[cls.__name__] = cls
             item = QListWidgetItem(cls.__name__)
-            item.setCheckState(Qt.CheckState.Checked)
+            if enabled_triggers is None or module_name(cls) in enabled_triggers:
+                item.setCheckState(Qt.CheckState.Checked)
+            else:
+                item.setCheckState(Qt.CheckState.Unchecked)
             self.trigger_modules.addItem(item)
         self.trigger_modules.itemDoubleClicked.connect(
             lambda item: item.setCheckState(Qt.CheckState.Checked 
                 if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked)
         )
 
+        self.save_directory.setText(launch_config.get("Save Directory", ""))
+        self.dontShowAgain.setChecked(launch_config.get("Don't show again", False))
+
         # Browse path buttons
-        # self.ffmpeg_path_btn.clicked.connect(lambda state, edit=self.ffmpeg_path: self.open_dir_dialog(edit))
         self.save_dir_btn.clicked.connect(lambda state, edit=self.save_directory: self.open_dir_dialog(edit))
 
         # Save and close menu buttons
         self.buttonBox.button(QDialogButtonBox.StandardButton.Save).clicked.connect(self.save_settings)
         self.buttonBox.button(QDialogButtonBox.StandardButton.Close).clicked.connect(self.load_settings)
-        self.closeEvent = self.load_settings
+        self.closeEvent = lambda event: launch_config.clear()
         
 
     def load_settings(self, event=None):
@@ -83,7 +97,7 @@ class StartMenu(QDialog, Ui_StartMenu):
         launch_config["Enabled Plugin Modules"] = [module_name(self.plugins[name]) for name in get_checked_names(self.plugin_modules)]
         launch_config["Enabled Trigger Modules"] = [module_name(self.trigger_types[name]) for name in get_checked_names(self.trigger_modules)]
         launch_config["Save Directory"] = save_dir
-        # launch_config["FFMPEG Path"] = self.ffmpeg_path.text()
+        launch_config["Don't show again"] = self.dontShowAgain.isChecked()
 
     
     def save_settings(self):

@@ -29,14 +29,14 @@ class WebCamera(BaseCamera):
         return cameras
 
 
-    def __init__(self, cameraID):
-        super().__init__(cameraID)
+    def __init__(self, camIndex):
+        super().__init__("Web Camera " + str(camIndex))
+        self.cam_index = camIndex
         self.last_frame = None
-        self.display_name = "Web Camera " + str(self.cameraID)
 
 
     def initializeCamera(self, prop_config, plugin_names=[]):
-        self._stream = cv2.VideoCapture(self.cameraID)
+        self._stream = cv2.VideoCapture(self.cam_index)
         self._running = True
         return True
 

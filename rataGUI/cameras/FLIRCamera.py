@@ -95,6 +95,9 @@ class FLIRCamera(BaseCamera):
         else:
             prop_config.set("Line2 Output", PySpin.LineSource_UserOutput0)
 
+        if prop_config.get("TriggerSource") != "TriggerMode_Off": # Camera is being driven
+            prop_config.set("Limit Framerate", False)
+
 
     def initializeCamera(self, prop_config, plugin_names=[]) -> bool:
         # Reset camera session variables
