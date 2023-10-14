@@ -1,9 +1,12 @@
 from rataGUI.plugins.base_plugin import BasePlugin
+from rataGUI.utils import slugify
 
 import os
-import numpy as np
+import csv
 import cv2
+import numpy as np
 import tensorflow as tf
+from datetime import datetime
 
 import logging
 logger = logging.getLogger(__name__)
@@ -19,9 +22,10 @@ class SleapInference(BasePlugin):
         "Inference FPS": ["Match Camera", "Every Interval"],
         "Fixed Interval": 0, 
         "Score Threshold": 0.5,
-        "Draw on frame": {"Enabled": True, "Disabled": False},
         "Batch Processing": {"Disabled": False, "Enabled": True},
+        "Draw on frame": {"Enabled": True, "Disabled": False},
         "Write to file": {"Disabled": False, "Enabled": True},
+        "Publish to socket": {"Disabled": False, "Enabled": True},
     }
 
     def __init__(self, cam_widget, config, queue_size=0):
@@ -49,8 +53,33 @@ class SleapInference(BasePlugin):
         
         self.interval = 0
         self.poses = []
-        # self.keypoints = np.zeros((1,4,2))
-        # self.keypoint_scores = np.zeros((1,4,1))
+
+        self.save_file = None
+        self.csv_writer = None
+        if config.get("Write to file"):
+            file_name = slugify(config.get("Save file (.csv)"))
+            if len(file_name) == 0: # Use default file name
+                file_name = slugify(cam_widget.camera.getDisplayName()) + "_DLCInference_" + datetime.now().strftime('%H-%M-%S') + ".csv"
+            elif not file_name.endswith('.csv'):
+                file_name += '.csv'
+
+            self.file_path = os.path.join(cam_widget.save_dir, file_name)
+            self.save_file = open(file_name, 'w')
+            self.csv_writer = csv.writer(self.save_file)
+
+        self.socket_trigger = None
+        if config.get("Publish to socket"):
+            triggers = []
+            for trigger in cam_widget.triggers:
+                if type(trigger).__name__ == "UDPSocket":
+                    triggers.append(trigger)
+            if len(triggers) > 1:
+                pass
+            elif len(triggers) == 1:
+                self.socket_trigger = triggers[0]
+            else:
+                logger.error("Unable to find enabled socket trigger")
+
 
     def process(self, frame, metadata):
         img_h, img_w, num_ch = frame.shape
@@ -93,7 +122,6 @@ class SleapInference(BasePlugin):
                     h_pos, w_pos = point
                     if not(np.isnan(h_pos) or np.isnan(w_pos)) and score >= threshold:
                         frame = cv2.circle(frame, (round(w_pos), round(h_pos)), 5, color, -1)
-
         
 
         metadata["SLEAP Poses"] = self.poses

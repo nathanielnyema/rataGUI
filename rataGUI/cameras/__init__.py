@@ -12,7 +12,7 @@ from importlib import import_module
 from rataGUI import launch_config
 
 enabled_cameras = launch_config.get("Enabled Camera Modules")
-if enabled_cameras is not None:
+if enabled_cameras is not None and launch_config["Don't show again"]:
     for module_name in enabled_cameras:
         try:
             abs_module_path = f"{__name__}.{module_name}"
@@ -24,7 +24,7 @@ if enabled_cameras is not None:
         except Exception as err:
             logger.exception(err)
 
-else: # Load all modules if launch config does not specify 
+else: # Load all modules if launch config requires a start menu
     for fname in os.listdir(os.path.dirname(__file__)):
         if fname.endswith('.py') and not fname.startswith('_') and fname not in ["BaseCamera.py", "TemplateCamera.py"]:
             try:

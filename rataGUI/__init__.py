@@ -26,7 +26,7 @@ def configure_file_logger():
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
-    logger.info(f"Logging to {os.path.relpath(logging_file)}")
+    logger.info(f"Logging to {logging_file}")
 
 
 import json

@@ -4,7 +4,7 @@ from rataGUI.utils import slugify
 import os
 import csv
 import cv2
-import json
+# import json
 import numpy as np
 import tensorflow as tf
 from datetime import datetime
@@ -60,13 +60,14 @@ class DLCInference(BasePlugin):
         self.save_file = None
         self.csv_writer = None
         if config.get("Write to file"):
-            file_path = config.get("Save file (.csv)")
-            if len(file_path) == 0: # Use default file name
-                file_path = slugify(cam_widget.camera.getDisplayName()) + "_DLCInference_" + datetime.now().strftime('%H-%M-%S') + ".csv"
-            elif not file_path.endswith('.csv'):
-                file_path += '.csv'
+            file_name = slugify(config.get("Save file (.csv)"))
+            if len(file_name) == 0: # Use default file name
+                file_name = slugify(cam_widget.camera.getDisplayName()) + "_DLCInference_" + datetime.now().strftime('%H-%M-%S') + ".csv"
+            elif not file_name.endswith('.csv'):
+                file_name += '.csv'
 
-            self.save_file = open(file_path, 'w')
+            self.file_path = os.path.join(cam_widget.save_dir, file_name)
+            self.save_file = open(file_name, 'w')
             self.csv_writer = csv.writer(self.save_file)
 
         self.socket_trigger = None

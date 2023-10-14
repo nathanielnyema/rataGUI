@@ -17,11 +17,12 @@ class VideoWriter(BasePlugin):
     """
 
     DEFAULT_CONFIG = {
-        'save directory': "videos",
-        'filename': "",
+        'save directory': "",   # Defaults to camera widget's save directory TODO: Move this functionality to camera settings
+        # 'filename': "",
+        # 'shorten filename": False,
         'vcodec': ['libx264', 'libx265', 'h264_nvenc', 'hevc_nvenc', 'rawvideo'],
         'framerate': 30,
-        'speed (preset)': ["fast", "veryfast", "ultrafast", "medium", "slow", "slower", "veryslow"], # Defaults to first item
+        'speed (preset)': ["fast", "veryfast", "ultrafast", "medium", "slow", "slower", "veryslow"],    # Defaults to first item
         'quality (0-51)': (32, 0, 51),
         'pixel format': ['yuv420p', 'yuv422p', 'yuv444p', 'rgb24', 'yuv420p10le', 'yuv422p10le', 'yuv444p10le', 'gray'],
     }
@@ -37,19 +38,25 @@ class VideoWriter(BasePlugin):
         self.input_params = {}
         self.output_params = {}
 
-        for name, value in config.as_dict().items():
+        for name, value in self.config.items():
             prop_name = VideoWriter.DISPLAY_CONFIG_MAP.get(name)
             if prop_name is None:
                 prop_name = name
 
             if prop_name == "save directory":
-                self.save_dir = os.path.normpath(value)
-            elif prop_name == "filename":
-                if value == "": # default value
-                    print(cam_widget.camera.getDisplayName())
-                    file_name = slugify(cam_widget.camera.getDisplayName()) + "_" + datetime.now().strftime('%H-%M-%S')
+                if len(value) == 0: # default to widget save_dir
+                    self.save_dir = cam_widget.save_dir
+                elif not os.path.isdir(value):
+                    logger.info("Specified save directory not found ... using widget directory")
+                    self.save_dir = cam_widget.save_dir
                 else:
-                    file_name = slugify(value)
+                    self.save_dir = os.path.normpath(value)
+            # elif prop_name == "filename":
+            #     if value == "": # default value
+            #         # print(cam_widget.camera.getDisplayName())
+            #         file_name = slugify(cam_widget.camera.getDisplayName()) + "_" + datetime.now().strftime('%H-%M-%S')
+            #     else:
+            #         file_name = slugify(value)
             elif prop_name in ["framerate",] and value >= 0: # input parameters
                 self.input_params['-'+prop_name] = str(value)
 
@@ -65,15 +72,21 @@ class VideoWriter(BasePlugin):
         # if vcodec in ['h264_nvenc', 'hevc_nvenc']:
         #     self.output_params['-cq'] = self.output_params.pop('-crf')
 
-        if not os.path.isabs(self.save_dir):
-            self.save_dir = os.path.join(launch_config["Save Directory"], self.save_dir)
+        try:
+            if os.access(self.save_dir, os.W_OK):
+                os.makedirs(self.save_dir, exist_ok=True)
+            else:
+                raise OSError("Inaccessible save directory ... auto-disabling Video Writer plugin")
+        except Exception as err:
+            logger.exception(err)
+            self.active = False
 
-        os.makedirs(self.save_dir, exist_ok=True)
+        file_name = slugify(cam_widget.camera.getDisplayName()) + "_" + datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
         self.file_path = os.path.join(self.save_dir, file_name + extension)
-        count = 1
+        count = 0
         while os.path.exists(self.file_path): # file already exists -> add copy
-            self.file_path = os.path.join(self.save_dir, file_name + f" ({count})" + extension)
             count += 1
+            self.file_path = os.path.join(self.save_dir, file_name + f" ({count})" + extension)
 
         self.writer = FFMPEG_Writer(str(self.file_path), input_dict=self.input_params, output_dict=self.output_params, verbosity=0)
 
@@ -116,8 +129,6 @@ class FFMPEG_Writer():
         self.initialized = False
 
         self._FFMPEG_PATH = which("ffmpeg")
-        # if os.path.isfile(launch_config["FFMPEG Path"]):
-        #     self._FFMPEG_PATH = launch_config["FFMPEG Path"]
 
         if self._FFMPEG_PATH is None:
             raise IOError("Could not find ffmpeg executable in the environment PATH.")
