@@ -806,6 +806,7 @@ def add_config_handler(config, key, value):
         mapper = (lambda x: x, lambda x: x)
         if isinstance(value, bool):
             widget = QtWidgets.QCheckBox()
+            widget.setSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
         elif isinstance(value, str):
             widget = QtWidgets.QLineEdit()
         elif isinstance(value, int):
