@@ -1,0 +1,36 @@
+{
+  "Session ID": "2023_10_16-12_39_38",
+  "Camera ID": "22618512",
+  "Display Name": "top_down",
+  "Frames Acquired": "374",
+  "Camera Settings": {
+    "Line0 Output": 0,
+    "Line1 Output": 0,
+    "Line2 Output": 13,
+    "Line3 Output": 0,
+    "Buffer Mode": 0,
+    "TriggerSource": "TriggerMode_Off",
+    "Limit Framerate": true,
+    "Framerate": 30,
+    "Height": 1536,
+    "Width": 2048
+  },
+  "Active Plugins": {
+    "VideoWriter": {
+      "Save directory": "",
+      "vcodec": "libx264",
+      "framerate": 30,
+      "speed (preset)": "fast",
+      "quality (0-51)": 32,
+      "pixel format": "yuv420p"
+    },
+    "FrameDisplay": {
+      "Frame width": 960,
+      "Frame height": 720,
+      "Aspect ratio": true
+    }
+  },
+  "Disabled Plugins": {},
+  "Failed Plugins": {},
+  "Enabled Triggers": []
+}

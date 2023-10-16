@@ -1,4 +1,4 @@
-from rataGUI import launch_config, configure_file_logger
+from rataGUI import launch_config, add_file_logger
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -63,7 +63,7 @@ def main():
         camera_modules = [BaseCamera.modules[module] for module in launch_config["Enabled Camera Modules"]]
         plugin_modules = [BasePlugin.modules[module] for module in launch_config["Enabled Plugin Modules"]]
         trigger_modules = [BaseTrigger.modules[module] for module in launch_config["Enabled Trigger Modules"]]
-        configure_file_logger()
+        add_file_logger(os.path.join(launch_config["Save Directory"], "logs"))
     except:
         logger.error("Unable to launch RataGUI due to incomplete launch_config")
         return

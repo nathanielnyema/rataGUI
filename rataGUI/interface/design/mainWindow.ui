@@ -256,7 +256,7 @@
          </font>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>3</number>
         </property>
         <widget class="QWidget" name="camPropsTab">
          <attribute name="title">
@@ -320,7 +320,7 @@
            <widget class="QTableWidget" name="cam_stats">
             <property name="font">
              <font>
-              <pointsize>10</pointsize>
+              <pointsize>11</pointsize>
              </font>
             </property>
             <property name="focusPolicy">
@@ -395,6 +395,11 @@
          <layout class="QGridLayout" name="gridLayout_3">
           <item row="0" column="0">
            <widget class="QTableWidget" name="plugin_pipeline">
+            <property name="font">
+             <font>
+              <pointsize>11</pointsize>
+             </font>
+            </property>
             <property name="focusPolicy">
              <enum>Qt::NoFocus</enum>
             </property>

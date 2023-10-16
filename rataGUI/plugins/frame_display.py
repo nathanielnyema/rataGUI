@@ -19,7 +19,7 @@ class FrameDisplay(BasePlugin):
     DEFAULT_CONFIG = {
         "Frame width": 960, 
         "Frame height": 720, 
-        "Keep aspect ratio": True,
+        "Aspect ratio": {"Keep": True, "Ignore": False}
     }
 
     def __init__(self, cam_widget, config, queue_size=0):
@@ -27,6 +27,8 @@ class FrameDisplay(BasePlugin):
 
         self.frame_width = config.get("Frame width")
         self.frame_height = config.get("Frame height")
+        cam_widget.resize(self.frame_width, self.frame_height)
+
         self.signal = DisplaySignal()
         self.signal.image.connect(cam_widget.set_window_pixmap)
 

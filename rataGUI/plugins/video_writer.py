@@ -17,7 +17,7 @@ class VideoWriter(BasePlugin):
     """
 
     DEFAULT_CONFIG = {
-        'save directory': "",   # Defaults to camera widget's save directory TODO: Move this functionality to camera settings
+        'Save directory': "",   # Defaults to camera widget's save directory TODO: Move this functionality to camera settings
         # 'filename': "",
         # 'shorten filename": False,
         'vcodec': ['libx264', 'libx265', 'h264_nvenc', 'hevc_nvenc', 'rawvideo'],
@@ -43,7 +43,7 @@ class VideoWriter(BasePlugin):
             if prop_name is None:
                 prop_name = name
 
-            if prop_name == "save directory":
+            if prop_name == "Save directory":
                 if len(value) == 0: # default to widget save_dir
                     self.save_dir = cam_widget.save_dir
                 elif not os.path.isdir(value):

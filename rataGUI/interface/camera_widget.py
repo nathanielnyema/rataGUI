@@ -91,8 +91,8 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
                 raise IOError(f"Camera: {self.camera.getDisplayName()} failed to initialize")
             self.camera._running = True
             self.camera.frames_acquired = 0
-            self.pipeline_initialized.emit()
             self.save_widget_data()
+            self.pipeline_initialized.emit()
             logger.info('Started pipeline for camera: {}'.format(self.camera.getDisplayName()))
             asyncio.run(self.process_plugin_pipeline(), debug=False)
 
@@ -220,7 +220,8 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         metadata = {}
         metadata["Session ID"] = self.sessionID
         metadata["Camera ID"] = str(self.camera.cameraID)
-        metadata["Camera Display Name"] = str(self.camera.display_name)
+        metadata["Display Name"] = str(self.camera.display_name)
+        metadata["Frames Acquired"] = str(self.camera.frames_acquired)
         metadata["Camera Settings"] = self.camera_config.as_dict()
         active_plugins = {}
         disabled_plugins = {}
@@ -231,11 +232,11 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
                 disabled_plugins[name] = plugin.config
         metadata["Active Plugins"] = active_plugins
         metadata["Disabled Plugins"] = disabled_plugins
-        metadata["Failed to Initialize"] = self.failed_plugins
+        metadata["Failed Plugins"] = self.failed_plugins
 
         metadata["Enabled Triggers"] = [str(trig.deviceID) for trig in self.triggers]
         
-        file_path = os.path.join(self.save_dir, self.camera.getDisplayName() + "_metadata.json")
+        file_path = os.path.join(self.save_dir, slugify(self.camera.getDisplayName()) + "_metadata.json")
         with open(file_path, 'w') as file:
             json.dump(metadata, file, indent=2)
             

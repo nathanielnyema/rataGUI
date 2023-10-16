@@ -886,7 +886,15 @@ def make_config_layout(config, cols=2, extend_line_edits=True):
         line_form = QtWidgets.QFormLayout()
         line_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         for label, handler in long_line_edits:
-            line_form.addRow(label, handler)
+            if "directory" in label.text().lower():
+                hbox = QtWidgets.QHBoxLayout()
+                hbox.addWidget(handler)
+                browse_btn = QtWidgets.QPushButton("Browse")
+                browse_btn.clicked.connect(lambda state, edit=handler: open_dir_dialog(edit))
+                hbox.addWidget(browse_btn)
+                line_form.addRow(label, hbox)
+            else:
+                line_form.addRow(label, handler)
         
         new_layout = QtWidgets.QVBoxLayout()
         new_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -895,3 +903,10 @@ def make_config_layout(config, cols=2, extend_line_edits=True):
         return new_layout
 
     return layout
+
+def open_dir_dialog(line_edit):
+    dir_name = QtWidgets.QFileDialog.getExistingDirectory(caption="Select a Directory", directory=os.getcwd(), \
+                                                        options=QtWidgets.QFileDialog.Option.ShowDirsOnly)
+    if dir_name:
+        path = os.path.normpath(dir_name)
+        line_edit.setText(str(path))

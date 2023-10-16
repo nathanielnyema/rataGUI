@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'rataGUI/interface/design/mainWindow.ui'
+# Form implementation generated from reading ui file './rataGUI/interface/design/mainWindow.ui'
 #
 # Created by: PyQt6 UI code generator 6.5.2
 #
@@ -148,7 +148,7 @@ class Ui_MainWindow(object):
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.cam_stats = QtWidgets.QTableWidget(parent=self.camStatsTab)
         font = QtGui.QFont()
-        font.setPointSize(10)
+        font.setPointSize(11)
         self.cam_stats.setFont(font)
         self.cam_stats.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         self.cam_stats.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
@@ -181,6 +181,9 @@ class Ui_MainWindow(object):
         self.gridLayout_3 = QtWidgets.QGridLayout(self.pluginPipelineTab)
         self.gridLayout_3.setObjectName("gridLayout_3")
         self.plugin_pipeline = QtWidgets.QTableWidget(parent=self.pluginPipelineTab)
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        self.plugin_pipeline.setFont(font)
         self.plugin_pipeline.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         self.plugin_pipeline.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.plugin_pipeline.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
@@ -387,7 +390,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuHelp.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.camAttributes.setCurrentIndex(1)
+        self.camAttributes.setCurrentIndex(3)
         self.plugin_settings.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 

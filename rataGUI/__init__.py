@@ -16,16 +16,17 @@ console.setFormatter(formatter)
 logger.addHandler(console)
 
 # set up logging INFO messages or higher to log file
-def configure_file_logger():
-    os.makedirs(os.path.join(launch_config["Save Directory"], "logs"), exist_ok=True)
+# file_handlers = {}
+def add_file_logger(file_path):
+    os.makedirs(file_path, exist_ok=True)
     file_name = "info_" + datetime.now().strftime("%Y_%m_%d-%H_%M_%S") + ".log"
-    logging_file = os.path.join(launch_config["Save Directory"], "logs", file_name)
+    logging_file = os.path.join(file_path, file_name)
     file_handler = logging.FileHandler(logging_file)
     file_handler.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s.%(msecs)03d  %(levelname)-8s %(module)-16s %(message)s', '%Y-%m-%d,%H:%M:%S')
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
-
+    # self.file_handlers
     logger.info(f"Logging to {logging_file}")
 
 
