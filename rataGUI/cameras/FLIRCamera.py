@@ -24,10 +24,10 @@ class FLIRCamera(BaseCamera):
                           "Line 1": PySpin.TriggerSource_Line1, "Line 2": PySpin.TriggerSource_Line2,},
         "Limit Framerate": {"On": True, "Off": False},
         "Framerate": 30,
-        "Buffer Size": 10,
-        "Gain": 0,
-        "Exposure": 0,
-        "Brightness": 0,
+        # "Buffer Size": 10,
+        # "Gain": 0,
+        # "Exposure": 0,
+        # "Brightness": 0,
         "Height": 10000,
         "Width": 10000,  
         # "PixelFormat": {"RGB8": PySpin.PixelFormat_RGB8Packed, "BGR8": PySpin.PixelFormat_BGR8} # TODO: Ensure consistency
@@ -95,8 +95,8 @@ class FLIRCamera(BaseCamera):
         else:
             prop_config.set("Line2 Output", PySpin.LineSource_UserOutput0)
 
-        if prop_config.get("TriggerSource") != "TriggerMode_Off": # Camera is being driven
-            prop_config.set("Limit Framerate", False)
+        # if prop_config.get("TriggerSource") != "TriggerMode_Off": # Camera is being driven
+        #     prop_config.set("Limit Framerate", False)
 
 
     def initializeCamera(self, prop_config, plugin_names=[]) -> bool:
@@ -143,8 +143,11 @@ class FLIRCamera(BaseCamera):
                 elif prop_name == "TriggerSource":
                     self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
                     if value != "TriggerMode_Off":
-                        self._stream.TriggerSource.SetValue(value)
                         self._stream.TriggerMode.SetValue(PySpin.TriggerMode_On)
+                        self._stream.TriggerOverlap.SetValue(PySpin.TriggerOverlap_ReadOut) # Off or ReadOut to speed up
+                        self._stream.TriggerSource.SetValue(value)
+                        self._stream.TriggerActivation.SetValue(PySpin.TriggerActivation_RisingEdge) # LevelHigh or RisingEdge
+                        self._stream.TriggerSelector.SetValue(PySpin.TriggerSelector_FrameStart) # require trigger for each frame
                 else: 
                     # Recursively access QuickSpin API
                     node = self._stream
