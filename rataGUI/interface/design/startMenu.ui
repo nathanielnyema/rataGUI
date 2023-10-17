@@ -163,6 +163,9 @@
    </item>
    <item>
     <layout class="QGridLayout" name="lineEditMenu">
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="save_directory"/>
+     </item>
      <item row="0" column="0">
       <widget class="QLabel" name="saveDirectoryLabel">
        <property name="font">
@@ -185,8 +188,27 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="save_directory"/>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="session_dir"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="sessDirectoryLabel">
+       <property name="font">
+        <font>
+         <pointsize>14</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Import Session</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QPushButton" name="sess_dir_btn">
+       <property name="text">
+        <string>Browse</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

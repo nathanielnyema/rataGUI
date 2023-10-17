@@ -17,13 +17,13 @@ class FLIRCamera(BaseCamera):
         "Line1 Output": {"None": PySpin.LineSource_Off,},
         "Line2 Output": {"User Output 0": PySpin.LineSource_UserOutput0, "Frame Acquired": PySpin.LineSource_ExposureActive,},
         "Line3 Output": {"None": PySpin.LineSource_Off,},
+        "Limit Framerate": {"On": True, "Off": False},
+        "Framerate": 30,
         "Buffer Mode": {"OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
                         "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,},
         "TriggerSource": {"Off": "TriggerMode_Off", 
                           "Line 3": PySpin.TriggerSource_Line3, "Line 0": PySpin.TriggerSource_Line0, 
                           "Line 1": PySpin.TriggerSource_Line1, "Line 2": PySpin.TriggerSource_Line2,},
-        "Limit Framerate": {"On": True, "Off": False},
-        "Framerate": 30,
         # "Buffer Size": 10,
         # "Gain": 0,
         # "Exposure": 0,
@@ -95,8 +95,8 @@ class FLIRCamera(BaseCamera):
         else:
             prop_config.set("Line2 Output", PySpin.LineSource_UserOutput0)
 
-        # if prop_config.get("TriggerSource") != "TriggerMode_Off": # Camera is being driven
-        #     prop_config.set("Limit Framerate", False)
+        if prop_config.get("TriggerSource") != "TriggerMode_Off": # Camera is being driven
+            prop_config.set("Limit Framerate", False)
 
 
     def initializeCamera(self, prop_config, plugin_names=[]) -> bool:
@@ -141,8 +141,9 @@ class FLIRCamera(BaseCamera):
                         logger.debug(f"Unable to write enum entry to Line {line_num}")
                         pass
                 elif prop_name == "TriggerSource":
-                    self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
-                    if value != "TriggerMode_Off":
+                    if value == "TriggerMode_Off":
+                        self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
+                    else:
                         self._stream.TriggerMode.SetValue(PySpin.TriggerMode_On)
                         self._stream.TriggerOverlap.SetValue(PySpin.TriggerOverlap_ReadOut) # Off or ReadOut to speed up
                         self._stream.TriggerSource.SetValue(value)

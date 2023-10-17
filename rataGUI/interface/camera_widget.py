@@ -217,28 +217,28 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 
 
     def save_widget_data(self): # TODO: Compare settings before and after
-        if "VideoWriter" in self.plugin_names:
-            metadata = {}
-            metadata["Session ID"] = self.sessionID
-            metadata["Camera ID"] = str(self.camera.cameraID)
-            metadata["Display Name"] = str(self.camera.display_name)
-            metadata["Frames Acquired"] = str(self.camera.frames_acquired)
-            metadata["Camera Settings"] = self.camera_config.as_dict()
-            active_plugins = {}
-            disabled_plugins = {}
-            for name, plugin in zip(self.plugin_names, self.plugins):
-                if plugin.active:
-                    active_plugins[name] = plugin.config
-                else:
-                    disabled_plugins[name] = plugin.config
-            metadata["Active Plugins"] = active_plugins
-            metadata["Disabled Plugins"] = disabled_plugins
-            metadata["Failed Plugins"] = self.failed_plugins
+        # if "VideoWriter" in self.plugin_names:
+        metadata = {}
+        metadata["Session ID"] = self.sessionID
+        metadata["Camera ID"] = str(self.camera.cameraID)
+        metadata["Display Name"] = str(self.camera.display_name)
+        metadata["Frames Acquired"] = str(self.camera.frames_acquired)
+        metadata["Camera Settings"] = self.camera_config.as_dict()
+        active_plugins = {}
+        disabled_plugins = {}
+        for name, plugin in zip(self.plugin_names, self.plugins):
+            if plugin.active:
+                active_plugins[name] = plugin.config
+            else:
+                disabled_plugins[name] = plugin.config
+        metadata["Active Plugins"] = active_plugins
+        metadata["Disabled Plugins"] = disabled_plugins
+        metadata["Failed Plugins"] = self.failed_plugins
 
-            metadata["Enabled Triggers"] = [str(trig.deviceID) for trig in self.triggers]
-            
-            file_path = os.path.join(self.save_dir, slugify(self.camera.getDisplayName()) + "_metadata.json")
-            with open(file_path, 'w') as file:
+        metadata["Enabled Triggers"] = [str(trig.deviceID) for trig in self.triggers]
+        
+        file_path = os.path.join(self.save_dir, slugify(self.camera.getDisplayName()) + "_metadata.json")
+        with open(file_path, 'w') as file:
             json.dump(metadata, file, indent=2)
             
         # enabled_triggers = {}
