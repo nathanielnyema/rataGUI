@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    def __init__(self, camera_models = [], plugins = [], trigger_types = [], dark_mode=True, reset=False):
+    def __init__(self, camera_models = [], plugins = [], trigger_types = [], dark_mode=True, session_dir=""):
         super().__init__()
         self.setupUi(self)
         self.setWindowIcon(QtGui.QIcon(rataGUI_icon))
@@ -75,7 +75,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.stop_button.setStyleSheet("background-color: darkred; color: white; font-weight: bold")
         
         # Load saved session config
-        if not reset: self.restore_session()
+        if os.path.isdir(session_dir): self.restore_session(session_dir)
 
         # Update camera stats occasionally
         self.update_timer = QTimer()
@@ -645,8 +645,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         logger.info(f"Saved session settings to {save_dir}")
 
 
-    def restore_session(self):
-        save_dir = os.path.join(launch_config["Save Directory"], "session")
+    def restore_session(self, save_dir):
         cam_config_path = os.path.join(save_dir, "camera_settings.json")
         if os.path.isfile(cam_config_path) and os.stat(cam_config_path).st_size > 0: 
             with open(cam_config_path, 'r') as file:

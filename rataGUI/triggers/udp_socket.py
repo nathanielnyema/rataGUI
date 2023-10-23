@@ -43,7 +43,7 @@ class UDPSocket(BaseTrigger):
             # print(self.count, time.time())
             self._socket.sendto(bytes(signal, encoding="utf-8"), (self.server_ip, self.port))
             
-            logger.info(f"Trigger: {str(self.deviceID)} executed")
+            # logger.info(f"Trigger: {str(self.deviceID)} executed")
         except Exception as err:
             logger.exception(err)
             logger.info(f"Trigger: {str(self.deviceID)} failed to execute")

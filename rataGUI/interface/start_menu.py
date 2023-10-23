@@ -65,11 +65,15 @@ class StartMenu(QDialog, Ui_StartMenu):
                 if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked)
         )
 
-        self.save_directory.setText(launch_config.get("Save Directory", ""))
+        prev_save_dir = launch_config.get("Save Directory")
+        if prev_save_dir is not None:
+            self.save_directory.setText(prev_save_dir)
+            self.session_dir.setText(os.path.join(prev_save_dir, "session"))
         self.dontShowAgain.setChecked(launch_config.get("Don't show again", False))
 
         # Browse path buttons
         self.save_dir_btn.clicked.connect(lambda state, edit=self.save_directory: self.open_dir_dialog(edit))
+        self.sess_dir_btn.clicked.connect(lambda state, edit=self.session_dir: self.open_dir_dialog(edit))
 
         # Save and close menu buttons
         self.buttonBox.button(QDialogButtonBox.StandardButton.Save).clicked.connect(self.save_settings)
@@ -81,9 +85,15 @@ class StartMenu(QDialog, Ui_StartMenu):
         save_dir = self.save_directory.text()
         if len(save_dir) == 0:
             save_dir = os.path.abspath("rataGUI_" + datetime.now().strftime('%Y-%m-%d'))
-            logger.warning(f"No save directory specified ... defaulting to {save_dir}")
+            logger.warning(f"Save directory not specified ... defaulting to {save_dir}")
         else:
             save_dir = os.path.abspath(os.path.normpath(save_dir))
+
+        session_dir = self.session_dir.text()
+        if os.path.isdir(session_dir):
+            session_dir = os.path.abspath(os.path.normpath(session_dir))
+        else:
+            logger.warning(f"Session settings not specified ... using defaults")
 
         try:
             os.makedirs(save_dir, exist_ok=True)
@@ -97,6 +107,7 @@ class StartMenu(QDialog, Ui_StartMenu):
         launch_config["Enabled Plugin Modules"] = [module_name(self.plugins[name]) for name in get_checked_names(self.plugin_modules)]
         launch_config["Enabled Trigger Modules"] = [module_name(self.trigger_types[name]) for name in get_checked_names(self.trigger_modules)]
         launch_config["Save Directory"] = save_dir
+        launch_config["Session Settings"] = session_dir
         launch_config["Don't show again"] = self.dontShowAgain.isChecked()
 
     
