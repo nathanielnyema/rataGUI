@@ -23,7 +23,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout" stretch="5,0,0">
    <property name="spacing">
-    <number>15</number>
+    <number>12</number>
    </property>
    <item>
     <layout class="QHBoxLayout" name="listWidgetMenu">
@@ -163,6 +163,12 @@
    </item>
    <item>
     <layout class="QGridLayout" name="lineEditMenu">
+     <property name="horizontalSpacing">
+      <number>4</number>
+     </property>
+     <property name="verticalSpacing">
+      <number>8</number>
+     </property>
      <item row="0" column="1">
       <widget class="QLineEdit" name="save_directory"/>
      </item>
@@ -170,7 +176,7 @@
       <widget class="QLabel" name="saveDirectoryLabel">
        <property name="font">
         <font>
-         <pointsize>14</pointsize>
+         <pointsize>13</pointsize>
         </font>
        </property>
        <property name="text">
@@ -195,11 +201,14 @@
       <widget class="QLabel" name="sessDirectoryLabel">
        <property name="font">
         <font>
-         <pointsize>14</pointsize>
+         <pointsize>13</pointsize>
         </font>
        </property>
        <property name="text">
         <string>Import Session</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
       </widget>
      </item>
