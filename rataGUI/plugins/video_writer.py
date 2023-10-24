@@ -18,7 +18,7 @@ class VideoWriter(BasePlugin):
 
     DEFAULT_CONFIG = {
         'Save directory': "",   # Defaults to camera widget's save directory 
-        # 'filename': "",       # TODO: ask which is more important: setting video directory or file name
+        'filename suffix': "",       # TODO: ask which is more important: setting video directory or file name
         # 'shorten filename": False,
         'vcodec': ['libx264', 'libx265', 'h264_nvenc', 'hevc_nvenc', 'rawvideo'],
         'framerate': 30,
@@ -51,12 +51,12 @@ class VideoWriter(BasePlugin):
                     self.save_dir = cam_widget.save_dir
                 else:
                     self.save_dir = os.path.normpath(value)
-            # elif prop_name == "filename":
-            #     if value == "": # default value
-            #         # print(cam_widget.camera.getDisplayName())
-            #         file_name = slugify(cam_widget.camera.getDisplayName()) + "_" + datetime.now().strftime('%H-%M-%S')
-            #     else:
-            #         file_name = slugify(value)
+            elif prop_name == "filename suffix":
+                self.file_name = slugify(cam_widget.camera.getDisplayName()) + "_"
+                if value == "": # default value
+                    self.file_name += datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
+                else:
+                    self.file_name += slugify(value)
             elif prop_name in ["framerate",] and value >= 0: # input parameters
                 self.input_params['-'+prop_name] = str(value)
 
@@ -81,12 +81,11 @@ class VideoWriter(BasePlugin):
             logger.exception(err)
             self.active = False
 
-        file_name = slugify(cam_widget.camera.getDisplayName()) + "_" + datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
-        self.file_path = os.path.join(self.save_dir, file_name + extension)
+        self.file_path = os.path.join(self.save_dir, self.file_name + extension)
         count = 0
         while os.path.exists(self.file_path): # file already exists -> add copy
             count += 1
-            self.file_path = os.path.join(self.save_dir, file_name + f" ({count})" + extension)
+            self.file_path = os.path.join(self.save_dir, self.file_name + f" ({count})" + extension)
 
         self.writer = FFMPEG_Writer(str(self.file_path), input_dict=self.input_params, output_dict=self.output_params, verbosity=0)
 

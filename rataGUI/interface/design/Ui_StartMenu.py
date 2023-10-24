@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file './rataGUI/interface/design/startMenu.ui'
+# Form implementation generated from reading ui file 'rataGUI/interface/design/startMenu.ui'
 #
 # Created by: PyQt6 UI code generator 6.5.2
 #
@@ -95,14 +95,14 @@ class Ui_StartMenu(object):
         self.lineEditMenu.addWidget(self.save_directory, 0, 1, 1, 1)
         self.saveDirectoryLabel = QtWidgets.QLabel(parent=StartMenu)
         font = QtGui.QFont()
-        font.setPointSize(13)
+        font.setPointSize(12)
         self.saveDirectoryLabel.setFont(font)
         self.saveDirectoryLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignVCenter)
         self.saveDirectoryLabel.setObjectName("saveDirectoryLabel")
         self.lineEditMenu.addWidget(self.saveDirectoryLabel, 0, 0, 1, 1)
         self.save_dir_btn = QtWidgets.QPushButton(parent=StartMenu)
         font = QtGui.QFont()
-        font.setPointSize(11)
+        font.setPointSize(12)
         self.save_dir_btn.setFont(font)
         self.save_dir_btn.setObjectName("save_dir_btn")
         self.lineEditMenu.addWidget(self.save_dir_btn, 0, 2, 1, 1)
@@ -121,7 +121,7 @@ class Ui_StartMenu(object):
         self.lineEditMenu.addWidget(self.sessDirectoryLabel, 1, 0, 1, 1)
         self.sess_dir_btn = QtWidgets.QPushButton(parent=StartMenu)
         font = QtGui.QFont()
-        font.setPointSize(11)
+        font.setPointSize(12)
         self.sess_dir_btn.setFont(font)
         self.sess_dir_btn.setObjectName("sess_dir_btn")
         self.lineEditMenu.addWidget(self.sess_dir_btn, 1, 2, 1, 1)

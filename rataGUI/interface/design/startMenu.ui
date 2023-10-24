@@ -185,7 +185,7 @@
       <widget class="QLabel" name="saveDirectoryLabel">
        <property name="font">
         <font>
-         <pointsize>13</pointsize>
+         <pointsize>12</pointsize>
         </font>
        </property>
        <property name="text">
@@ -200,7 +200,7 @@
       <widget class="QPushButton" name="save_dir_btn">
        <property name="font">
         <font>
-         <pointsize>11</pointsize>
+         <pointsize>12</pointsize>
         </font>
        </property>
        <property name="text">
@@ -236,7 +236,7 @@
       <widget class="QPushButton" name="sess_dir_btn">
        <property name="font">
         <font>
-         <pointsize>11</pointsize>
+         <pointsize>12</pointsize>
         </font>
        </property>
        <property name="text">
