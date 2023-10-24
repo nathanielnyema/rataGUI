@@ -102,16 +102,17 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
             self.stop_camera_pipeline()
 
     def stop_camera_pipeline(self):
-        dir_list = os.listdir(self.save_dir)
-        metadata_file = slugify(self.camera.getDisplayName()) + "_metadata.json"
-        if len(dir_list) == 0 or (len(dir_list) == 1 and metadata_file in dir_list[0]):
-            shutil.rmtree(self.save_dir)
+        if os.path.isdir(self.save_dir):
+            dir_list = os.listdir(self.save_dir)
+            metadata_file = slugify(self.camera.getDisplayName()) + "_metadata.json"
+            if len(dir_list) == 0 or (len(dir_list) == 1 and metadata_file in dir_list[0]):
+                shutil.rmtree(self.save_dir)
 
-            parent_dir = os.path.dirname(self.save_dir)
-            if len(os.listdir(parent_dir)) == 0:
-                shutil.rmtree(parent_dir)
-        else:
-            self.save_widget_data() # Log metadata to file
+                parent_dir = os.path.dirname(self.save_dir)
+                if len(os.listdir(parent_dir)) == 0:
+                    shutil.rmtree(parent_dir)
+            else: # Log metadata to file
+                self.save_widget_data()
         # Signal to event loop to stop camera and plugins
         self.camera._running = False
         self.active = False

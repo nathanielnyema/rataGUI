@@ -22,8 +22,8 @@ class DLCInference(BasePlugin):
         "Model directory": "",
         "Save file (.csv)": "data",
         # "Model type": ["Default"], # "TensorRT", "TFLite"
-        "Scale factor": 1.0,
         "Inference FPS": ["Match Camera", "Every Interval"],
+        "Scale factor": 1.0,
         "Fixed Interval": 0, 
         "Score Threshold": 0.5,
         "Batch Processing": {"Disabled": False, "Enabled": True},

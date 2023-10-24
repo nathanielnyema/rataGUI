@@ -12,18 +12,18 @@ READ_TIMEOUT = 10000
 
 class FLIRCamera(BaseCamera):
 
-    DEFAULT_PROPS = {
+    DEFAULT_PROPS = {   # Order Sensitive
         "Line0 Output": {"None": PySpin.LineSource_Off,},
         "Line1 Output": {"None": PySpin.LineSource_Off,},
         "Line2 Output": {"User Output 0": PySpin.LineSource_UserOutput0, "Frame Acquired": PySpin.LineSource_ExposureActive,},
         "Line3 Output": {"None": PySpin.LineSource_Off,},
-        "Limit Framerate": {"On": True, "Off": False},
-        "Framerate": 30,
-        "Buffer Mode": {"OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
-                        "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,},
         "TriggerSource": {"Off": "TriggerMode_Off", 
                           "Line 3": PySpin.TriggerSource_Line3, "Line 0": PySpin.TriggerSource_Line0, 
                           "Line 1": PySpin.TriggerSource_Line1, "Line 2": PySpin.TriggerSource_Line2,},
+        "Buffer Mode": {"OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
+                        "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,},
+        "Limit Framerate": {"On": True, "Off": False},
+        "Framerate": 30,
         # "Buffer Size": 10,
         # "Gain": 0,
         # "Exposure": 0,
@@ -144,11 +144,13 @@ class FLIRCamera(BaseCamera):
                     if value == "TriggerMode_Off":
                         self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
                     else:
+                        print("TEST TEST TEST")
                         self._stream.TriggerMode.SetValue(PySpin.TriggerMode_On)
                         self._stream.TriggerOverlap.SetValue(PySpin.TriggerOverlap_ReadOut) # Off or ReadOut to speed up
                         self._stream.TriggerSource.SetValue(value)
                         self._stream.TriggerActivation.SetValue(PySpin.TriggerActivation_RisingEdge) # LevelHigh or RisingEdge
                         self._stream.TriggerSelector.SetValue(PySpin.TriggerSelector_FrameStart) # require trigger for each frame
+                
                 else: 
                     # Recursively access QuickSpin API
                     node = self._stream
