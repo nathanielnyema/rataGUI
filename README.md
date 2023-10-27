@@ -30,25 +30,25 @@ RataGUI was developed with four primary design principles:
 ## Available Camera Modules
 | Name | Description | Contributor |
 | -------- | -------- | -------- |
-| BaslerCamera | Support for Basler cameras using pypylon | [BrainHu42](https://github.com/BrainHu42) |
-| FLIRCamera  | Support for Spinnaker cameras using PySpin | [BrainHu42](https://github.com/BrainHu42) |
-| VideoReader | Support for video file playback for offline processing  | [BrainHu42](https://github.com/BrainHu42) |
-| WebCamera | Support for OpenCV-enabled cameras such as web or network cameras | [BrainHu42](https://github.com/BrainHu42) |
+| BaslerCamera | Basler camera integration using pypylon (see installation guide) | [BrainHu42](https://github.com/BrainHu42) |
+| FLIRCamera  | Spinnaker camera integration using PySpin (see installation guide) | [BrainHu42](https://github.com/BrainHu42) |
+| VideoReader | Reads video files for offline processing  | [BrainHu42](https://github.com/BrainHu42) |
+| WebCamera | OpenCV-enabled camera integration for web or network cameras | [BrainHu42](https://github.com/BrainHu42) |
 
 
 ## Available Plugin Modules
 | Name | Description | Contributor |
 | -------- | -------- | -------- |
-| DLCInference | Pose estimation using exported DeepLabCut model | [BrainHu42](https://github.com/BrainHu42) |
+| DLCInference | Estimates animal poses using exported DeepLabCut model and writes keypoints as metadata | [BrainHu42](https://github.com/BrainHu42) |
 | FrameDisplay  | Displays video stream in a separate window | [BrainHu42](https://github.com/BrainHu42) |
 | MetadataWriter | Overlays metadata onto frames and/or into a log file | [BrainHu42](https://github.com/BrainHu42) |
-| SleapInference | Pose estimation using exported SLEAP model | [BrainHu42](https://github.com/BrainHu42) |
+| SleapInference | Estimates animal poses using exported SLEAP model and writes keypoints as metadata | [BrainHu42](https://github.com/BrainHu42) |
 | VideoWriter | Writes frames to video file using FFMPEG | [BrainHu42](https://github.com/BrainHu42) |
 
 ## Available Trigger Modules
 | Name | Description | Contributor |
 | -------- | -------- | -------- |
-| NIDAQmxCounter | Support for writing tasks to National Instrument counter cards through the NI-DAQmx driver. | [BrainHu42](https://github.com/BrainHu42) |
+| NIDAQmxCounter | Writes tasks to National Instrument counter cards through the NI-DAQmx driver | [BrainHu42](https://github.com/BrainHu42) |
 | UDPSocket  | Publishes information to a network socket using UDP protocol | [BrainHu42](https://github.com/BrainHu42) |
 
 
