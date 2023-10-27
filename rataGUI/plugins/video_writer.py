@@ -18,8 +18,7 @@ class VideoWriter(BasePlugin):
 
     DEFAULT_CONFIG = {
         'Save directory': "",   # Defaults to camera widget's save directory 
-        'filename suffix': "",       # TODO: ask which is more important: setting video directory or file name
-        # 'shorten filename": False,
+        'filename suffix': "",
         'vcodec': ['libx264', 'libx265', 'h264_nvenc', 'hevc_nvenc', 'rawvideo'],
         'framerate': 30,
         'speed (preset)': ["fast", "veryfast", "ultrafast", "medium", "slow", "slower", "veryslow"],    # Defaults to first item
