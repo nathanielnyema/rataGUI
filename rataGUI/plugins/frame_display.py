@@ -41,7 +41,7 @@ class FrameDisplay(BasePlugin):
         # Convert to pixmap and set to video frame
         bytes_per_line = num_ch * img_w
         qt_image = QtGui.QImage(frame.data, img_w, img_h, bytes_per_line, QtGui.QImage.Format.Format_RGB888)
-        if self.config.get('Keep aspect ratio'):
+        if self.config.get('Aspect ratio'):
             qt_image = qt_image.scaled(self.frame_width, self.frame_height, Qt.AspectRatioMode.KeepAspectRatio)
         else: 
             qt_image = qt_image.scaled(self.frame_width, self.frame_height, Qt.AspectRatioMode.IgnoreAspectRatio)

@@ -61,6 +61,9 @@ conda activate rataGUI
 python -m pip install rataGUI
 ```
 <!-- # Documentation
+
+Note: A "session" is a recording session. Every time you press start, it starts a new recording session and saves a snapshot of RataGUI's state.
+
 ## Video Demo -->
 
 

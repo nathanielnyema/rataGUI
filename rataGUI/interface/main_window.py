@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    def __init__(self, camera_models = [], plugins = [], trigger_types = [], dark_mode=True, session_dir=""):
+    def __init__(self, camera_models = [], plugins = [], trigger_types = [], dark_mode=True, restore_dir=""):
         super().__init__()
         self.setupUi(self)
         self.setWindowIcon(QtGui.QIcon(rataGUI_icon))
@@ -75,7 +75,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.stop_button.setStyleSheet("background-color: darkred; color: white; font-weight: bold")
         
         # Load saved session config
-        if os.path.isdir(session_dir): self.restore_session(session_dir)
+        if os.path.isdir(restore_dir): self.restore_settings(restore_dir)
 
         # Update camera stats occasionally
         self.update_timer = QTimer()
@@ -510,8 +510,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     logger.exception(err)
                     logger.error(f"Trigger: {trig_item.text()} failed to close")
 
-        start_time = datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
-        screen_width = self.screen.width()
 
         # Initialize all enabled triggers
         enabled_triggers = []
@@ -533,6 +531,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             enabled_triggers.append(trigger)
             item.setBackground(self.active_color)
                     
+        session_dir = os.path.join(launch_config["Save Directory"], datetime.now().strftime("%Y_%m_%d-%H_%M_%S"))
+        # Save session configuration as json files
+        self.save_settings(os.path.join(session_dir, "settings"))
+
+        screen_width = self.screen.width()
         for cam_idx in range(self.plugin_pipeline.rowCount()):
             cam_name = self.plugin_pipeline.verticalHeaderItem(cam_idx).text()
             camID = list(self.camera_names.keys())[list(self.camera_names.values()).index(cam_name)] # cam_name -> camID
@@ -548,7 +551,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     continue
                 
                 config = self.camera_configs[camID]
-                widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins, triggers=enabled_triggers, sessionID=start_time)
+                widget = CameraWidget(camera=self.cameras[camID], cam_config=config, plugins=enabled_plugins, triggers=enabled_triggers, session_dir=session_dir)
 
                 # Update interface once camera widget opens or closes
                 cam_item = self.cam_list.item(cam_idx)
@@ -585,8 +588,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 cam_widget.stop_camera_pipeline()
 
 
-    def save_session(self):
-        save_dir = os.path.join(launch_config["Save Directory"], "session")
+    def save_settings(self, save_dir):
         os.makedirs(save_dir, exist_ok=True)
 
         with open(os.path.join(save_dir, "camera_settings.json"), 'w+') as file:
@@ -645,7 +647,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         logger.info(f"Saved session settings to {save_dir}")
 
 
-    def restore_session(self, save_dir):
+    def restore_settings(self, save_dir):
         cam_config_path = os.path.join(save_dir, "camera_settings.json")
         if os.path.isfile(cam_config_path) and os.stat(cam_config_path).st_size > 0: 
             with open(cam_config_path, 'r') as file:
@@ -766,8 +768,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 cam_widget.stop_camera_pipeline()
                 widgets_active = True
 
-        # Save session configuration as json files
-        self.save_session()
+        # Save root configuration as json files
+        self.save_settings(os.path.join(launch_config["Save Directory"], "settings"))
 
         # Wait for all camera widgets to close
         while widgets_active:
@@ -788,6 +790,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             cam_type.releaseResources()
 
         QtWidgets.QMainWindow.closeEvent(self, event) # let the window close
+
 
 
 def get_checked_items(check_list: QtWidgets.QListWidget) -> list:

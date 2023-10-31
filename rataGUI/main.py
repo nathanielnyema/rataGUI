@@ -13,15 +13,15 @@ parser.add_argument(
     default=False,
 )
 
-parser.add_argument(
-    "--reset",
-    help=(
-        "Reset session settings back to defaults."
-    ),
-    action="store_const",
-    const=True,
-    default=False,
-)
+# parser.add_argument(
+#     "--reset",
+#     help=(
+#         "Reset session settings back to defaults."
+#     ),
+#     action="store_const",
+#     const=True,
+#     default=False,
+# )
 
 args = parser.parse_args()
 
@@ -63,14 +63,14 @@ def main():
         camera_modules = [BaseCamera.modules[module] for module in launch_config["Enabled Camera Modules"]]
         plugin_modules = [BasePlugin.modules[module] for module in launch_config["Enabled Plugin Modules"]]
         trigger_modules = [BaseTrigger.modules[module] for module in launch_config["Enabled Trigger Modules"]]
-        saved_session = launch_config["Session Settings"]
+        session_settings = launch_config["Session Settings"]
         add_file_logger(os.path.join(launch_config["Save Directory"], "logs"))
     except:
         logger.error("Unable to launch RataGUI due to incomplete launch_config")
         return
 
     main_window = MainWindow(camera_models=camera_modules, plugins=plugin_modules, trigger_types=trigger_modules,
-                                dark_mode=darkdetect.isDark(), session_dir=saved_session)
+                                dark_mode=darkdetect.isDark(), restore_dir=session_settings)
     main_window.show()
     app.exit(app.exec())
     logger.info("RataGUI successfully exited")

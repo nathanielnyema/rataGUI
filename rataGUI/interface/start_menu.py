@@ -68,7 +68,7 @@ class StartMenu(QDialog, Ui_StartMenu):
         prev_save_dir = launch_config.get("Save Directory")
         if prev_save_dir is not None:
             self.save_directory.setText(prev_save_dir)
-            self.session_dir.setText(os.path.join(prev_save_dir, "session"))
+            self.session_dir.setText(os.path.join(prev_save_dir, "settings"))
         self.dontShowAgain.setChecked(launch_config.get("Don't show again", False))
 
         # Browse path buttons
@@ -93,7 +93,7 @@ class StartMenu(QDialog, Ui_StartMenu):
         if os.path.isdir(session_dir):
             session_dir = os.path.abspath(os.path.normpath(session_dir))
         else:
-            logger.warning(f"Session settings not specified ... using defaults")
+            logger.warning(f"Session settings not found ... using defaults")
 
         try:
             os.makedirs(save_dir, exist_ok=True)

@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-READ_TIMEOUT = 10000
+READ_TIMEOUT = 15000
 
 class FLIRCamera(BaseCamera):
 
@@ -24,19 +24,20 @@ class FLIRCamera(BaseCamera):
                         "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,},
         "Limit Framerate": {"On": True, "Off": False},
         "Framerate": 30,
-        # "Buffer Size": 10,
-        # "Gain": 0,
-        # "Exposure": 0,
-        # "Brightness": 0,
+        "Buffer Size": 10, # Auto
+        "Gain": -1, 
+        "Gamma": -1,
+        "Exposure (μs)": -1,
         "Height": 10000,
         "Width": 10000,  
-        # "PixelFormat": {"RGB8": PySpin.PixelFormat_RGB8Packed, "BGR8": PySpin.PixelFormat_BGR8} # TODO: Ensure consistency
     }
 
     DISPLAY_PROP_MAP = {
         "Limit Framerate": "AcquisitionFrameRateEnable",
         "Framerate": "AcquisitionFrameRate",
         "Buffer Mode": "TLStream.StreamBufferHandlingMode",
+        "Buffer Size": "TLStream.StreamBufferCountManual",
+        "Exposure (μs)": "ExposureTime",
     }
 
     # Global pyspin system variable
@@ -126,12 +127,9 @@ class FLIRCamera(BaseCamera):
             self.configure_chunk_data(nodemap, enabled_chunks)
 
             for name, value in prop_config.as_dict().items():
-                prop_name = FLIRCamera.DISPLAY_PROP_MAP.get(name)
-                if prop_name is None:
-                    prop_name = name
                     
-                if prop_name.startswith("Line") and prop_name.endswith("Output"):
-                    line_num = prop_name[4]
+                if name.startswith("Line") and name.endswith("Output"):
+                    line_num = name[4]
                     selector = getattr(PySpin, "LineSelector_Line" + line_num)
                     self._stream.LineSelector.SetValue(selector)
                     try: 
@@ -140,11 +138,10 @@ class FLIRCamera(BaseCamera):
                     except PySpin.SpinnakerException as ex:
                         logger.debug(f"Unable to write enum entry to Line {line_num}")
                         pass
-                elif prop_name == "TriggerSource":
+                elif name == "TriggerSource":
                     if value == "TriggerMode_Off":
                         self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
                     else:
-                        print("TEST TEST TEST")
                         self._stream.TriggerMode.SetValue(PySpin.TriggerMode_On)
                         self._stream.TriggerOverlap.SetValue(PySpin.TriggerOverlap_ReadOut) # Off or ReadOut to speed up
                         self._stream.TriggerSource.SetValue(value)
@@ -152,7 +149,31 @@ class FLIRCamera(BaseCamera):
                         self._stream.TriggerSelector.SetValue(PySpin.TriggerSelector_FrameStart) # require trigger for each frame
                 
                 else: 
+                    # Set to auto mode if value is negative
+                    if name == "Buffer Size":
+                        # if value < 0: # No buffer auto mode
+                        #     continue
+                        self._stream.TLStream.StreamBufferCountMode.SetValue(PySpin.StreamBufferCountMode_Manual)
+                    elif name == "Gain":
+                        if value < 0:
+                            self._stream.GainAuto.SetValue(PySpin.GainAuto_Continuous)
+                            continue
+                        self._stream.GainAuto.SetValue(PySpin.GainAuto_Off)
+                    elif name == "Gamma":
+                        if value < 0:
+                            self._stream.GammaEnable.SetValue(False)
+                            continue
+                        self._stream.GammaEnable.SetValue(True)
+                    elif name == "Exposure (μs)":
+                        if value < 0:
+                            self._stream.ExposureAuto.SetValue(PySpin.ExposureAuto_Continuous)
+                            continue
+                        self._stream.ExposureAuto.SetValue(PySpin.ExposureAuto_Off)
+                        self._stream.ExposureMode.SetValue(PySpin.ExposureMode_Timed)
+
+
                     # Recursively access QuickSpin API
+                    prop_name = FLIRCamera.DISPLAY_PROP_MAP.get(name, name)
                     node = self._stream
                     for attr in prop_name.split('.'):
                         node = getattr(node, attr)
@@ -164,11 +185,13 @@ class FLIRCamera(BaseCamera):
                         if clipped != value:
                             logger.warning(f"{prop_name} must be in the range [{node_min}, {node_max}]"
                                             f" so {value} was clipped to {clipped}")
-                            prop_config.set(name, clipped)
+                            prop_config.set(name, int(clipped))
                             value = clipped
 
                     if node.GetAccessMode() == PySpin.RW:
                         node.SetValue(value)
+            # Ensure RGB pixel format
+            self._stream.PixelFormat.SetValue(PySpin.PixelFormat_RGB8Packed)
 
         except PySpin.SpinnakerException as err:
             logger.exception(err)
@@ -177,7 +200,6 @@ class FLIRCamera(BaseCamera):
         
         # print(dir(self._stream.TLStream))
         # print(self._stream.TLStream.StreamBufferHandlingMode.ToString())
-        # print(self._stream.TLStream.StreamOutputBufferCount.GetValue())
         # print(self._stream.AcquisitionMode.ToString())
 
         self._stream.BeginAcquisition()
@@ -207,15 +229,15 @@ class FLIRCamera(BaseCamera):
             self.last_index = new_index
             self.frames_acquired += 1
 
-            frame = img_data.GetNDArray()
-            if colorspace == "BGR":
-                self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2BGR)
-            elif colorspace == "RGB":
-                self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2RGB)
-            elif colorspace == "GRAY":
-                self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2GRAY)
-            else:
-                self.last_frame = frame
+            self.last_frame = img_data.GetNDArray()
+            # if colorspace == "BGR":
+            #     self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2BGR)
+            # elif colorspace == "RGB":
+            #     self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2RGB)
+            # elif colorspace == "GRAY":
+            #     self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2GRAY)
+            # else:
+            #     self.last_frame = frame
 
             # Release image from camera buffer
             img_data.Release()
