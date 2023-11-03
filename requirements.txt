@@ -2,7 +2,8 @@ darkdetect
 numpy==1.25.*
 opencv-python-headless==4.8.*
 pillow
-pyqt6==6.5.*
+pyqt6
+pyqt6-tools
 pyqtconfig
 tensorflow==2.9.*; sys_platform != 'darwin'
 tensorflow; sys_platform == 'darwin'    # MacOS uses latest version

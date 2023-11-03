@@ -1,4 +1,5 @@
-__version__ = "0.1.4"
+# RataGUI package version
+__version__ = "0.2.1"
 
 import os
 import sys
