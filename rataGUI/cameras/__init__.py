@@ -12,7 +12,7 @@ from importlib import import_module
 from rataGUI import launch_config
 
 enabled_cameras = launch_config.get("Enabled Camera Modules")
-if enabled_cameras is not None and launch_config["Don't show again"]:
+if enabled_cameras is not None and launch_config.get("Don't show again"):
     for module_name in enabled_cameras:
         try:
             abs_module_path = f"{__name__}.{module_name}"

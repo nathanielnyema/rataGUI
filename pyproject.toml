@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rataGUI"
-version = "0.1.4"
+# version = "0.1.4"
 description = "Customizable and intuitive video acquisition system for real-time animal tracking and behavior quantification"
 keywords = ["tracking", "pose estimation", "video", "neuroscience", "deep learning"]
 authors = [
@@ -14,7 +14,7 @@ authors = [
 license = { text = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.10"
-dynamic = ["dependencies"]
+dynamic = ["dependencies","version"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -25,6 +25,7 @@ classifiers = [
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"]}
+version = {attr = "rataGUI.__version__"}
 
 
 [tool.setuptools.packages.find]

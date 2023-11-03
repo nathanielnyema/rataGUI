@@ -12,7 +12,7 @@ from importlib import import_module
 from rataGUI import launch_config
 
 enabled_plugins = launch_config.get("Enabled Plugin Modules")
-if enabled_plugins is not None and launch_config["Don't show again"]:
+if enabled_plugins is not None and launch_config.get("Don't show again"):
     for module_name in enabled_plugins:
         try:
             abs_module_path = f"{__name__}.{module_name}"

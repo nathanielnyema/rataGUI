@@ -12,7 +12,7 @@ from importlib import import_module
 from rataGUI import launch_config
 
 enabled_triggers = launch_config.get("Enabled Trigger Modules")
-if enabled_triggers is not None and launch_config["Don't show again"]:
+if enabled_triggers is not None and launch_config.get("Don't show again"):
     for module_name in enabled_triggers:
         try:
             abs_module_path = f"{__name__}.{module_name}"
