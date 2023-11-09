@@ -5,6 +5,7 @@ example/
 session/
 videos/
 data/
+root/
 rataGUI/launch_config.json
 
 # Byte-compiled / optimized / DLL files
