@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>780</width>
-    <height>670</height>
+    <width>900</width>
+    <height>680</height>
    </rect>
   </property>
   <property name="font">
@@ -273,8 +273,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>566</width>
-               <height>367</height>
+               <width>686</width>
+               <height>374</height>
               </rect>
              </property>
              <layout class="QGridLayout" name="gridLayout_6">
@@ -437,8 +437,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>566</width>
-               <height>367</height>
+               <width>686</width>
+               <height>374</height>
               </rect>
              </property>
              <layout class="QGridLayout" name="gridLayout_5">
@@ -757,7 +757,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>780</width>
+     <width>900</width>
      <height>18</height>
     </rect>
    </property>

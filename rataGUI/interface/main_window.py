@@ -10,7 +10,7 @@ from PyQt6.QtCore import Qt, QTimer
 
 from rataGUI.interface.design.Ui_MainWindow import Ui_MainWindow
 from rataGUI.interface.camera_widget import CameraWidget
-from rataGUI import launch_config, rataGUI_icon
+from rataGUI import launch_config, rataGUI_icon, __version__
 
 import logging
 logger = logging.getLogger(__name__)
@@ -626,6 +626,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             json.dump(trigger_settings, file, indent=2)
 
         ui_settings = {}
+        ui_settings["RataGUI Version"] = __version__
         ui_settings["checked_cameras"] = [c.text() for c in get_checked_items(self.cam_list)]
 
         plugin_states = {}

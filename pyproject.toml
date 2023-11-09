@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rataGUI"
-# version = "0.1.4"
+# version = "0.2.1"
 description = "Customizable and intuitive video acquisition system for real-time animal tracking and behavior quantification"
 keywords = ["tracking", "pose estimation", "video", "neuroscience", "deep learning"]
 authors = [

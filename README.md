@@ -67,11 +67,11 @@ Note: A "session" is a recording session. Every time you press start, it starts 
 ## Video Demo -->
 
 
-# Customization Guide
+# Development Guide
 
-RataGUI's modular framework was built for user customizability and integration. We encourage you to fork the package repository from Github and add additional modules for your specific use case. 
+RataGUI's modular framework was built for user customizability and integration. We encourage you to [fork](https://guides.github.com/activities/forking/#fork) the package [Github repository](https://github.com/BrainHu42/rataGUI) and add additional modules for your specific use case. Then, run the following command to clone the forked repository to your computer. 
 ```
-git clone https://github.com/BrainHu42/rataGUI.git
+git clone https://github.com/<YOUR-USERNAME>/rataGUI.git
 ```
 
 ## Implement Custom Camera Models

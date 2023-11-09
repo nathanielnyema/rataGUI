@@ -7,7 +7,7 @@ from datetime import datetime
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import QThreadPool, pyqtSlot, pyqtSignal
 
-from rataGUI import rataGUI_icon, launch_config
+from rataGUI import rataGUI_icon, __version__
 from rataGUI.utils import WorkerThread, slugify
 from rataGUI.interface.design.Ui_CameraWidget import Ui_CameraWidget
 
@@ -234,6 +234,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
 
     def save_widget_data(self): # TODO: Compare settings before and after
         metadata = {}
+        metadata["RataGUI Version"] = __version__
         metadata["Session Directory"] = self.session_dir
         metadata["Camera ID"] = str(self.camera.cameraID)
         metadata["Display Name"] = str(self.camera.display_name)
@@ -267,7 +268,6 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     def set_window_pixmap(self, qt_image):
         pixmap = QtGui.QPixmap.fromImage(qt_image)
         self.video_frame.setPixmap(pixmap)
-
 
 
 
