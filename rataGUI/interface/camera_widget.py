@@ -105,7 +105,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         # Signal to event loop to stop camera and plugins
         self.camera._running = False
         self.active = False
-        self.stop_plugins()
+        # self.stop_plugins()
         self.clean_session_dir()
 
 

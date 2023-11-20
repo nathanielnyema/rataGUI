@@ -26,7 +26,8 @@ class DLCInference(BasePlugin):
         "Scale factor": 1.0,
         "Fixed Interval": 0, 
         "Score Threshold": 0.5,
-        "Batch Processing": {"Disabled": False, "Enabled": True}, # TODO
+        "Kalman Filter": {"Disabled": False, "Enabled": True},
+        # "Batch Processing": {"Disabled": False, "Enabled": True}, # TODO
         "Draw on frame": {"Disabled": False, "Enabled": True},
         "Write to file": {"Disabled": False, "Enabled": True},
         "Publish to socket": {"Disabled": False, "Enabled": True},
