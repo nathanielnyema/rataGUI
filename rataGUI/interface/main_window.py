@@ -499,41 +499,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         def reset_interface(camID, item):
             self.camera_widgets[camID] = None
             item.setData(Qt.ItemDataRole.BackgroundRole, None)
-            # Stop all checked triggers
-            for trig_item in get_checked_items(self.trigger_list):
-                try:
-                    trigger = self.triggers[trig_item.text()]
-                    if trigger.initialized:
-                            trigger.close()
-                    trig_item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
-                except Exception as err:
-                    logger.exception(err)
-                    logger.error(f"Trigger: {trig_item.text()} failed to close")
 
-
-        # Initialize all enabled triggers
-        enabled_triggers = []
-        for item in get_checked_items(self.trigger_list):
-            deviceID = item.text()
-            trigger = self.triggers[deviceID]
-            if not trigger.initialized:
-                try:
-                    success = trigger.initialize(self.trigger_configs[deviceID])
-                    if not success:
-                        raise IOError(f"Trigger: {deviceID} failed to initialize") 
-                    trigger.initialized = True
-                    logger.info(f"Trigger: {deviceID} initialized")
-                except Exception as err:
-                    logger.exception(err)
-                    trigger.initialized = False
-                    continue
-
-            enabled_triggers.append(trigger)
-            item.setBackground(self.active_color)
                     
         session_dir = os.path.join(launch_config["Save Directory"], datetime.now().strftime("%Y_%m_%d-%H_%M_%S"))
         # Save session configuration as json files
         self.save_settings(os.path.join(session_dir, "settings"))
+
+        # Initialize all enabled triggers
+        enabled_triggers = []
 
         screen_width = self.screen.width()
         for cam_idx in range(self.plugin_pipeline.rowCount()):
@@ -556,6 +529,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 # Update interface once camera widget opens or closes
                 cam_item = self.cam_list.item(cam_idx)
                 widget.pipeline_initialized.connect(lambda item=cam_item: item.setBackground(self.active_color))
+
+                
                 widget.destroyed.connect(lambda _, id=camID, item=cam_item: reset_interface(id, item))
 
                 widgets_per_row = round(screen_width / widget.width())
@@ -567,6 +542,26 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 widget.active = True
                 self.camera_widgets[camID].show()
                 self.cam_list.item(cam_idx).setBackground(self.active_color)
+
+        # # Initialize all enabled triggers
+        # enabled_triggers = []
+        for item in get_checked_items(self.trigger_list):
+            deviceID = item.text()
+            trigger = self.triggers[deviceID]
+            if not trigger.initialized:
+                try:
+                    success = trigger.initialize(self.trigger_configs[deviceID])
+                    if not success:
+                        raise IOError(f"Trigger: {deviceID} failed to initialize") 
+                    trigger.initialized = True
+                    logger.info(f"Trigger: {deviceID} initialized")
+                except Exception as err:
+                    logger.exception(err)
+                    trigger.initialized = False
+                    continue
+
+            enabled_triggers.append(trigger)
+            item.setBackground(self.active_color)
 
 
     def pause_camera_widgets(self):
@@ -580,6 +575,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def stop_camera_widgets(self):
+        # Stop all checked triggers
+        for trig_item in get_checked_items(self.trigger_list):
+            try:
+                trigger = self.triggers[trig_item.text()]
+                if trigger.initialized:
+                        trigger.close()
+                trig_item.setData(Qt.ItemDataRole.BackgroundRole, None) # Reset to default color
+            except Exception as err:
+                logger.exception(err)
+                logger.error(f"Trigger: {trig_item.text()} failed to close")
+
+
         for cam_item in get_checked_items(self.cam_list):
             cam_name = cam_item.text()
             camID = list(self.camera_names.keys())[list(self.camera_names.values()).index(cam_name)] # cam_name -> camID
