@@ -505,8 +505,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Save session configuration as json files
         self.save_settings(os.path.join(session_dir, "settings"))
 
-        # Initialize all enabled triggers
+        # Find all enabled triggers
         enabled_triggers = []
+        for item in get_checked_items(self.trigger_list):
+            deviceID = item.text()
+            enabled_triggers.append(self.triggers[deviceID])
 
         screen_width = self.screen.width()
         for cam_idx in range(self.plugin_pipeline.rowCount()):
@@ -543,25 +546,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.camera_widgets[camID].show()
                 self.cam_list.item(cam_idx).setBackground(self.active_color)
 
-        # # Initialize all enabled triggers
-        # enabled_triggers = []
-        for item in get_checked_items(self.trigger_list):
-            deviceID = item.text()
-            trigger = self.triggers[deviceID]
-            if not trigger.initialized:
-                try:
+        # Initialize all enabled triggers
+        for trigger in enabled_triggers:
+            try:
+                if not trigger.initialized:
                     success = trigger.initialize(self.trigger_configs[deviceID])
                     if not success:
                         raise IOError(f"Trigger: {deviceID} failed to initialize") 
                     trigger.initialized = True
+                    item.setBackground(self.active_color)
                     logger.info(f"Trigger: {deviceID} initialized")
-                except Exception as err:
-                    logger.exception(err)
-                    trigger.initialized = False
-                    continue
-
-            enabled_triggers.append(trigger)
-            item.setBackground(self.active_color)
+            except Exception as err:
+                logger.exception(err)
+                trigger.initialized = False
+                continue
 
 
     def pause_camera_widgets(self):

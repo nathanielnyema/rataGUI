@@ -26,7 +26,8 @@ class TemplateTrigger(BaseTrigger):
 
 
     def execute(self, signal):
-        logger.info(f"Trigger: {str(self.deviceID)} executed")
+        if self.initialized:
+            logger.info(f"Trigger: {str(self.deviceID)} executed")
     
     
     def close(self):
