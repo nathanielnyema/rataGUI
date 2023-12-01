@@ -547,7 +547,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.cam_list.item(cam_idx).setBackground(self.active_color)
 
         # Initialize all enabled triggers
-        for trigger in enabled_triggers:
+        # for trigger in enabled_triggers:
+        for item in get_checked_items(self.trigger_list):
+            deviceID = item.text()
+            trigger = self.triggers[deviceID]
             try:
                 if not trigger.initialized:
                     success = trigger.initialize(self.trigger_configs[deviceID])
@@ -559,6 +562,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             except Exception as err:
                 logger.exception(err)
                 trigger.initialized = False
+                item.setData(Qt.ItemDataRole.BackgroundRole, None)
                 continue
 
 
