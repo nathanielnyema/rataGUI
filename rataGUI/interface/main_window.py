@@ -898,11 +898,19 @@ def make_config_layout(config, cols=2, extend_line_edits=True):
         line_form = QtWidgets.QFormLayout()
         line_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         for label, handler in long_line_edits:
-            if "directory" in label.text().lower():
+            label_text = label.text().lower()
+            if "directory" in label_text:
                 hbox = QtWidgets.QHBoxLayout()
                 hbox.addWidget(handler)
                 browse_btn = QtWidgets.QPushButton("Browse")
-                browse_btn.clicked.connect(lambda state, edit=handler: open_dir_dialog(edit))
+                browse_btn.clicked.connect(lambda state, edit=handler: open_file_dialog(edit, True))
+                hbox.addWidget(browse_btn)
+                line_form.addRow(label, hbox)
+            elif ("file" in label_text) and (not "save" in label_text):
+                hbox = QtWidgets.QHBoxLayout()
+                hbox.addWidget(handler)
+                browse_btn = QtWidgets.QPushButton("Browse")
+                browse_btn.clicked.connect(lambda state, edit=handler: open_file_dialog(edit, False))
                 hbox.addWidget(browse_btn)
                 line_form.addRow(label, hbox)
             else:
@@ -916,9 +924,12 @@ def make_config_layout(config, cols=2, extend_line_edits=True):
 
     return layout
 
-def open_dir_dialog(line_edit):
-    dir_name = QtWidgets.QFileDialog.getExistingDirectory(caption="Select a Directory", directory=os.getcwd(), \
+def open_file_dialog(line_edit, is_dir: bool):
+    if is_dir:
+        res = QtWidgets.QFileDialog.getExistingDirectory(caption="Select a Directory", directory=os.getcwd(),
                                                         options=QtWidgets.QFileDialog.Option.ShowDirsOnly)
-    if dir_name:
-        path = os.path.normpath(dir_name)
+    else:
+        res, _  = QtWidgets.QFileDialog.getOpenFileName(caption="Select a File", directory=os.getcwd())
+    if res:
+        path = os.path.normpath(res)
         line_edit.setText(str(path))

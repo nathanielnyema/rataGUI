@@ -56,7 +56,7 @@ RataGUI was developed with four primary design principles:
 
 ## Quick Start
 ```
-conda create -n rataGUI ffmpeg pip python=3.10 cudnn=8.2 cudatoolkit=11.3 nvidia::cuda-nvcc=11.3
+conda create -n rataGUI ffmpeg pip scipy python=3.10 cudnn=8.2 cudatoolkit=11.3 nvidia::cuda-nvcc=11.3
 conda activate rataGUI
 python -m pip install rataGUI
 ```
