@@ -33,11 +33,12 @@ class BaslerCamera(BaseCamera):
     #     "Buffer Mode": "TLStream.StreamBufferHandlingMode",
     # }
 
+    _TlFactory = pylon.TlFactory.GetInstance()
+
     @staticmethod
     def getCameraList():
         '''Return a list of Basler camera pointers.'''
-        tl_factory = pylon.TlFactory.GetInstance()
-        cam_list = tl_factory.EnumerateDevices()
+        cam_list = BaslerCamera._TlFactory.EnumerateDevices()
         return cam_list
 
 
@@ -79,7 +80,7 @@ class BaslerCamera(BaseCamera):
             for device in cam_list:
                 if device.GetSerialNumber() == self.cameraID:
                     self._stream = pylon.InstantCamera(
-                        pylon.TlFactory.GetInstance().CreateDevice(device)
+                        BaslerCamera._TlFactory.CreateDevice(device)
                     )
                     break
             if self._stream is None:
