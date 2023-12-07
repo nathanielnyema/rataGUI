@@ -547,7 +547,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.cam_list.item(cam_idx).setBackground(self.active_color)
 
         # Initialize all enabled triggers
-        # for trigger in enabled_triggers:
         for item in get_checked_items(self.trigger_list):
             deviceID = item.text()
             trigger = self.triggers[deviceID]
