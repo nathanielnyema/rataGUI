@@ -5,11 +5,16 @@ import os
 import csv
 import cv2
 import numpy as np
-import tensorflow as tf
 from datetime import datetime
 
 import logging
 logger = logging.getLogger(__name__)
+
+try:
+    import tensorflow as tf
+except:
+    logger.error("Unable to import tensorflow. Check installation process")
+
 
 class SleapInference(BasePlugin):
     """

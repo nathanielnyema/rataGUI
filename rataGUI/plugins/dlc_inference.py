@@ -12,6 +12,11 @@ from datetime import datetime
 import logging
 logger = logging.getLogger(__name__)
 
+try:
+    import tensorflow as tf
+except:
+    logger.error("Unable to import tensorflow. Check installation process")
+
 
 class DLCInference(BasePlugin):
     """
