@@ -29,9 +29,8 @@ class FLIRCamera(BaseCamera):
         "Gamma": -1,
         "Exposure (μs)": -1,
         "Height": 10000,
-        "Width": 10000, 
-        "Camera Parameters File": "" 
-    }
+        "Width": 10000,     
+        }
 
     DISPLAY_PROP_MAP = {
         "Limit Framerate": "AcquisitionFrameRateEnable",

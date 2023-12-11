@@ -197,12 +197,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def populate_camera_properties(self):
         for camID in self.camera_names.keys():
             config = self.camera_configs[camID]
-            cls = self.cameras[camID].__class__
             tab = QtWidgets.QWidget()
-            if hasattr(cls, "DEFAULT_PROPS"):
-                config.set_defaults(cls.DEFAULT_PROPS)
-                for key, setting in cls.DEFAULT_PROPS.items():
-                    add_config_handler(config, key, setting)
+            cls = self.cameras[camID].__class__
+            props = {"Camera Parameters File": ""}
+            if hasattr(cls,"DEFAULT_PROPS"):
+                props.update(cls.DEFAULT_PROPS)
+            config.set_defaults(props)
+            for key, setting in props.items():
+                add_config_handler(config, key, setting)
             
             layout = make_config_layout(config)
             tab.setLayout(layout)
