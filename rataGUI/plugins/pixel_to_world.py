@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 class Pixel2World(BasePlugin):
 
     DEFAULT_CONFIG = {
+        "Calibration Validation Mode": {"Disabled": False, "Enabled": True},
+        "# of Columns":10,
+        "# of Rows": 9,
         "Publish to socket": {"Disabled": False, "Enabled": True},
         "Write to file": {"Disabled": False, "Enabled": True},
         "Save file (.csv)": "data",
@@ -71,31 +74,48 @@ class Pixel2World(BasePlugin):
             else:
                 logger.error("Unable to find enabled socket trigger")
 
+        self.validate = config.get("Calibration Validation Mode")
+        self.ncols = config.get("# of Columns")
+        self.nrows = config.get("# of Rows")
 
     def process(self, frame, metadata):
         undistorted = metadata.get("Undistorted")
         _poses = metadata.get("DLC Poses")
 
-        if _poses:
-            coords = [np.array([(x,y) for (y,x), _ in pose]) for pose in _poses]
-            confs = [np.array([conf for _, conf in pose]) for pose in _poses]
+        if not self.validate:
+            if _poses:
+                coords = [np.array([(x,y) for (y,x), _ in pose]) for pose in _poses]
+                confs = [np.array([conf for _, conf in pose]) for pose in _poses]
 
-            if not undistorted:
-                coords = [cv.undistortImagePoints(i, self.cam_mtx, self.dist_coeffs) for i in coords]
-            
-            poses = []
-            for pose_coords, pose_confs in zip(coords, confs):
-                poses.append([ ((y,x), c) for (x,y), c in zip(self.pixel_to_world(pose_coords), pose_confs)])
+                if not undistorted:
+                    coords = [cv.undistortImagePoints(i, self.cam_mtx, self.dist_coeffs) for i in coords]
+                
+                poses = []
+                for pose_coords, pose_confs in zip(coords, confs):
+                    poses.append([ ((y,x), c) for (x,y), c in zip(self.pixel_to_world(pose_coords), pose_confs)])
 
-            # logger.debug(poses)
-            if self.csv_writer:
-                self.csv_writer.writerow(poses)
-            if self.socket_trigger:
-                self.socket_trigger.execute(str(poses))
-            metadata["Real World Coordinates"] = poses
+                # logger.debug(poses)
+                if self.csv_writer:
+                    self.csv_writer.writerow(poses)
+                if self.socket_trigger:
+                    self.socket_trigger.execute(str(poses))
+                metadata["Real World Coordinates"] = poses
+            else:
+                logger.debug("No DLC Poses found. auto-disabling")
+                self.active = False
+
         else:
-            logger.debug("No DLC Poses found. auto-disabling")
-            self.active = False
+            gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+            ret, corners = cv.findChessboardCorners(gray, (self.ncols,self.nrows), None)
+            if ret:
+                frame = cv.drawChessboardCorners(frame, (self.ncols, self.nrows), corners, ret)
+                corners = corners.squeeze()
+                if not undistorted:
+                    corners = cv.undistortImagePoints(corners)
+                corners = self.pixel_to_world(corners)[None, :,:].reshape(self.nrows, self.ncols, 2)
+                x_dist = np.abs(corners[:,1:] - corners[:,:-1]).reshape(-1,2).mean(axis=0).max()
+                y_dist = np.abs(corners[1:] - corners[:-1]).reshape(-1,2).mean(axis=0).max()
+                logger.info(f"mean x distance: {x_dist}; mean y distance {y_dist}")
 
         return frame, metadata
     
