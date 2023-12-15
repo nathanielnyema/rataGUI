@@ -111,7 +111,7 @@ class Pixel2World(BasePlugin):
                 frame = cv.drawChessboardCorners(frame, (self.ncols, self.nrows), corners, ret)
                 corners = corners.squeeze()
                 if not undistorted:
-                    corners = cv.undistortImagePoints(corners)
+                    corners = cv.undistortImagePoints(corners, self.cam_mtx, self.dist_coeffs).squeeze()
                 corners = self.pixel_to_world(corners)[None, :,:].reshape(self.nrows, self.ncols, 2)
                 x_dist = np.abs(corners[:,1:] - corners[:,:-1]).reshape(-1,2).mean(axis=0).max()
                 y_dist = np.abs(corners[1:] - corners[:-1]).reshape(-1,2).mean(axis=0).max()
