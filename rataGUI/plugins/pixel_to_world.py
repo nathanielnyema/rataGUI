@@ -93,8 +93,6 @@ class Pixel2World(BasePlugin):
                 poses = []
                 for pose_coords, pose_confs in zip(coords, confs):
                     poses.append([ ((y,x), c) for (x,y), c in zip(self.pixel_to_world(pose_coords), pose_confs)])
-
-                # logger.debug(poses)
                 if self.csv_writer:
                     self.csv_writer.writerow(poses)
                 if self.socket_trigger:
@@ -106,7 +104,7 @@ class Pixel2World(BasePlugin):
 
         else:
             gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-            ret, corners = cv.findChessboardCorners(gray, (self.ncols,self.nrows), None)
+            ret, corners = cv.findChessboardCorners(gray, (self.ncols,self.nrows), flags = cv.CALIB_CB_FAST_CHECK )
             if ret:
                 frame = cv.drawChessboardCorners(frame, (self.ncols, self.nrows), corners, ret)
                 corners = corners.squeeze()
