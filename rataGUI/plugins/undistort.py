@@ -20,13 +20,16 @@ class Undistort(BasePlugin):
             param_file = os.path.normpath(os.path.abspath(cam_widget.camera_config.get("Camera Parameters File")))
 
             f = loadmat(param_file)
-            self.cam_mtx = f["K"].squeeze()
+            cam_mtx = f["K"].squeeze()
             rad = f["RadialDistortion"].squeeze()
             tan = f["TangentialDistortion"].squeeze()
+            h, w = f["ImageSize"].squeeze()
+            logger.debug(str((w, h)))
             
-            self.dist_coeffs = np.concatenate((rad[:2], tan))
+            dist_coeffs = np.concatenate((rad[:2], tan))
             if rad.size == 3: 
-                self.dist_coeffs = np.append(self.dist_coeffs, rad[-1])
+                dist_coeffs = np.append(dist_coeffs, rad[-1])
+            self.map1, self.map2 = cv.initUndistortRectifyMap(cam_mtx, dist_coeffs, None, cam_mtx, (w, h), cv.CV_32FC1)
 
         except Exception as err:
             logger.exception(err)
@@ -36,7 +39,6 @@ class Undistort(BasePlugin):
 
     def process(self, frame, metadata):
 
-        frame = cv.undistort(frame, self.cam_mtx, self.dist_coeffs)
+        frame = cv.remap(frame, self.map1, self.map2, cv.INTER_LINEAR)
         metadata["Undistorted"] = True
-
         return frame, metadata

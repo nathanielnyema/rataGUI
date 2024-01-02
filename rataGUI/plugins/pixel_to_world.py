@@ -88,7 +88,7 @@ class Pixel2World(BasePlugin):
                 confs = [np.array([conf for _, conf in pose]) for pose in _poses]
 
                 if not undistorted:
-                    coords = [cv.undistortImagePoints(i, self.cam_mtx, self.dist_coeffs) for i in coords]
+                    coords = [cv.undistortImagePoints(i, self.cam_mtx, self.dist_coeffs).squeeze() for i in coords]
                 
                 poses = []
                 for pose_coords, pose_confs in zip(coords, confs):
