@@ -191,7 +191,9 @@ class FLIRCamera(BaseCamera):
                     if node.GetAccessMode() == PySpin.RW:
                         node.SetValue(value)
             # Ensure RGB pixel format
-            self._stream.PixelFormat.SetValue(PySpin.PixelFormat_RGB8Packed)
+            # self._stream.PixelFormat.SetValue(PySpin.PixelFormat_RGB8Packed)
+            self._stream.PixelFormat.SetValue(PySpin.PixelFormat_BayerRG8)
+            # self._stream.IspEnable.SetIntValue(0)
 
         except PySpin.SpinnakerException as err:
             logger.exception(err)
@@ -230,14 +232,14 @@ class FLIRCamera(BaseCamera):
             self.frames_acquired += 1
 
             self.last_frame = img_data.GetNDArray()
-            # if colorspace == "BGR":
-            #     self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2BGR)
-            # elif colorspace == "RGB":
-            #     self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2RGB)
-            # elif colorspace == "GRAY":
-            #     self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BayerBG2GRAY)
-            # else:
-            #     self.last_frame = frame
+            if colorspace == "BGR":
+                self.last_frame = cv2.cvtColor(self.last_frame, cv2.COLOR_BayerBG2BGR)
+            elif colorspace == "RGB":
+                self.last_frame = cv2.cvtColor(self.last_frame, cv2.COLOR_BayerBG2RGB)
+            elif colorspace == "GRAY":
+                self.last_frame = cv2.cvtColor(self.last_frame, cv2.COLOR_BayerBG2GRAY)
+            else:
+                self.last_frame = self.last_frame
 
             # Release image from camera buffer
             img_data.Release()
