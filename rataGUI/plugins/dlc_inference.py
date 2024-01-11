@@ -31,6 +31,10 @@ class DLCInference(BasePlugin):
         "Scale factor": 1.0,
         "Fixed Interval": 0, 
         "Score Threshold": 0.5,
+        "Dynamic Cropping": {"Disabled": False, "Enabled": True},
+        "Bounding Box Height": 500,
+        "Bounding Box Width": 500,
+        "Minimum # of Points in Bounding Box": 1,
         "Kalman Filter": {"Disabled": False, "Enabled": True},
         # "Batch Processing": {"Disabled": False, "Enabled": True}, # TODO
         "Draw on frame": {"Disabled": False, "Enabled": True},
@@ -61,7 +65,7 @@ class DLCInference(BasePlugin):
             self.active = False
 
         self.interval = 0
-        self.poses = []
+        self.pose = None
         
         self.save_file = None
         self.csv_writer = None
@@ -94,29 +98,57 @@ class DLCInference(BasePlugin):
 
         self.interval -= 1
         if self.interval <= 0:
+            image = frame.copy()
             scale = self.config.get("Scale factor")
+            crop = self.config.get("Dynamic Cropping") and self.pose
+            if crop:
+                height = int(self.config.get("Bounding Box Height"))
+                width = int(self.config.get("Bounding Box Width"))
+                prev_pos = np.array([(x[0], x[1]) for x, _ in self.pose if x[0]]).mean(axis=0).astype(int)
+                disp_y, disp_x = (prev_pos[0] - height//2, prev_pos[1] - width//2)
+                image = image[disp_y:disp_y+height, disp_x:disp_x+width]
+
             if scale != 1.0:
-                img_h, img_w, num_ch = frame.shape
-                image = cv2.resize(frame, (int(img_w * scale), int(img_h * scale))) # resize uses reverse order
-                image = np.expand_dims(image, axis=0)
+                height, width, _ = image.shape
+                image = cv2.resize(image, (int(width * scale), int(height * scale))) # resize uses reverse order
+            image = np.expand_dims(image, axis=0)
+
+            prediction = self.model(tf.constant(image, dtype=self.model_input.dtype))[0]  # outputs list of tensors
+            
+            # new list of tuples (points) with format ((h,w), score)            
+            pose = []
+            for point in prediction.numpy():
+                if scale != 1.0:
+                    point[0] = point[0]/scale
+                    point[1] = point[1]/scale
+                if crop:
+                    point[0] += disp_y
+                    point[1] += disp_x
+                pose.append( ((point[0], point[1]), point[2]) )
+            
+            # if at least the minimum number of points was detected accept the prediction
+            threshold = self.config.get("Score Threshold")
+            min_points = self.config.get("Minimum # of Points in Bounding Box")
+            if sum([x[1]>threshold for x in pose if x[0]]) > min_points:
+                self.pose = pose
             else:
-                image = np.expand_dims(frame, axis=0)
-
-            prediction = self.model(tf.constant(image, dtype=self.model_input.dtype))  # outputs list of tensors
-            
-            # new list of lists (instances) of tuples (points) with format ((h,w), score)
-            self.poses = []
-            
-            for instance in prediction:
-                pose = []
-                for point in instance.numpy():
+                crop = False
+                if scale != 1.0:
+                    height, width, _ = frame.shape
+                    image = cv2.resize(frame, (int(width * scale), int(height * scale))) # resize uses reverse order
+                    image = np.expand_dims(image, axis=0)
+                prediction = self.model(tf.constant(image, dtype=self.model_input.dtype))[0]  # outputs list of tensors
+                self.pose = []
+                for point in prediction.numpy():
                     if scale != 1.0:
-                        resized = (point[0] / scale, point[1] / scale)
-                        pose.append((resized, point[2]))
-                    else:
-                        pose.append( ((point[0], point[1]), point[2]) )
+                        point[0] = point[0]/scale
+                        point[1] = point[1]/scale
+                    if crop:
+                        point[0] += disp_y
+                        point[1] += disp_x
+                    self.pose.append( ((point[0], point[1]), point[2]) )
+                
 
-                self.poses.append(pose)
 
             fps_mode = self.config.get("Inference FPS")            
             if fps_mode == "Match Camera":
@@ -127,15 +159,13 @@ class DLCInference(BasePlugin):
                 self.blocking = False
 
         if self.config.get("Draw on frame"):
-            threshold = self.config.get("Score Threshold")
-            for num, pose in enumerate(self.poses):
-                color = [0,0,0]
-                color[num % 3] = 255
-
-                for point, score in pose:
-                    h_pos, w_pos = point
-                    if not(np.isnan(h_pos) or np.isnan(w_pos)) and score >= threshold:
-                        frame = cv2.circle(frame, (round(w_pos), round(h_pos)), 5, color, -1)
+            color = [255,0,0]
+            if crop:
+                frame = cv2.rectangle(frame, (disp_x, disp_y), (disp_x+width, disp_y+height), color, 5)
+            for point, score in self.pose:
+                h_pos, w_pos = point
+                if not(np.isnan(h_pos) or np.isnan(w_pos)) and score >= threshold:
+                    frame = cv2.circle(frame, (round(w_pos), round(h_pos)), 5, color, -1)
 
         if self.csv_writer is not None:
             self.csv_writer.writerow(self.poses)
@@ -143,7 +173,7 @@ class DLCInference(BasePlugin):
         if self.socket_trigger is not None:
             self.socket_trigger.execute(str(self.poses))
 
-        metadata["DLC Poses"] = self.poses
+        metadata["DLC Poses"] = [self.pose]
 
         return frame, metadata
 
