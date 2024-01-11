@@ -33,7 +33,7 @@ class Undistort(BasePlugin):
 
         except Exception as err:
             logger.exception(err)
-            logger.debug("Unable to Parameters File ... auto-disabling DLC Inference plugin")
+            logger.debug("Unable to load Parameters File ... auto-disabling Undistort plugin")
             self.active = False
 
 
