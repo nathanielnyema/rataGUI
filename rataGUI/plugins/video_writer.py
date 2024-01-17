@@ -68,8 +68,17 @@ class VideoWriter(BasePlugin):
         vcodec = self.output_params.get("-vcodec")
         if vcodec in ['rawvideo']:
             extension = ".raw"
-        # if vcodec in ['h264_nvenc', 'hevc_nvenc']:
-        #     self.output_params['-cq'] = self.output_params.pop('-crf')
+        elif vcodec in ['h264_nvenc', 'hevc_nvenc']:
+            # Handle unsupported preset for nvidia codecs
+            preset = self.output_params.get("-preset")
+            if preset not in ['slow', 'medium', 'fast']:
+                logger.warning(f"{preset} preset is not supported for vcodec {vcodec} ... defaulting to medium")
+                config.set("speed (preset)", 'medium')
+                self.config["speed (preset)"] = 'medium'
+                self.output_params["-preset"] = 'medium'
+                
+            # self.output_params['-cq'] = self.output_params.pop('-crf')
+
 
         try:
             if os.access(self.save_dir, os.W_OK):

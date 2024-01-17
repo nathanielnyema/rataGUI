@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-READ_TIMEOUT = 15000
+READ_TIMEOUT = 10000
 
 class FLIRCamera(BaseCamera):
 
@@ -24,12 +24,14 @@ class FLIRCamera(BaseCamera):
                         "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,},
         "Limit Framerate": {"On": True, "Off": False},
         "Framerate": 30,
-        "Buffer Size": 10, # Auto
+        "Buffer Size": 123, # Auto
         "Gain": -1, 
         "Gamma": -1,
         "Exposure (μs)": -1,
+        "Width": 10000,
         "Height": 10000,
-        "Width": 10000,  
+        "OffsetX": 0,
+        "OffsetY": 0,
     }
 
     DISPLAY_PROP_MAP = {
@@ -224,8 +226,11 @@ class FLIRCamera(BaseCamera):
 
             # Detect dropped frames
             if self.last_index >= 0:
-                self.frames_dropped += new_index - self.last_index - 1
-                self.buffer_size = self._stream.TLStream.StreamOutputBufferCount.GetValue()
+                num_dropped = new_index - self.last_index - 1
+                self.frames_dropped += num_dropped
+
+                if num_dropped > 0:
+                    self.buffer_size = self._stream.TLStream.StreamOutputBufferCount.GetValue()
             else:
                 self.initial_frameID = new_index
             self.last_index = new_index
