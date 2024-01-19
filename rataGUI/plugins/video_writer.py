@@ -21,7 +21,7 @@ class VideoWriter(BasePlugin):
         'filename suffix': "",
         'vcodec': ['libx264', 'libx265', 'h264_nvenc', 'hevc_nvenc', 'rawvideo'],
         'framerate': 30,
-        'speed (preset)': ["fast", "medium", "slow", "veryfast", "ultrafast", "slower", "veryslow"],    # Defaults to first item
+        'speed (preset)': ["fast", "medium", "slow", "veryfast", "ultrafast", "slower", "veryslow", 'llhp', 'llhq'],    # Defaults to first item
         'quality (0-51)': (32, 0, 51),
         'pixel format': ['yuv420p', 'yuv422p', 'yuv444p', 'rgb24', 'yuv420p10le', 'yuv422p10le', 'yuv444p10le', 'gray'],
     }
@@ -71,14 +71,13 @@ class VideoWriter(BasePlugin):
         elif vcodec in ['h264_nvenc', 'hevc_nvenc']:
             # Handle unsupported preset for nvidia codecs
             preset = self.output_params.get("-preset")
-            if preset not in ['slow', 'medium', 'fast']:
+            if preset not in ['slow', 'medium', 'fast', 'llhp', 'llhq']:
                 logger.warning(f"{preset} preset is not supported for vcodec {vcodec} ... defaulting to medium")
                 config.set("speed (preset)", 'medium')
                 self.config["speed (preset)"] = 'medium'
                 self.output_params["-preset"] = 'medium'
                 
             # self.output_params['-cq'] = self.output_params.pop('-crf')
-
 
         try:
             if os.access(self.save_dir, os.W_OK):
@@ -139,6 +138,8 @@ class FFMPEG_Writer():
 
         if self._FFMPEG_PATH is None:
             raise IOError("Could not find ffmpeg executable in the environment PATH.")
+        else:
+            logger.info(f"Using ffmpeg: {self._FFMPEG_PATH}")
 
 
     def start_process(self, H, W, C):
@@ -167,15 +168,23 @@ class FFMPEG_Writer():
             out_args.append(key)
             out_args.append(value)
 
+        # Explicitly replaces VBR with CBR when using a GPU encoder
+        """
+        vcodec = self.output_dict['-vcodec']
+        if vcodec in ['h264_nvenc', 'hevc_nvenc']:
+            out_args.append('-rc')
+            out_args.append('cbr_hq')
+            out_args.append('-b:v')
+            out_args.append('8M')
+        """
+        
         cmd = [self._FFMPEG_PATH, "-y", "-f", "rawvideo"] + in_args + ["-i", "-", '-an'] + out_args + [self.file_path]
 
         self._cmd = " ".join(cmd)
+        cmd += ["-v", "warning"]  # warning suppression
+        logger.info(cmd)
         
-        if self.verbosity >= 2:
-            logger.info(cmd)
-            self._proc = sp.Popen(cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=None)
-        elif self.verbosity == 1:
-            cmd += ["-v", "warning"]
+        if self.verbosity >= 1:
             logger.info(cmd)
             self._proc = sp.Popen(cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=None)
         else:

@@ -45,7 +45,7 @@ logger = logging.getLogger(__package__)
 
 def main():
     """Starts new instance of RataGUI"""
-    logger.info("__________Starting RataGUI__________")
+    logger.info("__________Starting RataGUI (FC)__________")
     QApplication.setStyle('Fusion')
     app = QApplication([])
 
