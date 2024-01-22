@@ -43,8 +43,6 @@ class MetadataWriter(BasePlugin):
         count = 0
 
         # Write to log
-        print(metadata["Timestamp"])
-        print(metadata["Timestamp"].timetuple())
         with open(self.file_path, 'a') as f:
             f.write(f'{metadata["Frame Index"]},{metadata["Timestamp"].timestamp()}\n')
 
