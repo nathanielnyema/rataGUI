@@ -29,8 +29,8 @@ class FLIRCamera(BaseCamera):
         "Gamma": -1,
         "Exposure (μs)": -1,
         "Height": 10000,
-        "Width": 10000,  
-    }
+        "Width": 10000,     
+        }
 
     DISPLAY_PROP_MAP = {
         "Limit Framerate": "AcquisitionFrameRateEnable",
@@ -175,21 +175,23 @@ class FLIRCamera(BaseCamera):
                     # Recursively access QuickSpin API
                     prop_name = FLIRCamera.DISPLAY_PROP_MAP.get(name, name)
                     node = self._stream
-                    for attr in prop_name.split('.'):
-                        node = getattr(node, attr)
+                    attrs = prop_name.split('.')
+                    if len(attrs)>0 and hasattr(node, attrs[0]):
+                        for attr in prop_name.split('.'):
+                            node = getattr(node, attr)
 
-                    if type(node) in [PySpin.IInteger, PySpin.IFloat]:
-                        node_min = node.GetMin()
-                        node_max = node.GetMax()
-                        clipped = min(max(value, node_min), node_max)
-                        if clipped != value:
-                            logger.warning(f"{prop_name} must be in the range [{node_min}, {node_max}]"
-                                            f" so {value} was clipped to {clipped}")
-                            prop_config.set(name, int(clipped))
-                            value = clipped
+                        if type(node) in [PySpin.IInteger, PySpin.IFloat]:
+                            node_min = node.GetMin()
+                            node_max = node.GetMax()
+                            clipped = min(max(value, node_min), node_max)
+                            if clipped != value:
+                                logger.warning(f"{prop_name} must be in the range [{node_min}, {node_max}]"
+                                                f" so {value} was clipped to {clipped}")
+                                prop_config.set(name, int(clipped))
+                                value = clipped
 
-                    if node.GetAccessMode() == PySpin.RW:
-                        node.SetValue(value)
+                        if node.GetAccessMode() == PySpin.RW:
+                            node.SetValue(value)
             # Ensure RGB pixel format
             self._stream.PixelFormat.SetValue(PySpin.PixelFormat_RGB8Packed)
 
