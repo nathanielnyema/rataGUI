@@ -4,12 +4,14 @@ from rataGUI.utils import slugify
 import os
 import csv
 import cv2
+
 # import json
 import numpy as np
 import tensorflow as tf
 from datetime import datetime
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -29,7 +31,7 @@ class DLCInference(BasePlugin):
         # "Model type": ["Default"], # "TensorRT", "TFLite"
         "Inference FPS": ["Match Camera", "Every Interval"],
         "Scale factor": 1.0,
-        "Fixed Interval": 0, 
+        "Fixed Interval": 0,
         "Score Threshold": 0.5,
         "Dynamic Cropping": {"Disabled": False, "Enabled": True},
         "Bounding Box Height": 500,
@@ -44,7 +46,9 @@ class DLCInference(BasePlugin):
 
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
-        self.model_dir = os.path.normpath(os.path.abspath(config.get("Model directory")))
+        self.model_dir = os.path.normpath(
+            os.path.abspath(config.get("Model directory"))
+        )
 
         try:
             self.model = load_frozen_model(self.model_dir)
@@ -54,10 +58,13 @@ class DLCInference(BasePlugin):
             input_shape = self.model_input.shape.as_list()
             self.batch_size = 1
             self.input_height = input_shape[1]  # None
-            self.input_width = input_shape[2]   # None
+            self.input_width = input_shape[2]  # None
             self.num_channels = input_shape[3]  # 3 (no grayscale)
 
-            dummy_frame = tf.zeros(shape=(self.batch_size, 1, 1, self.num_channels), dtype=self.model_input.dtype) # Arbitrary size
+            dummy_frame = tf.zeros(
+                shape=(self.batch_size, 1, 1, self.num_channels),
+                dtype=self.model_input.dtype,
+            )  # Arbitrary size
             self.model(tf.constant(dummy_frame))
         except Exception as err:
             logger.exception(err)
@@ -66,18 +73,23 @@ class DLCInference(BasePlugin):
 
         self.interval = 0
         self.pose = None
-        
+
         self.save_file = None
         self.csv_writer = None
         if config.get("Write to file"):
             file_name = slugify(config.get("Save file (.csv)"))
-            if len(file_name) == 0: # Use default file name
-                file_name = slugify(cam_widget.camera.getDisplayName()) + "_DLCInference_" + datetime.now().strftime('%H-%M-%S') + ".csv"
-            elif not file_name.endswith('.csv'):
-                file_name += '.csv'
+            if len(file_name) == 0:  # Use default file name
+                file_name = (
+                    slugify(cam_widget.camera.getDisplayName())
+                    + "_DLCInference_"
+                    + datetime.now().strftime("%H-%M-%S")
+                    + ".csv"
+                )
+            elif not file_name.endswith(".csv"):
+                file_name += ".csv"
 
             self.file_path = os.path.join(cam_widget.save_dir, file_name)
-            self.save_file = open(file_name, 'w')
+            self.save_file = open(file_name, "w")
             self.csv_writer = csv.writer(self.save_file)
 
         self.socket_trigger = None
@@ -93,7 +105,6 @@ class DLCInference(BasePlugin):
             else:
                 logger.error("Unable to find enabled socket trigger")
 
-
     def process(self, frame, metadata):
 
         self.interval -= 1
@@ -104,53 +115,65 @@ class DLCInference(BasePlugin):
             if crop:
                 height = int(self.config.get("Bounding Box Height"))
                 width = int(self.config.get("Bounding Box Width"))
-                prev_pos = np.array([(x[0], x[1]) for x, _ in self.pose if x[0]]).mean(axis=0).astype(int)
-                disp_y, disp_x = (prev_pos[0] - height//2, prev_pos[1] - width//2)
-                image = image[disp_y:disp_y+height, disp_x:disp_x+width]
+                prev_pos = (
+                    np.array([(x[0], x[1]) for x, _ in self.pose if x[0]])
+                    .mean(axis=0)
+                    .astype(int)
+                )
+                disp_y, disp_x = (prev_pos[0] - height // 2, prev_pos[1] - width // 2)
+                image = image[disp_y : disp_y + height, disp_x : disp_x + width]
 
             if scale != 1.0:
                 height, width, _ = image.shape
-                image = cv2.resize(image, (int(width * scale), int(height * scale))) # resize uses reverse order
+                image = cv2.resize(
+                    image, (int(width * scale), int(height * scale))
+                )  # resize uses reverse order
             image = np.expand_dims(image, axis=0)
 
-            prediction = self.model(tf.constant(image, dtype=self.model_input.dtype))[0]  # outputs list of tensors
-            
-            # new list of tuples (points) with format ((h,w), score)            
+            prediction = self.model(tf.constant(image, dtype=self.model_input.dtype))[
+                0
+            ]  # outputs list of tensors
+
+            # new list of tuples (points) with format ((h,w), score)
             pose = []
             for point in prediction.numpy():
                 if scale != 1.0:
-                    point[0] = point[0]/scale
-                    point[1] = point[1]/scale
+                    point[0] = point[0] / scale
+                    point[1] = point[1] / scale
                 if crop:
                     point[0] += disp_y
                     point[1] += disp_x
-                pose.append( ((point[0], point[1]), point[2]) )
-            
+                pose.append(((point[0], point[1]), point[2]))
+
             # if at least the minimum number of points was detected accept the prediction
             threshold = self.config.get("Score Threshold")
             min_points = self.config.get("Minimum # of Points in Bounding Box")
-            if sum([x[1]>threshold for x in pose if x[0]]) > min_points:
+            if sum([x[1] > threshold for x in pose if x[0]]) > min_points:
                 self.pose = pose
             else:
                 crop = False
                 if scale != 1.0:
                     height, width, _ = frame.shape
-                    image = cv2.resize(frame, (int(width * scale), int(height * scale))) # resize uses reverse order
+                    image = cv2.resize(
+                        frame, (int(width * scale), int(height * scale))
+                    )  # resize uses reverse order
                     image = np.expand_dims(image, axis=0)
-                prediction = self.model(tf.constant(image, dtype=self.model_input.dtype))[0]  # outputs list of tensors
+                prediction = self.model(
+                    tf.constant(image, dtype=self.model_input.dtype)
+                )[
+                    0
+                ]  # outputs list of tensors
                 self.pose = []
                 for point in prediction.numpy():
                     if scale != 1.0:
-                        point[0] = point[0]/scale
-                        point[1] = point[1]/scale
+                        point[0] = point[0] / scale
+                        point[1] = point[1] / scale
                     if crop:
                         point[0] += disp_y
                         point[1] += disp_x
-                    self.pose.append( ((point[0], point[1]), point[2]) )
-                
+                    self.pose.append(((point[0], point[1]), point[2]))
 
-
-            fps_mode = self.config.get("Inference FPS")            
+            fps_mode = self.config.get("Inference FPS")
             if fps_mode == "Match Camera":
                 self.interval = self.in_queue.qsize()
                 self.blocking = True
@@ -159,13 +182,17 @@ class DLCInference(BasePlugin):
                 self.blocking = False
 
         if self.config.get("Draw on frame"):
-            color = [255,0,0]
+            color = [255, 0, 0]
             if crop:
-                frame = cv2.rectangle(frame, (disp_x, disp_y), (disp_x+width, disp_y+height), color, 5)
+                frame = cv2.rectangle(
+                    frame, (disp_x, disp_y), (disp_x + width, disp_y + height), color, 5
+                )
             for point, score in self.pose:
                 h_pos, w_pos = point
-                if not(np.isnan(h_pos) or np.isnan(w_pos)) and score >= threshold:
-                    frame = cv2.circle(frame, (round(w_pos), round(h_pos)), 5, color, -1)
+                if not (np.isnan(h_pos) or np.isnan(w_pos)) and score >= threshold:
+                    frame = cv2.circle(
+                        frame, (round(w_pos), round(h_pos)), 5, color, -1
+                    )
 
         if self.csv_writer is not None:
             self.csv_writer.writerow(self.poses)
@@ -187,9 +214,11 @@ class DLCInference(BasePlugin):
 
 def load_frozen_model(model_dir):
     # Load frozen graph using TensorFlow 1.x functions
-    model_file = [file for file in os.listdir(model_dir) if file.endswith('.pb')]
+    model_file = [file for file in os.listdir(model_dir) if file.endswith(".pb")]
     if len(model_file) > 1:
-        raise IOError("Multiple model files found. Model folder should only contain one .pb file")
+        raise IOError(
+            "Multiple model files found. Model folder should only contain one .pb file"
+        )
     elif len(model_file) == 0:
         raise IOError("Could not fild frozen model (.pb) file in specified folder")
     else:
@@ -216,7 +245,7 @@ def load_frozen_model(model_dir):
 
     model = wrapped_import.prune(
         tf.nest.map_structure(import_graph.as_graph_element, inputs),
-        tf.nest.map_structure(import_graph.as_graph_element, outputs)
+        tf.nest.map_structure(import_graph.as_graph_element, outputs),
     )
 
     return model

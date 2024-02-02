@@ -5,7 +5,9 @@ from pyqtconfig import ConfigManager
 from typing import Any
 
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 class BaseTrigger(ABC):
     """
@@ -19,7 +21,7 @@ class BaseTrigger(ABC):
     # For every class that inherits from BaseTrigger, the module name will be added to trigger_types
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        module_name = cls.__module__.split('.')[-1]
+        module_name = cls.__module__.split(".")[-1]
         cls.modules[module_name] = cls
 
     @staticmethod
@@ -36,7 +38,6 @@ class BaseTrigger(ABC):
         self.initialized = False
         self.deviceID = deviceID
 
-
     def initialize(self, config: ConfigManager) -> bool:
         """
         Initializes the trigger and returns whether or not it was successful
@@ -45,11 +46,9 @@ class BaseTrigger(ABC):
         """
         raise NotImplementedError()
 
-
     @abstractmethod
     def execute(self, signal: Any) -> bool:
         raise NotImplementedError()
-
 
     def close(self):
         """

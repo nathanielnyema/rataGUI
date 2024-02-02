@@ -37,8 +37,13 @@ class Ui_StartMenu(object):
         self.camLayout.addWidget(self.camLabel)
         self.camera_modules = QtWidgets.QListWidget(parent=StartMenu)
         self.camera_modules.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-        self.camera_modules.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked|QtWidgets.QAbstractItemView.EditTrigger.EditKeyPressed)
-        self.camera_modules.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
+        self.camera_modules.setEditTriggers(
+            QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked
+            | QtWidgets.QAbstractItemView.EditTrigger.EditKeyPressed
+        )
+        self.camera_modules.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.SingleSelection
+        )
         self.camera_modules.setObjectName("camera_modules")
         self.camLayout.addWidget(self.camera_modules)
         self.listWidgetMenu.addLayout(self.camLayout)
@@ -57,8 +62,13 @@ class Ui_StartMenu(object):
         self.pluginLayout.addWidget(self.pluginLabel)
         self.plugin_modules = QtWidgets.QListWidget(parent=StartMenu)
         self.plugin_modules.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-        self.plugin_modules.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked|QtWidgets.QAbstractItemView.EditTrigger.EditKeyPressed)
-        self.plugin_modules.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
+        self.plugin_modules.setEditTriggers(
+            QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked
+            | QtWidgets.QAbstractItemView.EditTrigger.EditKeyPressed
+        )
+        self.plugin_modules.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.SingleSelection
+        )
         self.plugin_modules.setObjectName("plugin_modules")
         self.pluginLayout.addWidget(self.plugin_modules)
         self.listWidgetMenu.addLayout(self.pluginLayout)
@@ -77,7 +87,9 @@ class Ui_StartMenu(object):
         self.triggerLayout.addWidget(self.triggerLabel)
         self.trigger_modules = QtWidgets.QListWidget(parent=StartMenu)
         self.trigger_modules.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-        self.trigger_modules.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
+        self.trigger_modules.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.SingleSelection
+        )
         self.trigger_modules.setObjectName("trigger_modules")
         self.triggerLayout.addWidget(self.trigger_modules)
         self.listWidgetMenu.addLayout(self.triggerLayout)
@@ -97,7 +109,11 @@ class Ui_StartMenu(object):
         font = QtGui.QFont()
         font.setPointSize(12)
         self.saveDirectoryLabel.setFont(font)
-        self.saveDirectoryLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignVCenter)
+        self.saveDirectoryLabel.setAlignment(
+            QtCore.Qt.AlignmentFlag.AlignRight
+            | QtCore.Qt.AlignmentFlag.AlignTrailing
+            | QtCore.Qt.AlignmentFlag.AlignVCenter
+        )
         self.saveDirectoryLabel.setObjectName("saveDirectoryLabel")
         self.lineEditMenu.addWidget(self.saveDirectoryLabel, 0, 0, 1, 1)
         self.save_dir_btn = QtWidgets.QPushButton(parent=StartMenu)
@@ -116,7 +132,11 @@ class Ui_StartMenu(object):
         font = QtGui.QFont()
         font.setPointSize(12)
         self.sessDirectoryLabel.setFont(font)
-        self.sessDirectoryLabel.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignVCenter)
+        self.sessDirectoryLabel.setAlignment(
+            QtCore.Qt.AlignmentFlag.AlignRight
+            | QtCore.Qt.AlignmentFlag.AlignTrailing
+            | QtCore.Qt.AlignmentFlag.AlignVCenter
+        )
         self.sessDirectoryLabel.setObjectName("sessDirectoryLabel")
         self.lineEditMenu.addWidget(self.sessDirectoryLabel, 1, 0, 1, 1)
         self.sess_dir_btn = QtWidgets.QPushButton(parent=StartMenu)
@@ -129,10 +149,14 @@ class Ui_StartMenu(object):
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.dontShowAgain = QtWidgets.QCheckBox(parent=StartMenu)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Maximum)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Maximum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.dontShowAgain.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.dontShowAgain.sizePolicy().hasHeightForWidth()
+        )
         self.dontShowAgain.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
         font.setPointSize(12)
@@ -142,7 +166,10 @@ class Ui_StartMenu(object):
         self.horizontalLayout.addWidget(self.dontShowAgain)
         self.buttonBox = QtWidgets.QDialogButtonBox(parent=StartMenu)
         self.buttonBox.setOrientation(QtCore.Qt.Orientation.Horizontal)
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.StandardButton.Close|QtWidgets.QDialogButtonBox.StandardButton.Save)
+        self.buttonBox.setStandardButtons(
+            QtWidgets.QDialogButtonBox.StandardButton.Close
+            | QtWidgets.QDialogButtonBox.StandardButton.Save
+        )
         self.buttonBox.setCenterButtons(False)
         self.buttonBox.setObjectName("buttonBox")
         self.horizontalLayout.addWidget(self.buttonBox)
@@ -150,8 +177,8 @@ class Ui_StartMenu(object):
         self.verticalLayout.setStretch(0, 5)
 
         self.retranslateUi(StartMenu)
-        self.buttonBox.accepted.connect(StartMenu.accept) # type: ignore
-        self.buttonBox.rejected.connect(StartMenu.reject) # type: ignore
+        self.buttonBox.accepted.connect(StartMenu.accept)  # type: ignore
+        self.buttonBox.rejected.connect(StartMenu.reject)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(StartMenu)
 
     def retranslateUi(self, StartMenu):
@@ -164,4 +191,4 @@ class Ui_StartMenu(object):
         self.save_dir_btn.setText(_translate("StartMenu", "Browse"))
         self.sessDirectoryLabel.setText(_translate("StartMenu", "Session Settings"))
         self.sess_dir_btn.setText(_translate("StartMenu", "Browse"))
-        self.dontShowAgain.setText(_translate("StartMenu", "Don\'t show again"))
+        self.dontShowAgain.setText(_translate("StartMenu", "Don't show again"))

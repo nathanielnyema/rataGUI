@@ -5,6 +5,7 @@ Stores utility functions available to every trigger in folder
 """
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 import os
@@ -24,9 +25,13 @@ if enabled_triggers is not None and launch_config.get("Don't show again"):
         except Exception as err:
             logger.exception(err)
 
-else: # Load all modules if launch config requires a start menu
+else:  # Load all modules if launch config requires a start menu
     for fname in os.listdir(os.path.dirname(__file__)):
-        if fname.endswith('.py') and not fname.startswith('_') and fname not in ["base_trigger.py", "template_trigger.py"]:
+        if (
+            fname.endswith(".py")
+            and not fname.startswith("_")
+            and fname not in ["base_trigger.py", "template_trigger.py"]
+        ):
             try:
                 abs_module_path = f"{__name__}.{fname[:-3]}"
                 import_module(abs_module_path)

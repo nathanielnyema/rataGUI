@@ -1,6 +1,7 @@
 from PyQt6.QtCore import QRect, QPoint, Qt
 from PyQt6.QtWidgets import QTabWidget, QTabBar, QStylePainter, QStyleOptionTab, QStyle
 
+
 class TabBar(QTabBar):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

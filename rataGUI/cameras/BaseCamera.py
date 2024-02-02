@@ -3,6 +3,7 @@ from pyqtconfig import ConfigManager
 from typing import Any, Tuple, List, Dict
 from numpy.typing import NDArray
 
+
 class BaseCamera(ABC):
     """
     Abstract camera class with generic functions. All camera models should be subclassed
@@ -15,20 +16,19 @@ class BaseCamera(ABC):
     # For every class that inherits from BaseCamera, the module name will be added to camera_models
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        module_name = cls.__module__.split('.')[-1]
+        module_name = cls.__module__.split(".")[-1]
         cls.modules[module_name] = cls
 
     @staticmethod
     @abstractmethod
     def getAvailableCameras() -> List[Any]:
-        """ Returns list of camera objects wrapping every available device """
+        """Returns list of camera objects wrapping every available device"""
         pass
 
     # Optional method to release static resources upon exiting program
     @staticmethod
     def releaseResources():
         pass
-
 
     def __init__(self, cameraID):
         self._stream = None
@@ -37,17 +37,17 @@ class BaseCamera(ABC):
         self._running = False
         self.frames_acquired = 0
 
-
     @abstractmethod
-    def initializeCamera(self, prop_config: ConfigManager, plugin_names: List[str]) -> bool:
+    def initializeCamera(
+        self, prop_config: ConfigManager, plugin_names: List[str]
+    ) -> bool:
         """
         Initializes the camera and returns whether or not it was successful
 
         :param prop_config: ConfigManager that stores settings to initialize camera
-        :param plugin_names: List of plugin names to determine plugin-dependent settings 
+        :param plugin_names: List of plugin names to determine plugin-dependent settings
         """
         raise NotImplementedError()
-
 
     @abstractmethod
     def readCamera(self) -> Tuple[bool, NDArray]:
@@ -56,14 +56,12 @@ class BaseCamera(ABC):
         """
         raise NotImplementedError()
 
-
     @abstractmethod
     def closeCamera(self) -> bool:
         """
         Stops the acquisition and closes the connection with the camera.
         """
         raise NotImplementedError()
-
 
     def getDisplayName(self) -> str:
         """
@@ -73,13 +71,11 @@ class BaseCamera(ABC):
             return str(self.display_name)
         return str(self.cameraID)
 
-
     def isOpened(self) -> bool:
         """
         Returns true if camera has been initialized and is streaming.
         """
         return self._running  # Overwrite for custom behavior
-
 
     def getMetadata(self) -> Dict[str, Any]:
         """
@@ -87,6 +83,5 @@ class BaseCamera(ABC):
         """
         return {"Frame Index": self.frames_acquired}
 
-
     def __str__(self):
-        return 'Camera ID: {}'.format(str(self.cameraID))
+        return "Camera ID: {}".format(str(self.cameraID))

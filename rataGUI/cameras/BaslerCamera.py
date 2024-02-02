@@ -3,18 +3,20 @@ from rataGUI.cameras.BaseCamera import BaseCamera
 from pypylon import pylon
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
-READ_TIMEOUT = 10000    # 10 sec
+READ_TIMEOUT = 10000  # 10 sec
+
 
 class BaslerCamera(BaseCamera):
 
     # DEFAULT_PROPS = {
     #     "Limit Framerate": {"On": True, "Off": False},
     #     "Framerate": 30,
-    #     "TriggerSource": {"Off": "TriggerMode_Off", 
-    #                       "Line 3": PySpin.TriggerSource_Line3, "Line 0": PySpin.TriggerSource_Line0, 
+    #     "TriggerSource": {"Off": "TriggerMode_Off",
+    #                       "Line 3": PySpin.TriggerSource_Line3, "Line 0": PySpin.TriggerSource_Line0,
     #                       "Line 1": PySpin.TriggerSource_Line1, "Line 2": PySpin.TriggerSource_Line2,},
     #                     #   "Software": PySpin.TriggerSource_Software}, # TODO: Add TriggerSoftware.Execute()
     #     "Buffer Mode": {"OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
@@ -37,14 +39,13 @@ class BaslerCamera(BaseCamera):
 
     @staticmethod
     def getCameraList():
-        '''Return a list of Basler camera pointers.'''
+        """Return a list of Basler camera pointers."""
         cam_list = BaslerCamera._TlFactory.EnumerateDevices()
         return cam_list
 
-
     @staticmethod
     def getAvailableCameras():
-        '''Returns list of all available FLIR cameras'''
+        """Returns list of all available FLIR cameras"""
         cameras = []
         cam_list = BaslerCamera.getCameraList()
         for cam in cam_list:
@@ -53,16 +54,14 @@ class BaslerCamera(BaseCamera):
             cameras.append(BaslerCamera(serial_number))
         return cameras
 
-
     def __init__(self, cameraID: str):
         super().__init__(cameraID)
         self.last_frame = None
         self.frames_dropped = 0
         self.last_index = -1
         self.buffer_size = 0
-        self.initial_frameID = 0 # on camera transport layer
+        self.initial_frameID = 0  # on camera transport layer
         self.FPS = -1
-
 
     # def configure_custom_settings(self, prop_config, plugin_names):
     #     ''' Configure plugin-dependent settings when initializing camera '''
@@ -103,10 +102,11 @@ class BaslerCamera(BaseCamera):
 
         return True
 
-
     def readCamera(self):
         try:
-            grab_data = self._stream.RetrieveResult(READ_TIMEOUT, pylon.TimeoutHandling_ThrowException)
+            grab_data = self._stream.RetrieveResult(
+                READ_TIMEOUT, pylon.TimeoutHandling_ThrowException
+            )
             if grab_data is None or not grab_data.GrabSucceeded():
                 return False, None
 
@@ -121,11 +121,9 @@ class BaslerCamera(BaseCamera):
             logger.exception(err)
             return False, None
 
-
     # def getMetadata(self):
-    #     return {"Camera Index": self.last_index - self.initial_frameID, 
+    #     return {"Camera Index": self.last_index - self.initial_frameID,
     #             "Frame Index": self.frames_acquired,}
-
 
     def closeCamera(self):
         try:
@@ -137,7 +135,6 @@ class BaslerCamera(BaseCamera):
         except Exception as err:
             logger.exception(err)
             return False
-
 
     def isOpened(self):
         return self._running

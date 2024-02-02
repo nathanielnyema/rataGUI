@@ -20,19 +20,27 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.centralwidget)
-        self.verticalLayout_2.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint)
+        self.verticalLayout_2.setSizeConstraint(
+            QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint
+        )
         self.verticalLayout_2.setContentsMargins(5, 5, 5, 5)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.camControl = QtWidgets.QHBoxLayout()
-        self.camControl.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint)
+        self.camControl.setSizeConstraint(
+            QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint
+        )
         self.camControl.setObjectName("camControl")
         self.camListLayout = QtWidgets.QVBoxLayout()
-        self.camListLayout.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetMinimumSize)
+        self.camListLayout.setSizeConstraint(
+            QtWidgets.QLayout.SizeConstraint.SetMinimumSize
+        )
         self.camListLayout.setContentsMargins(-1, 2, 2, -1)
         self.camListLayout.setSpacing(4)
         self.camListLayout.setObjectName("camListLayout")
         self.camListLabel = QtWidgets.QLabel(parent=self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.camListLabel.sizePolicy().hasHeightForWidth())
@@ -51,7 +59,9 @@ class Ui_MainWindow(object):
         self.camListLabel.setObjectName("camListLabel")
         self.camListLayout.addWidget(self.camListLabel)
         self.cam_list = QtWidgets.QListWidget(parent=self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.cam_list.sizePolicy().hasHeightForWidth())
@@ -62,15 +72,23 @@ class Ui_MainWindow(object):
         font.setPointSize(12)
         self.cam_list.setFont(font)
         self.cam_list.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-        self.cam_list.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.cam_list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
+        self.cam_list.setEditTriggers(
+            QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers
+        )
+        self.cam_list.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.SingleSelection
+        )
         self.cam_list.setObjectName("cam_list")
         self.camListLayout.addWidget(self.cam_list)
         self.triggerListLabel = QtWidgets.QLabel(parent=self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.triggerListLabel.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.triggerListLabel.sizePolicy().hasHeightForWidth()
+        )
         self.triggerListLabel.setSizePolicy(sizePolicy)
         self.triggerListLabel.setMinimumSize(QtCore.QSize(175, 0))
         self.triggerListLabel.setMaximumSize(QtCore.QSize(190, 16777215))
@@ -86,7 +104,9 @@ class Ui_MainWindow(object):
         self.triggerListLabel.setObjectName("triggerListLabel")
         self.camListLayout.addWidget(self.triggerListLabel)
         self.trigger_list = QtWidgets.QListWidget(parent=self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.trigger_list.sizePolicy().hasHeightForWidth())
@@ -97,19 +117,30 @@ class Ui_MainWindow(object):
         font.setPointSize(12)
         self.trigger_list.setFont(font)
         self.trigger_list.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-        self.trigger_list.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
-        self.trigger_list.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.trigger_list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
+        self.trigger_list.setSizeAdjustPolicy(
+            QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents
+        )
+        self.trigger_list.setEditTriggers(
+            QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers
+        )
+        self.trigger_list.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.SingleSelection
+        )
         self.trigger_list.setWordWrap(False)
         self.trigger_list.setSelectionRectVisible(False)
         self.trigger_list.setObjectName("trigger_list")
         self.camListLayout.addWidget(self.trigger_list)
         self.camControl.addLayout(self.camListLayout)
         self.camAttributes = QtWidgets.QTabWidget(parent=self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.camAttributes.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.camAttributes.sizePolicy().hasHeightForWidth()
+        )
         self.camAttributes.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
         font.setPointSize(12)
@@ -129,7 +160,10 @@ class Ui_MainWindow(object):
         self.gridLayout_6.setContentsMargins(0, 0, 0, 0)
         self.gridLayout_6.setObjectName("gridLayout_6")
         self.cam_props = VerticalTabWidget(parent=self.camPropsContents)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.cam_props.sizePolicy().hasHeightForWidth())
@@ -152,9 +186,13 @@ class Ui_MainWindow(object):
         self.cam_stats.setFont(font)
         self.cam_stats.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         self.cam_stats.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.cam_stats.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.cam_stats.setEditTriggers(
+            QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers
+        )
         self.cam_stats.setAlternatingRowColors(False)
-        self.cam_stats.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
+        self.cam_stats.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.SingleSelection
+        )
         self.cam_stats.setRowCount(0)
         self.cam_stats.setObjectName("cam_stats")
         self.cam_stats.setColumnCount(5)
@@ -186,9 +224,15 @@ class Ui_MainWindow(object):
         self.plugin_pipeline.setFont(font)
         self.plugin_pipeline.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         self.plugin_pipeline.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.plugin_pipeline.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
-        self.plugin_pipeline.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.plugin_pipeline.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
+        self.plugin_pipeline.setSizeAdjustPolicy(
+            QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents
+        )
+        self.plugin_pipeline.setEditTriggers(
+            QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers
+        )
+        self.plugin_pipeline.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.NoSelection
+        )
         self.plugin_pipeline.setObjectName("plugin_pipeline")
         self.plugin_pipeline.setColumnCount(0)
         self.plugin_pipeline.setRowCount(0)
@@ -219,19 +263,27 @@ class Ui_MainWindow(object):
         self.camControl.setStretch(1, 4)
         self.verticalLayout_2.addLayout(self.camControl)
         self.pluginControl = QtWidgets.QHBoxLayout()
-        self.pluginControl.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetMinimumSize)
+        self.pluginControl.setSizeConstraint(
+            QtWidgets.QLayout.SizeConstraint.SetMinimumSize
+        )
         self.pluginControl.setContentsMargins(0, -1, 0, -1)
         self.pluginControl.setObjectName("pluginControl")
         self.pluginListLayout = QtWidgets.QVBoxLayout()
-        self.pluginListLayout.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetMinimumSize)
+        self.pluginListLayout.setSizeConstraint(
+            QtWidgets.QLayout.SizeConstraint.SetMinimumSize
+        )
         self.pluginListLayout.setContentsMargins(-1, 2, 2, -1)
         self.pluginListLayout.setSpacing(6)
         self.pluginListLayout.setObjectName("pluginListLayout")
         self.pluginListLabel = QtWidgets.QLabel(parent=self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pluginListLabel.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pluginListLabel.sizePolicy().hasHeightForWidth()
+        )
         self.pluginListLabel.setSizePolicy(sizePolicy)
         self.pluginListLabel.setMinimumSize(QtCore.QSize(175, 0))
         self.pluginListLabel.setMaximumSize(QtCore.QSize(190, 16777215))
@@ -247,7 +299,9 @@ class Ui_MainWindow(object):
         self.pluginListLabel.setObjectName("pluginListLabel")
         self.pluginListLayout.addWidget(self.pluginListLabel)
         self.plugin_list = QtWidgets.QListWidget(parent=self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.plugin_list.sizePolicy().hasHeightForWidth())
@@ -258,19 +312,30 @@ class Ui_MainWindow(object):
         font.setPointSize(12)
         self.plugin_list.setFont(font)
         self.plugin_list.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-        self.plugin_list.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.plugin_list.setEditTriggers(
+            QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers
+        )
         self.plugin_list.setDragEnabled(True)
-        self.plugin_list.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.DragDrop)
+        self.plugin_list.setDragDropMode(
+            QtWidgets.QAbstractItemView.DragDropMode.DragDrop
+        )
         self.plugin_list.setDefaultDropAction(QtCore.Qt.DropAction.MoveAction)
-        self.plugin_list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
+        self.plugin_list.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.SingleSelection
+        )
         self.plugin_list.setObjectName("plugin_list")
         self.pluginListLayout.addWidget(self.plugin_list)
         self.pluginControl.addLayout(self.pluginListLayout)
         self.plugin_settings = QtWidgets.QTabWidget(parent=self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.plugin_settings.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.plugin_settings.sizePolicy().hasHeightForWidth()
+        )
         self.plugin_settings.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
         font.setPointSize(12)
@@ -278,7 +343,10 @@ class Ui_MainWindow(object):
         self.plugin_settings.setObjectName("plugin_settings")
         self.pluginControl.addWidget(self.plugin_settings)
         self.frame = QtWidgets.QFrame(parent=self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Preferred,
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.frame.sizePolicy().hasHeightForWidth())
@@ -296,7 +364,10 @@ class Ui_MainWindow(object):
         self.verticalLayout.setSpacing(8)
         self.verticalLayout.setObjectName("verticalLayout")
         self.start_button = QtWidgets.QPushButton(parent=self.frame)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.start_button.sizePolicy().hasHeightForWidth())
@@ -311,7 +382,10 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.start_button)
         self.stop_button = QtWidgets.QPushButton(parent=self.frame)
         self.stop_button.setEnabled(True)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.stop_button.sizePolicy().hasHeightForWidth())
@@ -330,7 +404,10 @@ class Ui_MainWindow(object):
         self.stop_button.setObjectName("stop_button")
         self.verticalLayout.addWidget(self.stop_button)
         self.pause_button = QtWidgets.QPushButton(parent=self.frame)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.pause_button.sizePolicy().hasHeightForWidth())
@@ -400,7 +477,10 @@ class Ui_MainWindow(object):
         self.camListLabel.setText(_translate("MainWindow", "Available Cameras"))
         self.cam_list.setSortingEnabled(False)
         self.triggerListLabel.setText(_translate("MainWindow", "Enabled Triggers"))
-        self.camAttributes.setTabText(self.camAttributes.indexOf(self.camPropsTab), _translate("MainWindow", "Properties"))
+        self.camAttributes.setTabText(
+            self.camAttributes.indexOf(self.camPropsTab),
+            _translate("MainWindow", "Properties"),
+        )
         item = self.cam_stats.horizontalHeaderItem(0)
         item.setText(_translate("MainWindow", "Camera Name"))
         item = self.cam_stats.horizontalHeaderItem(1)
@@ -411,9 +491,18 @@ class Ui_MainWindow(object):
         item.setText(_translate("MainWindow", "Buffer Size"))
         item = self.cam_stats.horizontalHeaderItem(4)
         item.setText(_translate("MainWindow", "Total Latency"))
-        self.camAttributes.setTabText(self.camAttributes.indexOf(self.camStatsTab), _translate("MainWindow", "Statistics"))
-        self.camAttributes.setTabText(self.camAttributes.indexOf(self.pluginPipelineTab), _translate("MainWindow", "Plugin Pipeline"))
-        self.camAttributes.setTabText(self.camAttributes.indexOf(self.camTriggersTab), _translate("MainWindow", "Triggers"))
+        self.camAttributes.setTabText(
+            self.camAttributes.indexOf(self.camStatsTab),
+            _translate("MainWindow", "Statistics"),
+        )
+        self.camAttributes.setTabText(
+            self.camAttributes.indexOf(self.pluginPipelineTab),
+            _translate("MainWindow", "Plugin Pipeline"),
+        )
+        self.camAttributes.setTabText(
+            self.camAttributes.indexOf(self.camTriggersTab),
+            _translate("MainWindow", "Triggers"),
+        )
         self.pluginListLabel.setText(_translate("MainWindow", "Plugin Order"))
         self.start_button.setText(_translate("MainWindow", "Start"))
         self.stop_button.setText(_translate("MainWindow", "Stop"))
@@ -429,4 +518,6 @@ class Ui_MainWindow(object):
         self.actionNew.setText(_translate("MainWindow", "New"))
         self.actionOpen.setText(_translate("MainWindow", "Open"))
         self.actionSave.setText(_translate("MainWindow", "Save"))
+
+
 from .vtab_widget import VerticalTabWidget

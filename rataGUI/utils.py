@@ -1,6 +1,7 @@
 import unicodedata
 import re
 
+
 def slugify(value, allow_unicode=False):
     """
     Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
@@ -11,24 +12,30 @@ def slugify(value, allow_unicode=False):
     """
     value = str(value)
     if allow_unicode:
-        value = unicodedata.normalize('NFKC', value)
+        value = unicodedata.normalize("NFKC", value)
     else:
-        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
-    value = re.sub(r'[^\w\s-]', '', value)
-    return re.sub(r'[-\s]+', '-', value).strip('-_')
+        value = (
+            unicodedata.normalize("NFKD", value)
+            .encode("ascii", "ignore")
+            .decode("ascii")
+        )
+    value = re.sub(r"[^\w\s-]", "", value)
+    return re.sub(r"[-\s]+", "-", value).strip("-_")
 
 
 from PyQt6.QtCore import QRunnable, QObject, pyqtSlot, pyqtSignal
+
 
 class ThreadSignals(QObject):
     finished = pyqtSignal()
     error = pyqtSignal(Exception)
     result = pyqtSignal(object)
 
+
 class WorkerThread(QRunnable):
-    '''
+    """
     Worker that runs an arbitrary function in QThreadPool.
-    
+
     Emits finished, error and result pyqtSignals.
 
     :param callback: The function callback to run on this worker thread. Supplied args and
@@ -36,7 +43,7 @@ class WorkerThread(QRunnable):
     :type callback: function
     :param args: Arguments to pass to the callback function
     :param kwargs: Keywords to pass to the callback function
-    '''
+    """
 
     def __init__(self, func, *args, **kwargs):
         super().__init__()
@@ -52,9 +59,9 @@ class WorkerThread(QRunnable):
 
     @pyqtSlot()
     def run(self):
-        '''
+        """
         Initialise the runner function with passed args, kwargs.
-        '''
+        """
 
         # Retrieve args/kwargs here; and fire processing using them
         try:

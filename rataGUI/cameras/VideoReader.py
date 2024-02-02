@@ -4,6 +4,7 @@ import os
 import cv2
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -16,7 +17,6 @@ class VideoReader(BaseCamera):
     @staticmethod
     def getAvailableCameras():
         return [VideoReader(f"Video Reader {i+1}") for i in range(1)]
-
 
     def __init__(self, readerID):
         super().__init__(readerID)
@@ -50,9 +50,9 @@ class VideoReader(BaseCamera):
                 self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             else:
                 self.last_frame = frame
-        
+
         return ret, self.last_frame
-    
+
     def closeCamera(self):
         if self._stream is not None:
             self._stream.release()

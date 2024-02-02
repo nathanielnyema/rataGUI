@@ -4,11 +4,13 @@ from PyQt6 import QtGui
 from PyQt6.QtCore import Qt, QObject, pyqtSignal
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
 class DisplaySignal(QObject):
     image = pyqtSignal(QtGui.QImage)
+
 
 class FrameDisplay(BasePlugin):
     """
@@ -16,10 +18,11 @@ class FrameDisplay(BasePlugin):
 
     :param aspect_ratio: Whether to maintain frame aspect ratio or force into frame
     """
+
     DEFAULT_CONFIG = {
-        "Frame width": 960, 
-        "Frame height": 720, 
-        "Aspect ratio": {"Keep": True, "Ignore": False}
+        "Frame width": 960,
+        "Frame height": 720,
+        "Aspect ratio": {"Keep": True, "Ignore": False},
     }
 
     def __init__(self, cam_widget, config, queue_size=0):
@@ -32,7 +35,6 @@ class FrameDisplay(BasePlugin):
         self.signal = DisplaySignal()
         self.signal.image.connect(cam_widget.set_window_pixmap)
 
-
     def process(self, frame, metadata):
         """Sets pixmap image to video frame"""
         # Get image dimensions
@@ -40,14 +42,22 @@ class FrameDisplay(BasePlugin):
 
         # Convert to pixmap and set to video frame
         bytes_per_line = num_ch * img_w
-        qt_image = QtGui.QImage(frame.data, img_w, img_h, bytes_per_line, QtGui.QImage.Format.Format_RGB888)
-        if self.config.get('Aspect ratio'):
-            qt_image = qt_image.scaled(self.frame_width, self.frame_height, Qt.AspectRatioMode.KeepAspectRatio)
-        else: 
-            qt_image = qt_image.scaled(self.frame_width, self.frame_height, Qt.AspectRatioMode.IgnoreAspectRatio)
-        
+        qt_image = QtGui.QImage(
+            frame.data, img_w, img_h, bytes_per_line, QtGui.QImage.Format.Format_RGB888
+        )
+        if self.config.get("Aspect ratio"):
+            qt_image = qt_image.scaled(
+                self.frame_width, self.frame_height, Qt.AspectRatioMode.KeepAspectRatio
+            )
+        else:
+            qt_image = qt_image.scaled(
+                self.frame_width,
+                self.frame_height,
+                Qt.AspectRatioMode.IgnoreAspectRatio,
+            )
+
         self.signal.image.emit(qt_image)
-        
+
         return frame, metadata
 
     def close(self):

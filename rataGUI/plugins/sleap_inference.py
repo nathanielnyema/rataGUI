@@ -8,6 +8,7 @@ import numpy as np
 from datetime import datetime
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -25,7 +26,7 @@ class SleapInference(BasePlugin):
         "Model directory": "",
         "Save file (.csv)": "data",
         "Inference FPS": ["Match Camera", "Every Interval"],
-        "Fixed Interval": 0, 
+        "Fixed Interval": 0,
         "Score Threshold": 0.5,
         "Kalman Filter": {"Disabled": False, "Enabled": True},
         # "Batch Processing": {"Disabled": False, "Enabled": True},
@@ -56,7 +57,7 @@ class SleapInference(BasePlugin):
         self.input_height = input_shape[1]
         self.input_width = input_shape[2]
         self.num_channels = input_shape[3]
-        
+
         self.interval = 0
         self.poses = []
 
@@ -64,13 +65,18 @@ class SleapInference(BasePlugin):
         self.csv_writer = None
         if config.get("Write to file"):
             file_name = slugify(config.get("Save file (.csv)"))
-            if len(file_name) == 0: # Use default file name
-                file_name = slugify(cam_widget.camera.getDisplayName()) + "_DLCInference_" + datetime.now().strftime('%H-%M-%S') + ".csv"
-            elif not file_name.endswith('.csv'):
-                file_name += '.csv'
+            if len(file_name) == 0:  # Use default file name
+                file_name = (
+                    slugify(cam_widget.camera.getDisplayName())
+                    + "_DLCInference_"
+                    + datetime.now().strftime("%H-%M-%S")
+                    + ".csv"
+                )
+            elif not file_name.endswith(".csv"):
+                file_name += ".csv"
 
             self.file_path = os.path.join(cam_widget.save_dir, file_name)
-            self.save_file = open(file_name, 'w')
+            self.save_file = open(file_name, "w")
             self.csv_writer = csv.writer(self.save_file)
 
         self.socket_trigger = None
@@ -86,27 +92,32 @@ class SleapInference(BasePlugin):
             else:
                 logger.error("Unable to find enabled socket trigger")
 
-
     def process(self, frame, metadata):
         img_h, img_w, num_ch = frame.shape
         self.interval -= 1
 
         if self.interval <= 0:
             image = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-            image = cv2.resize(image, (self.input_width, self.input_height)) # resize uses reverse order
+            image = cv2.resize(
+                image, (self.input_width, self.input_height)
+            )  # resize uses reverse order
             image = np.reshape(image, (-1, self.input_height, self.input_width, 1))
-            prediction = self.model(x=tf.constant(image, dtype=self.model_input.dtype)) # outputs list of tensors
+            prediction = self.model(
+                x=tf.constant(image, dtype=self.model_input.dtype)
+            )  # outputs list of tensors
 
             # new list of lists (instances) of tuples (points) with format ((h,w), score)
             self.poses = []
 
-            for points, scores in zip(prediction[1].numpy()[0], prediction[0].numpy()[0]):
+            for points, scores in zip(
+                prediction[1].numpy()[0], prediction[0].numpy()[0]
+            ):
                 pose = []
                 for point, score in zip(points, scores):
                     w_pos, h_pos = point
-                    resized_h = h_pos * (img_h/self.input_height)
-                    resized_w = w_pos * (img_w/self.input_width)
-                    pose.append( ((resized_h, resized_w), score) )
+                    resized_h = h_pos * (img_h / self.input_height)
+                    resized_w = w_pos * (img_w / self.input_width)
+                    pose.append(((resized_h, resized_w), score))
 
                 self.poses.append(pose)
 
@@ -121,14 +132,15 @@ class SleapInference(BasePlugin):
         if self.config.get("Draw on frame"):
             threshold = self.config.get("Score Threshold")
             for num, pose in enumerate(self.poses):
-                color = [0,0,0]
+                color = [0, 0, 0]
                 color[num % 3] = 255
 
                 for point, score in pose:
                     h_pos, w_pos = point
-                    if not(np.isnan(h_pos) or np.isnan(w_pos)) and score >= threshold:
-                        frame = cv2.circle(frame, (round(w_pos), round(h_pos)), 5, color, -1)
-        
+                    if not (np.isnan(h_pos) or np.isnan(w_pos)) and score >= threshold:
+                        frame = cv2.circle(
+                            frame, (round(w_pos), round(h_pos)), 5, color, -1
+                        )
 
         metadata["SLEAP Poses"] = self.poses
 
@@ -142,11 +154,14 @@ class SleapInference(BasePlugin):
 import json
 import re
 
+
 def load_frozen_model(model_dir):
     # Load frozen graph using TensorFlow 1.x functions
-    model_file = [file for file in os.listdir(model_dir) if file.endswith('.pb')]
+    model_file = [file for file in os.listdir(model_dir) if file.endswith(".pb")]
     if len(model_file) > 1:
-        raise IOError("Multiple model files found. Model folder should only contain one .pb file")
+        raise IOError(
+            "Multiple model files found. Model folder should only contain one .pb file"
+        )
     elif len(model_file) == 0:
         raise IOError("Could not fild frozen model (.pb) file in specified folder")
     else:
@@ -162,16 +177,14 @@ def load_frozen_model(model_dir):
     wrapped_import = tf.compat.v1.wrap_function(_imports_graph_def, [])
     import_graph = wrapped_import.graph
 
-    with open(os.path.join(model_dir, "info.json"), 'r') as file:
+    with open(os.path.join(model_dir, "info.json"), "r") as file:
         model_info = json.load(file)
         inputs = re.findall('"([^"]*)"', str(model_info["frozen_model_inputs"]))
         outputs = re.findall('"([^"]*)"', str(model_info["frozen_model_outputs"]))
 
     model = wrapped_import.prune(
         tf.nest.map_structure(import_graph.as_graph_element, inputs),
-        tf.nest.map_structure(import_graph.as_graph_element, outputs)
+        tf.nest.map_structure(import_graph.as_graph_element, outputs),
     )
 
     return model
-
-

@@ -20,7 +20,7 @@
 #         "Model type": ["TensorRT", "TFLite", "Default"],
 #         "Score Threshold": 0.5,
 #         "Inference FPS": ["Match Camera", "Every Interval"],
-#         "Fixed Interval": 0, 
+#         "Fixed Interval": 0,
 #         "Scale factor": 1.0,
 #         "Draw keypoints": False,
 #         # "Write to file": False, TODO
@@ -69,10 +69,10 @@
 #                 image = np.expand_dims(frame, axis=0)
 
 #             prediction = self.model(tf.constant(image, dtype=self.model_input.dtype))  # outputs list of tensors
-            
+
 #             # new list of lists (instances) of tuples (points) with format ((h,w), score)
 #             self.poses = []
-            
+
 #             for instance in prediction:
 #                 pose = []
 #                 for point in instance.numpy():
@@ -84,7 +84,7 @@
 
 #                 self.poses.append(pose)
 
-#             fps_mode = self.config.get("Inference FPS")            
+#             fps_mode = self.config.get("Inference FPS")
 #             if fps_mode == "Match Camera":
 #                 self.interval = self.in_queue.qsize()
 #                 self.blocking = True

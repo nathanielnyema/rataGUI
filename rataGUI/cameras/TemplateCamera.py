@@ -3,6 +3,7 @@ from rataGUI.cameras.BaseCamera import BaseCamera
 import cv2
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,11 +21,9 @@ class TemplateCamera(BaseCamera):
         # TODO: Return list of camera objects wrapping every available device
         return []
 
-
     def __init__(self, cameraID):
         super().__init__(cameraID)
         self.last_frame = None
-
 
     def initializeCamera(self, prop_config, plugin_names=[]):
         cap = cv2.VideoCapture(self.cameraID)
@@ -37,7 +36,6 @@ class TemplateCamera(BaseCamera):
             cap.release()
             return False
 
-
     def readCamera(self, colorspace="RGB"):
         ret, frame = self._stream.read()
         if ret:
@@ -48,10 +46,9 @@ class TemplateCamera(BaseCamera):
                 self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             else:
                 self.last_frame = frame
-        
+
         return ret, self.last_frame
-    
-    
+
     def closeCamera(self):
         if self._stream is not None:
             self._stream.release()

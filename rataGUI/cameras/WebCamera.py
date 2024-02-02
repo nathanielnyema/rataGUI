@@ -3,6 +3,7 @@ from rataGUI.cameras.BaseCamera import BaseCamera, ConfigManager
 import cv2
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -13,8 +14,8 @@ class WebCamera(BaseCamera):
     }
 
     @staticmethod
-    def getAvailableCameras(search = 3):
-        '''Returns list of all available web cameras'''
+    def getAvailableCameras(search=3):
+        """Returns list of all available web cameras"""
         cameras = []
         for i in range(search):
             cam = WebCamera(i)
@@ -28,12 +29,10 @@ class WebCamera(BaseCamera):
             cam.closeCamera()
         return cameras
 
-
     def __init__(self, camIndex):
         super().__init__("Web Camera " + str(camIndex))
         self.cam_index = camIndex
         self.last_frame = None
-
 
     def initializeCamera(self, prop_config, plugin_names=[]):
         self._stream = cv2.VideoCapture(self.cam_index)
@@ -52,7 +51,7 @@ class WebCamera(BaseCamera):
                 self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             else:
                 self.last_frame = frame
-        
+
         return ret, self.last_frame
 
     def closeCamera(self):
@@ -63,6 +62,6 @@ class WebCamera(BaseCamera):
         except Exception as err:
             logger.exception(err)
             return False
-    
+
     def isOpened(self):
         return self._running

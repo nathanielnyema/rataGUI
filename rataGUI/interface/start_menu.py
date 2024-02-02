@@ -2,7 +2,13 @@ import os
 import json
 from datetime import datetime
 
-from PyQt6.QtWidgets import QDialog, QListWidget, QListWidgetItem, QDialogButtonBox, QFileDialog
+from PyQt6.QtWidgets import (
+    QDialog,
+    QListWidget,
+    QListWidgetItem,
+    QDialogButtonBox,
+    QFileDialog,
+)
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
 
@@ -10,12 +16,13 @@ from rataGUI.interface.design.Ui_StartMenu import Ui_StartMenu
 from rataGUI import config_path, launch_config, rataGUI_icon
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
 class StartMenu(QDialog, Ui_StartMenu):
 
-    def __init__(self, camera_modules = [], plugin_modules = [], trigger_modules = []):
+    def __init__(self, camera_modules=[], plugin_modules=[], trigger_modules=[]):
         super().__init__()
         self.setupUi(self)
         self.setWindowIcon(QIcon(rataGUI_icon))
@@ -31,8 +38,11 @@ class StartMenu(QDialog, Ui_StartMenu):
                 item.setCheckState(Qt.CheckState.Unchecked)
             self.camera_modules.addItem(item)
         self.camera_modules.itemDoubleClicked.connect(
-            lambda item: item.setCheckState(Qt.CheckState.Checked 
-                if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked)
+            lambda item: item.setCheckState(
+                Qt.CheckState.Checked
+                if item.checkState() == Qt.CheckState.Unchecked
+                else Qt.CheckState.Unchecked
+            )
         )
 
         self.plugins = {}
@@ -46,8 +56,11 @@ class StartMenu(QDialog, Ui_StartMenu):
                 item.setCheckState(Qt.CheckState.Unchecked)
             self.plugin_modules.addItem(item)
         self.plugin_modules.itemDoubleClicked.connect(
-            lambda item: item.setCheckState(Qt.CheckState.Checked 
-                if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked)
+            lambda item: item.setCheckState(
+                Qt.CheckState.Checked
+                if item.checkState() == Qt.CheckState.Unchecked
+                else Qt.CheckState.Unchecked
+            )
         )
 
         self.trigger_types = {}
@@ -61,8 +74,11 @@ class StartMenu(QDialog, Ui_StartMenu):
                 item.setCheckState(Qt.CheckState.Unchecked)
             self.trigger_modules.addItem(item)
         self.trigger_modules.itemDoubleClicked.connect(
-            lambda item: item.setCheckState(Qt.CheckState.Checked 
-                if item.checkState() == Qt.CheckState.Unchecked else Qt.CheckState.Unchecked)
+            lambda item: item.setCheckState(
+                Qt.CheckState.Checked
+                if item.checkState() == Qt.CheckState.Unchecked
+                else Qt.CheckState.Unchecked
+            )
         )
 
         prev_save_dir = launch_config.get("Save Directory")
@@ -72,19 +88,26 @@ class StartMenu(QDialog, Ui_StartMenu):
         self.dontShowAgain.setChecked(launch_config.get("Don't show again", False))
 
         # Browse path buttons
-        self.save_dir_btn.clicked.connect(lambda state, edit=self.save_directory: self.open_dir_dialog(edit))
-        self.sess_dir_btn.clicked.connect(lambda state, edit=self.session_dir: self.open_dir_dialog(edit))
+        self.save_dir_btn.clicked.connect(
+            lambda state, edit=self.save_directory: self.open_dir_dialog(edit)
+        )
+        self.sess_dir_btn.clicked.connect(
+            lambda state, edit=self.session_dir: self.open_dir_dialog(edit)
+        )
 
         # Save and close menu buttons
-        self.buttonBox.button(QDialogButtonBox.StandardButton.Save).clicked.connect(self.save_settings)
-        self.buttonBox.button(QDialogButtonBox.StandardButton.Close).clicked.connect(self.load_settings)
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Save).clicked.connect(
+            self.save_settings
+        )
+        self.buttonBox.button(QDialogButtonBox.StandardButton.Close).clicked.connect(
+            self.load_settings
+        )
         self.closeEvent = lambda event: launch_config.clear()
-        
 
     def load_settings(self, event=None):
         save_dir = self.save_directory.text()
         if len(save_dir) == 0:
-            save_dir = os.path.abspath("rataGUI_" + datetime.now().strftime('%Y-%m-%d'))
+            save_dir = os.path.abspath("rataGUI_" + datetime.now().strftime("%Y-%m-%d"))
             logger.warning(f"Save directory not specified ... defaulting to {save_dir}")
         else:
             save_dir = os.path.abspath(os.path.normpath(save_dir))
@@ -103,23 +126,35 @@ class StartMenu(QDialog, Ui_StartMenu):
             logger.error(f"Invalid save directory specified")
             raise
 
-        launch_config["Enabled Camera Modules"] = [module_name(self.camera_models[name]) for name in get_checked_names(self.camera_modules)]
-        launch_config["Enabled Plugin Modules"] = [module_name(self.plugins[name]) for name in get_checked_names(self.plugin_modules)]
-        launch_config["Enabled Trigger Modules"] = [module_name(self.trigger_types[name]) for name in get_checked_names(self.trigger_modules)]
+        launch_config["Enabled Camera Modules"] = [
+            module_name(self.camera_models[name])
+            for name in get_checked_names(self.camera_modules)
+        ]
+        launch_config["Enabled Plugin Modules"] = [
+            module_name(self.plugins[name])
+            for name in get_checked_names(self.plugin_modules)
+        ]
+        launch_config["Enabled Trigger Modules"] = [
+            module_name(self.trigger_types[name])
+            for name in get_checked_names(self.trigger_modules)
+        ]
         launch_config["Save Directory"] = save_dir
         launch_config["Session Settings"] = session_dir
         launch_config["Don't show again"] = self.dontShowAgain.isChecked()
 
-    
     def save_settings(self):
-        logger.info("Launch settings saved. Run \"rataGUI --start-menu\" to reconfigure.")
+        logger.info('Launch settings saved. Run "rataGUI --start-menu" to reconfigure.')
         self.load_settings()
-        with open(config_path, 'w') as file:
-            json.dump(launch_config, file, indent=2)        
-
+        with open(config_path, "w") as file:
+            json.dump(launch_config, file, indent=2)
 
     def open_dir_dialog(self, line_edit):
-        dir_name = QFileDialog.getExistingDirectory(self, "Select a Directory", directory=os.getcwd(), options=QFileDialog.Option.ShowDirsOnly)
+        dir_name = QFileDialog.getExistingDirectory(
+            self,
+            "Select a Directory",
+            directory=os.getcwd(),
+            options=QFileDialog.Option.ShowDirsOnly,
+        )
         if dir_name:
             path = os.path.normpath(dir_name)
             line_edit.setText(str(path))
@@ -135,4 +170,4 @@ def get_checked_names(check_list: QListWidget) -> list:
 
 
 def module_name(cls):
-    return cls.__module__.split('.')[-1]
+    return cls.__module__.split(".")[-1]
