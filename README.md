@@ -1,3 +1,9 @@
+<style>
+    table {
+        width: 100%;
+    }
+</style>
+
 # RataGUI
 
 [![Downloads](https://static.pepy.tech/badge/ratagui)](https://pepy.tech/project/ratagui) 
@@ -39,11 +45,13 @@ RataGUI was developed with four primary design principles:
 ## Available Plugin Modules
 | Name | Description | Contributor |
 | -------- | -------- | -------- |
-| DLCInference | Estimates animal poses using exported DeepLabCut model and writes keypoints as metadata | [BrainHu42](https://github.com/BrainHu42) |
+| DLCInference | Estimates animal poses using exported DeepLabCut model and writes keypoints as metadata | [BrainHu42](https://github.com/BrainHu42) <br>[nathanielnyema](https://github.com/nathanielnyema) |
 | FrameDisplay  | Displays video stream in a separate window | [BrainHu42](https://github.com/BrainHu42) |
 | MetadataWriter | Overlays metadata onto frames and/or into a log file | [BrainHu42](https://github.com/BrainHu42) |
 | SleapInference | Estimates animal poses using exported SLEAP model and writes keypoints as metadata | [BrainHu42](https://github.com/BrainHu42) |
 | VideoWriter | Writes frames to video file using FFMPEG | [BrainHu42](https://github.com/BrainHu42) |
+| Pixel2World | Converts pixel space to real world coordinates using MATLAB camera calibration file | [nathanielnyema](https://github.com/nathanielnyema) |
+| Undistort | Undistorts video stream given camera parameters in MATLAB camera calibration file | [nathanielnyema](https://github.com/nathanielnyema) |
 
 ## Available Trigger Modules
 | Name | Description | Contributor |
