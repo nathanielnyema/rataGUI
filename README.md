@@ -1,9 +1,3 @@
-<style>
-    table {
-        width: 100%;
-    }
-</style>
-
 # RataGUI
 
 [![Downloads](https://static.pepy.tech/badge/ratagui)](https://pepy.tech/project/ratagui) 
@@ -31,7 +25,6 @@ RataGUI was developed with four primary design principles:
 * **Extensitibility** - RataGUI's modular framework allows for seamless integration of user-created modules for additional functionality. You are encouraged to fork the repository and write additional modules using the provided instructions and template code. RataGUI aims to provide a platform for researchers to share code and contribute to the growing list of modules below.
 
 * **Reproducibility** - RataGUI automatically logs all relevant experimental info and saves its state in a restorable, human-readable JSON format. This allows RataGUI to replicate an experiment's parameters from a single session directory. 
-
 
 ## Available Camera Modules
 | Name | Description | Contributor |
