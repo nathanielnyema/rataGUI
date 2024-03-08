@@ -1,56 +1,69 @@
 from rataGUI.cameras.BaseCamera import BaseCamera
 
 import cv2
-
 import logging
+
+from picamera2 import Picamera2
 
 logger = logging.getLogger(__name__)
 
 
-class TemplateCamera(BaseCamera):
+class PiCamera(BaseCamera):
     """
     Example subclass to overwrite with the required functionality for a custom camera model
     """
 
     DEFAULT_PROPS = {
-        # TODO: Put user-configurable properties here (see other camera models for examples)
+        "Framerate": 30,
+        "Buffer Size": 10,
+        "Height": 1280,
+        "Width": 720, 
     }
 
     @staticmethod
     def getAvailableCameras():
-        # TODO: Return list of camera objects wrapping every available device
-        return []
+        # print(Picamera2.global_camera_info())
+        return [PiCamera(cam['Num']) for cam in Picamera2.global_camera_info()]
 
     def __init__(self, cameraID):
         super().__init__(cameraID)
+        self.display_name = "PiCam: " + str(cameraID)
         self.last_frame = None
 
     def initializeCamera(self, prop_config, plugin_names=[]):
-        cap = cv2.VideoCapture(self.cameraID)
-        if cap.isOpened():
-            self._running = True
-            self._stream = cap
-            return True
-        else:
-            self._running = False
-            cap.release()
-            return False
+        self._stream = Picamera2(self.cameraID)
+        controls = {
+            "FrameRate": prop_config.get("Framerate"),
+
+        }
+        sensor_props = {
+            "output_size": (prop_config.get("Height"), prop_config.get("Width")),
+        }
+
+        video_config = self._stream.create_video_configuration(buffer_count=prop_config.get("Buffer Size"),
+                                                               controls=controls, sensor=sensor_props)
+        self._stream.configure(video_config)
+
+
+        self._stream.start()
+        self._running = True
+        return True
 
     def readCamera(self, colorspace="RGB"):
-        ret, frame = self._stream.read()
-        if ret:
-            self.frames_acquired += 1
-            if colorspace == "RGB":
-                self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            elif colorspace == "GRAY":
-                self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            else:
-                self.last_frame = frame
+        frame = self._stream.capture_array("main")
+        self.frames_acquired += 1
+        if colorspace == "RGB":
+            self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        elif colorspace == "GRAY":
+            self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        else:
+            self.last_frame = frame
 
-        return ret, self.last_frame
+        return True, self.last_frame
 
     def closeCamera(self):
         if self._stream is not None:
-            self._stream.release()
+            self._stream.stop()
+            self._stream.close()
 
         self._running = False
