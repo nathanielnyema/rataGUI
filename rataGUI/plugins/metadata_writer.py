@@ -1,5 +1,6 @@
 from rataGUI.plugins.base_plugin import BasePlugin
 
+import os
 import cv2
 
 import logging
@@ -23,12 +24,30 @@ class MetadataWriter(BasePlugin):
     def __init__(self, cam_widget, config, queue_size=0):
         super().__init__(cam_widget, config, queue_size)
 
+        self.save_dir = cam_widget.save_dir
+        logger.info(f"Saving metadata timestamp file to : {self.save_dir}")
+
+        try:
+            if os.access(self.save_dir, os.W_OK):
+                os.makedirs(self.save_dir, exist_ok=True)
+            else:
+                raise OSError("Inaccessible save directory for metadata timestamp file")
+        except Exception as err:
+            logger.exception(err)
+
+        self.file_path = os.path.join(self.save_dir, 'timestamps.csv')
+
     def process(self, frame, metadata):
 
         img_h, img_w, num_ch = frame.shape
 
         abbreviate = self.config.get("Abbreviate")
         count = 0
+
+        # Write to log
+        with open(self.file_path, 'a') as f:
+            f.write(f'{metadata["Frame Index"]},{metadata["Timestamp"].timestamp()}\n')
+
         for name, value in metadata.items():
             key = "Overlay " + name
 

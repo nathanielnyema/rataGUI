@@ -95,8 +95,16 @@ class VideoWriter(BasePlugin):
         vcodec = self.output_params.get("-vcodec")
         if vcodec in ["rawvideo"]:
             extension = ".raw"
-        # if vcodec in ['h264_nvenc', 'hevc_nvenc']:
-        #     self.output_params['-cq'] = self.output_params.pop('-crf')
+        elif vcodec in ['h264_nvenc', 'hevc_nvenc']:
+            # Handle unsupported preset for nvidia codecs
+            preset = self.output_params.get("-preset")
+            if preset not in ['slow', 'medium', 'fast', 'llhp', 'llhq']:
+                logger.warning(f"{preset} preset is not supported for vcodec {vcodec} ... defaulting to medium")
+                config.set("speed (preset)", 'medium')
+                self.config["speed (preset)"] = 'medium'
+                self.output_params["-preset"] = 'medium'
+                
+            # self.output_params['-cq'] = self.output_params.pop('-crf')
 
         try:
             if os.access(self.save_dir, os.W_OK):
@@ -192,13 +200,17 @@ class FFMPEG_Writer:
             out_args.append(key)
             out_args.append(value)
 
-        cmd = (
-            [self._FFMPEG_PATH, "-y", "-f", "rawvideo"]
-            + in_args
-            + ["-i", "-", "-an"]
-            + out_args
-            + [self.file_path]
-        )
+        # Explicitly replaces VBR with CBR when using a GPU encoder
+        """
+        vcodec = self.output_dict['-vcodec']
+        if vcodec in ['h264_nvenc', 'hevc_nvenc']:
+            out_args.append('-rc')
+            out_args.append('cbr_hq')
+            out_args.append('-b:v')
+            out_args.append('8M')
+        """
+        
+        cmd = [self._FFMPEG_PATH, "-y", "-f", "rawvideo"] + in_args + ["-i", "-", '-an'] + out_args + [self.file_path]
 
         self._cmd = " ".join(cmd)
 
