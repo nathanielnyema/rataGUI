@@ -93,9 +93,9 @@ class FLIRCamera(BaseCamera):
             FLIRCamera._SYSTEM.ReleaseInstance()
             del FLIRCamera._SYSTEM
 
-    def __init__(self, cameraID: str):
-        super().__init__(cameraID)
-        self.display_name = "FLIR:" + cameraID
+    def __init__(self, serial: str):
+        super().__init__("FLIR:" + serial)
+        self.serial_num = serial
         self.last_frame = None
         self.frames_dropped = 0
         self.last_index = -1
@@ -125,7 +125,7 @@ class FLIRCamera(BaseCamera):
 
         try:
             cam_list = FLIRCamera.getCameraList()
-            self._stream = cam_list.GetBySerial(self.cameraID)
+            self._stream = cam_list.GetBySerial(self.serial_num)
 
             if not self._stream.IsInitialized():
                 self._stream.Init()
@@ -358,16 +358,16 @@ class FLIRCamera(BaseCamera):
                     if enable:
                         if chunk_enable.GetValue() is True:
                             logger.info(
-                                f"{chunk_str} enabled for FLIR camera: {self.cameraID}"
+                                f"{chunk_str} enabled for FLIR camera: {self.serial_num}"
                             )
                         elif PySpin.IsWritable(chunk_enable):
                             chunk_enable.SetValue(True)
                             logger.info(
-                                f"{chunk_str} enabled for FLIR camera: {self.cameraID}"
+                                f"{chunk_str} enabled for FLIR camera: {self.serial_num}"
                             )
                         else:
                             logger.error(
-                                f"{chunk_str} not writable for FLIR cameraa: {self.cameraID}"
+                                f"{chunk_str} not writable for FLIR cameraa: {self.serial_num}"
                             )
                             result = False
                     else:

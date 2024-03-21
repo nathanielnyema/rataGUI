@@ -251,7 +251,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
                 if len(sess_dir_list) == 0 or (
                     len(sess_dir_list) == 1 and "settings" == sess_dir_list[0]
                 ):
-                    shutil.rmtree(self.session_dir)
+                    shutil.rmtree(self.session_dir, ignore_errors=True)
             else:  # Log metadata to file
                 self.save_widget_data()
 

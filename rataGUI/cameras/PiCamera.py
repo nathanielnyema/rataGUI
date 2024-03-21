@@ -25,16 +25,23 @@ class PiCamera(BaseCamera):
         # print(Picamera2.global_camera_info())
         return [PiCamera(cam['Num']) for cam in Picamera2.global_camera_info()]
 
-    def __init__(self, cameraID):
-        super().__init__(cameraID)
-        self.display_name = "PiCam: " + str(cameraID)
+    def __init__(self, cam_idx):
+        super().__init__("PiCam " + str(cam_idx))
+        self.cam_index = cam_idx
         self.last_frame = None
+        self.frames_dropped = 0
+        self.last_timestamp = -1
 
     def initializeCamera(self, prop_config, plugin_names=[]):
-        self._stream = Picamera2(self.cameraID)
-        controls = {
-            "FrameRate": prop_config.get("Framerate"),
+        # Reset session variables
+        self.last_frame = None
+        self.frames_dropped = 0
+        self.last_timestamp = -1
 
+        self._stream = Picamera2(self.cam_index)
+        self.fps = prop_config.get("Framerate")
+        controls = {
+            "FrameRate": self.fps,
         }
         sensor_props = {
             "output_size": (prop_config.get("Height"), prop_config.get("Width")),
@@ -50,7 +57,16 @@ class PiCamera(BaseCamera):
         return True
 
     def readCamera(self, colorspace="RGB"):
-        frame = self._stream.capture_array("main")
+        (frame, ), metadata = self._stream.capture_arrays(["main"])
+        timestamp = metadata['SensorTimestamp']
+
+        # Detect dropped frames
+        if self.last_timestamp >= 0:
+            frame_delta = (timestamp - self.last_timestamp) / (1e9/self.fps)
+            self.frames_dropped += max(round(frame_delta) - 1, 0)
+
+        self.last_timestamp = timestamp
+
         self.frames_acquired += 1
         if colorspace == "RGB":
             self.last_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
