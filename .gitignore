@@ -7,7 +7,7 @@ videos/
 data/
 root/
 rataGUI/launch_config.json
-rataGUI_*
+# rataGUI_*/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
