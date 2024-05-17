@@ -1,6 +1,7 @@
 from rataGUI.plugins.base_plugin import BasePlugin
 from rataGUI.utils import slugify
 from rataGUI import launch_config
+from pathlib import Path
 
 import os
 import numpy as np
@@ -63,8 +64,6 @@ class VideoWriter(BasePlugin):
                 prop_name = name
 
             if prop_name == "Save directory":
-                start_time = datetime.now()
-                fld_name = start_time.strftime("video_%Y_%m_%d_%H_%M_%S")
                 if len(value) == 0:  # default to widget save_dir
                     self.save_dir = cam_widget.save_dir
                 elif not os.path.isdir(value):
@@ -74,7 +73,6 @@ class VideoWriter(BasePlugin):
                     self.save_dir = cam_widget.save_dir
                 else:
                     self.save_dir = os.path.normpath(value)
-                self.save_dir = os.path.join(self.save_dir, fld_name)
             elif prop_name == "Write Frame Index":
                 self.write_frame_index = value
             elif prop_name == "filename suffix":
@@ -112,6 +110,8 @@ class VideoWriter(BasePlugin):
 
         try:
             if os.access(self.save_dir, os.W_OK):
+                fld_name = datetime.now().strftime("video_%Y_%m_%d_%H_%M_%S")
+                self.save_dir = os.path.join(self.save_dir, fld_name)
                 os.makedirs(self.save_dir, exist_ok=True)
                 if self.write_frame_index:
                     self.frameindex_file = open(
@@ -125,12 +125,12 @@ class VideoWriter(BasePlugin):
             self.active = False
 
         self.file_path = os.path.join(self.save_dir, self.file_name + extension)
-        count = 0
-        while os.path.exists(self.file_path):  # file already exists -> add copy
-            count += 1
-            self.file_path = os.path.join(
-                self.save_dir, self.file_name + f" ({count})" + extension
-            )
+        # count = 0
+        # while os.path.exists(self.file_path):  # file already exists -> add copy
+        #     count += 1
+        #     self.file_path = os.path.join(
+        #         self.save_dir, self.file_name + f" ({count})" + extension
+        #     )
 
         self.writer = FFMPEG_Writer(
             str(self.file_path),

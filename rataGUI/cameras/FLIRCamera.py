@@ -43,7 +43,7 @@ class FLIRCamera(BaseCamera):
         "Framerate": 30,
         "Buffer Size": 20,  # Auto
         "Gain": -1,
-        "Gamma": -1,
+        "Gamma": -1.0,
         "Exposure (μs)": -1,
         "Width": 10000,
         "Height": 10000,
