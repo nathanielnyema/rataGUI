@@ -43,6 +43,7 @@ class VideoWriter(BasePlugin):
             "yuv444p10le",
             "gray",
         ],
+        "Write Frame Index": True,
     }
 
     DISPLAY_CONFIG_MAP = {
@@ -62,6 +63,8 @@ class VideoWriter(BasePlugin):
                 prop_name = name
 
             if prop_name == "Save directory":
+                start_time = datetime.now()
+                fld_name = start_time.strftime("video_%Y_%m_%d_%H_%M_%S")
                 if len(value) == 0:  # default to widget save_dir
                     self.save_dir = cam_widget.save_dir
                 elif not os.path.isdir(value):
@@ -71,12 +74,13 @@ class VideoWriter(BasePlugin):
                     self.save_dir = cam_widget.save_dir
                 else:
                     self.save_dir = os.path.normpath(value)
+                self.save_dir = os.path.join(self.save_dir, fld_name)
+            elif prop_name == "Write Frame Index":
+                self.write_frame_index = value
             elif prop_name == "filename suffix":
-                self.file_name = slugify(cam_widget.camera.getDisplayName()) + "_"
-                if value == "":  # default value
-                    self.file_name += datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
-                else:
-                    self.file_name += slugify(value)
+                self.file_name = slugify(cam_widget.camera.getDisplayName())
+                if len(value)>0:
+                    self.file_name += "_" + slugify(value)
             elif (
                 prop_name
                 in [
@@ -109,6 +113,9 @@ class VideoWriter(BasePlugin):
         try:
             if os.access(self.save_dir, os.W_OK):
                 os.makedirs(self.save_dir, exist_ok=True)
+                if self.write_frame_index:
+                    self.frameindex_file = open(
+                        os.path.join(self.save_dir, f"frameindex_{self.file_name}"), "wb")
             else:
                 raise OSError(
                     "Inaccessible save directory ... auto-disabling Video Writer plugin"
@@ -133,11 +140,14 @@ class VideoWriter(BasePlugin):
         )
 
     def process(self, frame, metadata):
-
         self.writer.write_frame(frame)
+        if self.write_frame_index:
+            self.frameindex_file.write(metadata['Frame Index'].to_bytes(4, byteorder="little"))
         return frame, metadata
 
     def close(self):
+        if self.write_frame_index:
+            self.frameindex_file.close()
         logger.info("Video writer closed")
         self.active = False
         self.writer.close()
