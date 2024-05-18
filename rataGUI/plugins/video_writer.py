@@ -142,7 +142,8 @@ class VideoWriter(BasePlugin):
     def process(self, frame, metadata):
         self.writer.write_frame(frame)
         if self.write_frame_index:
-            self.frameindex_file.write(metadata['Frame Index'].to_bytes(4, byteorder="little"))
+            fi = metadata['Frame Index'] - 1
+            self.frameindex_file.write(fi.to_bytes(4, byteorder="little"))
         return frame, metadata
 
     def close(self):
