@@ -226,7 +226,7 @@ class FLIRCamera(BaseCamera):
             # Ensure RGB pixel format
             # self._stream.PixelFormat.SetValue(PySpin.PixelFormat_RGB8Packed)
             self._stream.PixelFormat.SetValue(PySpin.PixelFormat_BayerRG8)
-            # self._stream.IspEnable.SetIntValue(0)
+            self._stream.IspEnable.SetValue(False)
 
         except PySpin.SpinnakerException as err:
             logger.exception(err)
