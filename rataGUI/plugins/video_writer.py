@@ -1,6 +1,7 @@
 from rataGUI.plugins.base_plugin import BasePlugin
 from rataGUI.utils import slugify
 from rataGUI import launch_config
+from pathlib import Path
 
 import os
 import numpy as np
@@ -43,6 +44,7 @@ class VideoWriter(BasePlugin):
             "yuv444p10le",
             "gray",
         ],
+        "Write Frame Index": True,
     }
 
     DISPLAY_CONFIG_MAP = {
@@ -71,12 +73,12 @@ class VideoWriter(BasePlugin):
                     self.save_dir = cam_widget.save_dir
                 else:
                     self.save_dir = os.path.normpath(value)
+            elif prop_name == "Write Frame Index":
+                self.write_frame_index = value
             elif prop_name == "filename suffix":
-                self.file_name = slugify(cam_widget.camera.getDisplayName()) + "_"
-                if value == "":  # default value
-                    self.file_name += datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
-                else:
-                    self.file_name += slugify(value)
+                self.file_name = slugify(cam_widget.camera.getDisplayName())
+                if len(value)>0:
+                    self.file_name += "_" + slugify(value)
             elif (
                 prop_name
                 in [
@@ -108,7 +110,12 @@ class VideoWriter(BasePlugin):
 
         try:
             if os.access(self.save_dir, os.W_OK):
+                fld_name = datetime.now().strftime("video_%Y_%m_%d_%H_%M_%S")
+                self.save_dir = os.path.join(self.save_dir, fld_name)
                 os.makedirs(self.save_dir, exist_ok=True)
+                if self.write_frame_index:
+                    self.frameindex_file = open(
+                        os.path.join(self.save_dir, f"frameindex_{self.file_name}"), "wb")
             else:
                 raise OSError(
                     "Inaccessible save directory ... auto-disabling Video Writer plugin"
@@ -118,12 +125,12 @@ class VideoWriter(BasePlugin):
             self.active = False
 
         self.file_path = os.path.join(self.save_dir, self.file_name + extension)
-        count = 0
-        while os.path.exists(self.file_path):  # file already exists -> add copy
-            count += 1
-            self.file_path = os.path.join(
-                self.save_dir, self.file_name + f" ({count})" + extension
-            )
+        # count = 0
+        # while os.path.exists(self.file_path):  # file already exists -> add copy
+        #     count += 1
+        #     self.file_path = os.path.join(
+        #         self.save_dir, self.file_name + f" ({count})" + extension
+        #     )
 
         self.writer = FFMPEG_Writer(
             str(self.file_path),
@@ -133,11 +140,15 @@ class VideoWriter(BasePlugin):
         )
 
     def process(self, frame, metadata):
-
         self.writer.write_frame(frame)
+        if self.write_frame_index:
+            fi = metadata['Frame Index'] - 1
+            self.frameindex_file.write(fi.to_bytes(4, byteorder="little"))
         return frame, metadata
 
     def close(self):
+        if self.write_frame_index:
+            self.frameindex_file.close()
         logger.info("Video writer closed")
         self.active = False
         self.writer.close()
