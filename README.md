@@ -30,7 +30,7 @@ RataGUI was developed with four primary design principles:
 | Name | Description | Contributor |
 | -------- | -------- | -------- |
 | BaslerCamera | Basler camera integration using pypylon (see installation guide) | [BrainHu42](https://github.com/BrainHu42) |
-| FLIRCamera  | Spinnaker camera integration using PySpin (see installation guide) | [BrainHu42](https://github.com/BrainHu42) |
+| FLIRCamera  | Spinnaker camera integration using PySpin (see installation guide) | [BrainHu42](https://github.com/BrainHu42) <br>[nathanielnyema](https://github.com/nathanielnyema) |
 | VideoReader | Reads video files for offline processing  | [BrainHu42](https://github.com/BrainHu42) |
 | WebCamera | OpenCV integration for web cameras or network cameras | [BrainHu42](https://github.com/BrainHu42) |
 
