@@ -115,7 +115,7 @@ class VideoWriter(BasePlugin):
                 os.makedirs(self.save_dir, exist_ok=True)
                 if self.write_frame_index:
                     self.frameindex_file = open(os.path.join(self.save_dir, f"frameindex_{self.file_name}"), "wb")
-                    self.timestamps_file = open(os.path.join(self.save_dir, f"timestamps_{self.file_name}"), "wb")
+                    self.timestamps_file = open(os.path.join(self.save_dir, f"timestamps_{self.file_name}"), "w")
             else:
                 raise OSError(
                     "Inaccessible save directory ... auto-disabling Video Writer plugin"
