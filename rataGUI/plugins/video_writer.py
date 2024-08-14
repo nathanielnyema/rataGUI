@@ -144,7 +144,7 @@ class VideoWriter(BasePlugin):
         if self.write_frame_index:
             fi = metadata['Frame Index'] - 1
             self.frameindex_file.write(fi.to_bytes(4, byteorder="little"))
-            self.timestamps_file.write(str(metadata["Timestamp"].timestamp()))
+            self.timestamps_file.write(str(metadata["Timestamp"].timestamp()) + '\n')
         return frame, metadata
 
     def close(self):
