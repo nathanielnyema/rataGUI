@@ -44,7 +44,8 @@ class VideoWriter(BasePlugin):
             "yuv444p10le",
             "gray",
         ],
-        "Write Frame Index": True,
+        "Write Camera Index": True,
+        "Write Timestamps": True
     }
 
     DISPLAY_CONFIG_MAP = {
@@ -73,8 +74,10 @@ class VideoWriter(BasePlugin):
                     self.save_dir = cam_widget.save_dir
                 else:
                     self.save_dir = os.path.normpath(value)
-            elif prop_name == "Write Frame Index":
-                self.write_frame_index = value
+            elif prop_name == "Write Camera Index":
+                self.write_cam_index = value
+            elif prop_name == "Write Timestamps":
+                self.write_timestamps = value
             elif prop_name == "filename suffix":
                 self.file_name = slugify(cam_widget.camera.getDisplayName())
                 if len(value)>0:
@@ -113,8 +116,9 @@ class VideoWriter(BasePlugin):
                 fld_name = datetime.now().strftime("video_%Y_%m_%d_%H_%M_%S")
                 self.save_dir = os.path.join(self.save_dir, fld_name)
                 os.makedirs(self.save_dir, exist_ok=True)
-                if self.write_frame_index:
+                if self.write_cam_index:
                     self.frameindex_file = open(os.path.join(self.save_dir, f"frameindex_{self.file_name}"), "wb")
+                if self.write_timestamps:
                     self.timestamps_file = open(os.path.join(self.save_dir, f"timestamps_{self.file_name}.txt"), "w")
             else:
                 raise OSError(
@@ -141,15 +145,19 @@ class VideoWriter(BasePlugin):
 
     def process(self, frame, metadata):
         self.writer.write_frame(frame)
-        if self.write_frame_index:
-            fi = metadata['Frame Index'] - 1
+        if self.write_cam_index:
+            if 'Camera Index' not in metadata:
+                raise ValueError("metadata missing field 'Camera Index'. cannot write camera indices")
+            fi = metadata['Camera Index']
             self.frameindex_file.write(fi.to_bytes(4, byteorder="little"))
+        if self.write_timestamps:
             self.timestamps_file.write(str(metadata["Timestamp"].timestamp()) + '\n')
         return frame, metadata
 
     def close(self):
-        if self.write_frame_index:
+        if self.write_cam_index:
             self.frameindex_file.close()
+        if self.write_timestamps:
             self.timestamps_file.close()
         logger.info("Video writer closed")
         self.active = False
