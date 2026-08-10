@@ -5,7 +5,6 @@ import os
 import csv
 import cv2
 
-# import json
 import numpy as np
 import tensorflow as tf
 from datetime import datetime
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 try:
     import tensorflow as tf
-except:
+except ImportError:
     logger.error("Unable to import tensorflow. Check installation process")
 
 
@@ -45,6 +44,7 @@ class DLCInference(BasePlugin):
     }
 
     def __init__(self, cam_widget, config, queue_size=0):
+        """Initialize the DeepLabCut inference plugin, loading the frozen TF model."""
         super().__init__(cam_widget, config, queue_size)
         self.model_dir = os.path.normpath(
             os.path.abspath(config.get("Model directory"))
@@ -55,6 +55,7 @@ class DLCInference(BasePlugin):
             self.model_input = self.model.inputs[0]
 
             # Warm start to load cuDNN
+            # Input shape axes: [0]=batch, [1]=height, [2]=width, [3]=channels
             input_shape = self.model_input.shape.as_list()
             self.batch_size = 1
             self.input_height = input_shape[1]  # None
@@ -89,7 +90,7 @@ class DLCInference(BasePlugin):
                 file_name += ".csv"
 
             self.file_path = os.path.join(cam_widget.save_dir, file_name)
-            self.save_file = open(file_name, "w")
+            self.save_file = open(self.file_path, "w")
             self.csv_writer = csv.writer(self.save_file)
 
         self.socket_trigger = None
@@ -106,6 +107,7 @@ class DLCInference(BasePlugin):
                 logger.error("Unable to find enabled socket trigger")
 
     def process(self, frame, metadata):
+        """Run DLC pose estimation on the frame and optionally trigger actions. Returns (frame, metadata)."""
 
         self.interval -= 1
         if self.interval <= 0:
@@ -135,6 +137,8 @@ class DLCInference(BasePlugin):
             ]  # outputs list of tensors
 
             # new list of tuples (points) with format ((h,w), score)
+            # Transform coordinates from model output space back to original frame:
+            # undo scaling then re-add the crop offset to recover full-frame positions.
             pose = []
             for point in prediction.numpy():
                 if scale != 1.0:
@@ -160,9 +164,7 @@ class DLCInference(BasePlugin):
                     image = np.expand_dims(image, axis=0)
                 prediction = self.model(
                     tf.constant(image, dtype=self.model_input.dtype)
-                )[
-                    0
-                ]  # outputs list of tensors
+                )[0]  # outputs list of tensors
                 self.pose = []
                 for point in prediction.numpy():
                     if scale != 1.0:
@@ -195,16 +197,17 @@ class DLCInference(BasePlugin):
                     )
 
         if self.csv_writer is not None:
-            self.csv_writer.writerow(self.poses)
+            self.csv_writer.writerow(self.pose)
 
         if self.socket_trigger is not None:
-            self.socket_trigger.execute(str(self.poses))
+            self.socket_trigger.execute(str(self.pose))
 
         metadata["DLC Poses"] = [self.pose]
 
         return frame, metadata
 
     def close(self):
+        """Deactivate DLC inference and close the CSV writer if open."""
         logger.info("DLC Inference closed")
         self.active = False
 
@@ -213,6 +216,7 @@ class DLCInference(BasePlugin):
 
 
 def load_frozen_model(model_dir):
+    """Load a frozen TensorFlow graph from the given model directory. Returns a TF session."""
     # Load frozen graph using TensorFlow 1.x functions
     model_file = [file for file in os.listdir(model_dir) if file.endswith(".pb")]
     if len(model_file) > 1:
@@ -220,7 +224,7 @@ def load_frozen_model(model_dir):
             "Multiple model files found. Model folder should only contain one .pb file"
         )
     elif len(model_file) == 0:
-        raise IOError("Could not fild frozen model (.pb) file in specified folder")
+        raise IOError("Could not find frozen model (.pb) file in specified folder")
     else:
         model_file = model_file[0]
 

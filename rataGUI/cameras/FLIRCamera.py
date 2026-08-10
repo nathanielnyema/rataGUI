@@ -3,7 +3,6 @@ from rataGUI.cameras.BaseCamera import BaseCamera
 import cv2
 import PySpin
 
-import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,7 +12,6 @@ READ_TIMEOUT = 15000
 
 
 class FLIRCamera(BaseCamera):
-
     DEFAULT_PROPS = {  # Order Sensitive
         "Line0 Output": {
             "None": PySpin.LineSource_Off,
@@ -81,7 +79,6 @@ class FLIRCamera(BaseCamera):
         cameras = []
         cam_list = FLIRCamera.getCameraList()
         for cam in cam_list:
-            # print(camera.TLDevice.DeviceSerialNumber.ToString())
             if cam.TLDevice.DeviceSerialNumber.GetAccessMode() == PySpin.RO:
                 serial_number = cam.TLDevice.DeviceSerialNumber.ToString()
                 # Create camera wrapper object
@@ -96,6 +93,7 @@ class FLIRCamera(BaseCamera):
             del FLIRCamera._SYSTEM
 
     def __init__(self, serial: str):
+        """Initialize a FLIRCamera wrapper for the given serial number."""
         super().__init__("FLIR:" + serial)
         self.serial_num = serial
         self.last_frame = None
@@ -119,6 +117,7 @@ class FLIRCamera(BaseCamera):
             prop_config.set("Limit Framerate", False)
 
     def initializeCamera(self, prop_config, plugin_names=[]) -> bool:
+        """Configure and start the FLIR camera stream via PySpin. Returns True on success."""
         # Reset camera session variables
         self.frames_dropped = 0
         self.last_index = -1
@@ -129,8 +128,25 @@ class FLIRCamera(BaseCamera):
             cam_list = FLIRCamera.getCameraList()
             self._stream = cam_list.GetBySerial(self.serial_num)
 
-            if not self._stream.IsInitialized():
-                self._stream.Init()
+            # Force a clean camera state regardless of previous session.
+            # If the previous process crashed, the camera may still be
+            # streaming or initialized, which makes property nodes read-only.
+            if self._stream.IsStreaming():
+                logger.warning(
+                    "Camera %s was still streaming (stale session?), stopping acquisition",
+                    self.serial_num,
+                )
+                self._stream.EndAcquisition()
+
+            if self._stream.IsInitialized():
+                logger.warning(
+                    "Camera %s was already initialized, reinitializing for clean state",
+                    self.serial_num,
+                )
+                self._stream.DeInit()
+
+            self._stream.Init()
+            logger.info("Camera %s initialized successfully", self.serial_num)
         except PySpin.SpinnakerException as err:
             logger.exception(err)
             logger.error("PySpin failed to find and initialize camera")
@@ -147,7 +163,6 @@ class FLIRCamera(BaseCamera):
             self.configure_chunk_data(nodemap, enabled_chunks)
 
             for name, value in prop_config.as_dict().items():
-
                 if name.startswith("Line") and name.endswith("Output"):
                     line_num = name[4]
                     selector = getattr(PySpin, "LineSelector_Line" + line_num)
@@ -155,9 +170,8 @@ class FLIRCamera(BaseCamera):
                     try:
                         self._stream.LineMode.SetValue(PySpin.LineMode_Output)
                         self._stream.LineSource.SetValue(value)
-                    except PySpin.SpinnakerException as ex:
+                    except PySpin.SpinnakerException:
                         logger.debug(f"Unable to write enum entry to Line {line_num}")
-                        pass
                 elif name == "TriggerSource":
                     if value == "TriggerMode_Off":
                         self._stream.TriggerMode.SetValue(PySpin.TriggerMode_Off)
@@ -224,25 +238,38 @@ class FLIRCamera(BaseCamera):
                         if node.GetAccessMode() == PySpin.RW:
                             node.SetValue(value)
             # Ensure RGB pixel format
-            # self._stream.PixelFormat.SetValue(PySpin.PixelFormat_RGB8Packed)
-            self._stream.PixelFormat.SetValue(PySpin.PixelFormat_BayerRG8)
-            self._stream.IspEnable.SetValue(False)
+            if self._stream.PixelFormat.GetAccessMode() == PySpin.RW:
+                self._stream.PixelFormat.SetValue(PySpin.PixelFormat_BayerRG8)
+            else:
+                logger.warning(
+                    "PixelFormat node is not writable for camera %s (access mode: %s)",
+                    self.serial_num,
+                    self._stream.PixelFormat.GetAccessMode(),
+                )
+
+            if self._stream.IspEnable.GetAccessMode() == PySpin.RW:
+                self._stream.IspEnable.SetValue(False)
+            else:
+                logger.warning(
+                    "IspEnable node is not writable for camera %s (access mode: %s)",
+                    self.serial_num,
+                    self._stream.IspEnable.GetAccessMode(),
+                )
 
         except PySpin.SpinnakerException as err:
             logger.exception(err)
             logger.error("PySpin failed to configure camera property values")
             return False
 
-        # print(dir(self._stream.TLStream))
-        # print(self._stream.TLStream.StreamBufferHandlingMode.ToString())
-        # print(self._stream.AcquisitionMode.ToString())
-
+        logger.info("Camera %s beginning acquisition", self.serial_num)
         self._stream.BeginAcquisition()
         self._running = True
+        logger.info("Camera %s acquisition started", self.serial_num)
 
         return True
 
     def readCamera(self, colorspace="RGB"):
+        """Read the next frame from the FLIR camera. Returns (success, frame)."""
         try:
             img_data = self._stream.GetNextImage(READ_TIMEOUT)
             if img_data.IsIncomplete():
@@ -260,7 +287,9 @@ class FLIRCamera(BaseCamera):
             # Detect dropped frames
             if self.last_index >= 0:
                 self.frames_dropped += new_index - self.last_index - 1
-                self.buffer_size = self._stream.TLStream.StreamOutputBufferCount.GetValue()
+                self.buffer_size = (
+                    self._stream.TLStream.StreamOutputBufferCount.GetValue()
+                )
             else:
                 self.initial_frameID = new_index
             self.last_index = new_index
@@ -285,12 +314,14 @@ class FLIRCamera(BaseCamera):
             return False, None
 
     def getMetadata(self):
+        """Return a dict of camera-specific metadata for the most recent frame."""
         return {
             "Camera Index": self.last_index - self.initial_frameID,
             "Frame Index": self.frames_acquired,
         }
 
     def closeCamera(self):
+        """Stop acquisition and release the FLIR camera."""
         logger.info(f"Closing camera: {self.getDisplayName()}")
         try:
             if self._stream is not None:
@@ -298,7 +329,7 @@ class FLIRCamera(BaseCamera):
                     self._stream.EndAcquisition()
 
                 self._stream.DeInit()
-                del self._stream
+                self._stream = None
 
             self._running = False
             return True
@@ -369,7 +400,7 @@ class FLIRCamera(BaseCamera):
                             )
                         else:
                             logger.error(
-                                f"{chunk_str} not writable for FLIR cameraa: {self.serial_num}"
+                                f"{chunk_str} not writable for FLIR camera: {self.serial_num}"
                             )
                             result = False
                     else:

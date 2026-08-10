@@ -18,6 +18,70 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
+    """Main application window for RataGUI.
+
+    Manages the lifecycle of cameras, plugins, and triggers through a tabbed
+    Qt interface.  Provides UI for selecting, configuring, and running real-time
+    video processing pipelines, and persists session settings to disk.
+
+    :param camera_models: List of camera subclasses discovered at startup.
+    :param plugins: List of plugin subclasses discovered at startup.
+    :param trigger_types: List of trigger subclasses discovered at startup.
+    :param dark_mode: If True, use dark colour scheme for status indicators.
+    :param restore_dir: Path to a saved settings directory to restore on launch.
+    """
+
+    # ------------------------------------------------------------------
+    # Helper utilities
+    # ------------------------------------------------------------------
+
+    def _camera_id_from_name(self, cam_name: str) -> str:
+        """Look up the internal camera ID for a given display name.
+
+        :param cam_name: Display name shown in the camera list.
+        :return: Camera ID key used in ``self.cameras`` and related dicts.
+        :raises ValueError: If no camera matches *cam_name*.
+        """
+        for cam_id, name in self.camera_names.items():
+            if name == cam_name:
+                return cam_id
+        raise ValueError(f"No camera found with display name: {cam_name}")
+
+    @staticmethod
+    def _merge_and_save_json(path: str, new_entries: dict) -> None:
+        """Load existing JSON from *path*, merge *new_entries*, and write back.
+
+        Creates the file if it does not exist.
+
+        :param path: File path to read from and write to.
+        :param new_entries: Dict of key-value pairs to merge into the file.
+        """
+        existing = {}
+        if os.path.isfile(path):
+            with open(path, "r") as f:
+                contents = f.read()
+                if contents:
+                    existing = json.loads(contents)
+        existing.update(new_entries)
+        with open(path, "w") as f:
+            json.dump(existing, f, indent=2)
+
+    @staticmethod
+    def _load_json_if_exists(path: str) -> dict | None:
+        """Load and return parsed JSON from *path*, or ``None`` if missing/empty.
+
+        :param path: File path to a JSON file.
+        :return: Parsed dict, or ``None``.
+        """
+        if os.path.isfile(path) and os.stat(path).st_size > 0:
+            with open(path, "r") as f:
+                return json.load(f)
+        return None
+
+    # ------------------------------------------------------------------
+    # Initialisation
+    # ------------------------------------------------------------------
+
     def __init__(
         self,
         camera_models=[],
@@ -40,10 +104,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if dark_mode:
             self.active_color = QtGui.QColorConstants.DarkMagenta
             self.paused_color = QtGui.QColorConstants.DarkGray
+            self.failed_color = QtGui.QColorConstants.DarkRed
             self.inactive_color = QtGui.QColorConstants.Black
         else:
             self.active_color = QtGui.QColorConstants.Green
             self.paused_color = QtGui.QColorConstants.LightGray
+            self.failed_color = QtGui.QColorConstants.Red
             self.inactive_color = QtGui.QColorConstants.DarkGray
 
         # Create mappings from camID to camera, widget, config and model
@@ -98,7 +164,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.update_timer.start(250)
 
     def update_camera_stats(self):
-        for row, camID in enumerate(self.camera_names.keys()):  # save stats?
+        """Refresh the camera statistics table with current frame counts, latency, and buffer sizes."""
+        for row, camID in enumerate(self.camera_names.keys()):
             camera = self.cameras[camID]
             self.cam_stats.item(row, 0).setText(camera.getDisplayName())
             self.cam_stats.item(row, 1).setText(str(camera.frames_acquired))
@@ -113,10 +180,66 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 latency_str = str(round(cam_widget.avg_latency, 3)) + " ms"
                 self.cam_stats.item(row, 4).setText(latency_str)
 
-    # def update_plugin_stats(self):
-    #     pass
+        self.update_plugin_pipeline()
+
+    def update_plugin_pipeline(self):
+        """Refresh plugin pipeline table to reflect runtime state changes."""
+        for row, camID in enumerate(self.camera_names.keys()):
+            widget = self.camera_widgets.get(camID)
+            if widget is None:
+                continue
+            for col in range(self.plugin_pipeline.columnCount()):
+                header = self.plugin_pipeline.horizontalHeaderItem(col)
+                if header is None:
+                    continue
+                plugin_name = header.text()
+                if plugin_name not in self.plugins:
+                    continue
+
+                item = self.plugin_pipeline.item(row, col)
+                if item is None:
+                    continue
+
+                plugin_active = None
+                plugin_failed = False
+                for plugin in widget.plugins:
+                    if isinstance(plugin, self.plugins[plugin_name]):
+                        plugin_active = plugin.active
+                        plugin_failed = getattr(plugin, "failed", False)
+                        break
+
+                if plugin_active is None:
+                    # Check if this plugin failed during initialization
+                    current_text = item.text()
+                    if (
+                        plugin_name in getattr(widget, "failed_plugins", {})
+                        and current_text != "Failed"
+                    ):
+                        self.plugin_pipeline.blockSignals(True)
+                        item.setText("Failed")
+                        item.setBackground(self.failed_color)
+                        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsUserCheckable)
+                        self.plugin_pipeline.blockSignals(False)
+                    continue
+
+                current_text = item.text()
+                if plugin_failed and current_text != "Failed":
+                    self.plugin_pipeline.blockSignals(True)
+                    item.setText("Failed")
+                    item.setBackground(self.failed_color)
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsUserCheckable)
+                    self.plugin_pipeline.blockSignals(False)
+                elif (
+                    not plugin_active and not plugin_failed and current_text == "Active"
+                ):
+                    self.plugin_pipeline.blockSignals(True)
+                    item.setText("Paused")
+                    item.setCheckState(Qt.CheckState.Unchecked)
+                    item.setBackground(self.paused_color)
+                    self.plugin_pipeline.blockSignals(False)
 
     def populate_camera_stats(self):
+        """Build the initial camera statistics table rows from discovered cameras."""
         self.cam_stats.setRowCount(len(self.cameras))
         for row, camID in enumerate(self.camera_names.keys()):
             camera = self.cameras[camID]
@@ -159,6 +282,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.cam_stats.resizeColumnsToContents()
 
     def populate_camera_list(self):
+        """Populate the camera list widget with discovered cameras and wire rename/check signals."""
 
         def rename_camera(item):
             new_name = item.text()
@@ -213,6 +337,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.cam_list.addItem(item)
 
     def populate_camera_properties(self):
+        """Create a settings tab for each camera with configurable property widgets."""
         for camID in self.camera_names.keys():
             config = self.camera_configs[camID]
             tab = QtWidgets.QWidget()
@@ -224,11 +349,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for key, setting in props.items():
                 add_config_handler(config, key, setting)
 
-            layout = make_config_layout(config)
+            layout, _ = make_config_layout(config)
             tab.setLayout(layout)
             self.cam_props.addTab(tab, self.camera_names[camID])
 
     def populate_plugin_list(self):
+        """Populate the plugin list widget with enabled plugins and wire drag-reorder signals."""
 
         def jump_to_config(item):
             for idx in range(self.plugin_settings.count()):
@@ -272,6 +398,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.plugin_configs[name] = ConfigManager()
 
     def populate_plugin_settings(self):
+        """Create a settings tab for each plugin with configurable default widgets."""
         for plugin_name, config in self.plugin_configs.items():
             cls = self.plugins[plugin_name]
             tab = QtWidgets.QWidget()
@@ -289,12 +416,64 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         if key not in settings:
                             add_config_handler(config, key, value=False)
 
-            layout = make_config_layout(config, cols=2)
+            layout, row_map = make_config_layout(config, cols=2)
+
+            if cls.__name__ == "VideoWriter":
+                self._connect_videowriter_codec_signal(config, row_map)
 
             tab.setLayout(layout)
             self.plugin_settings.addTab(tab, plugin_name)
 
+    def _connect_videowriter_codec_signal(self, config, row_map):
+        """Wire the vcodec combobox to dynamically show/hide codec-specific options."""
+        from rataGUI.plugins.video_codec_rules import (
+            get_hidden_keys,
+            get_valid_presets,
+            get_valid_pixel_formats,
+        )
+
+        self._vw_row_map = row_map
+        vcodec_widget = config.handlers["vcodec"]
+
+        def on_vcodec_changed(codec):
+            hidden = get_hidden_keys(codec)
+
+            # Show/hide form rows
+            for key, (form, row_idx) in self._vw_row_map.items():
+                if key == "vcodec":
+                    continue
+                form.setRowVisible(row_idx, key not in hidden)
+
+            # Repopulate preset combobox
+            preset_widget = config.handlers["speed (preset)"]
+            old_preset = preset_widget.currentText()
+            preset_widget.blockSignals(True)
+            preset_widget.clear()
+            valid_presets = get_valid_presets(codec)
+            if valid_presets:
+                preset_widget.addItems(valid_presets)
+                idx = preset_widget.findText(old_preset)
+                preset_widget.setCurrentIndex(idx if idx >= 0 else 0)
+            preset_widget.blockSignals(False)
+
+            # Repopulate pixel format combobox
+            pf_widget = config.handlers["pixel format"]
+            old_pf = pf_widget.currentText()
+            pf_widget.blockSignals(True)
+            pf_widget.clear()
+            valid_pf = get_valid_pixel_formats(codec)
+            if valid_pf:
+                pf_widget.addItems(valid_pf)
+                idx = pf_widget.findText(old_pf)
+                pf_widget.setCurrentIndex(idx if idx >= 0 else 0)
+            pf_widget.blockSignals(False)
+
+        vcodec_widget.currentTextChanged.connect(on_vcodec_changed)
+        # Set initial visibility based on default codec
+        on_vcodec_changed(vcodec_widget.currentText())
+
     def populate_plugin_pipeline(self):
+        """Build and refresh the camera-plugin pipeline matrix table."""
         self.plugin_pipeline.setRowCount(0)  # Clear QTableWidget
         try:
             self.plugin_pipeline.disconnect()  # Disconnect all signal-slots
@@ -324,22 +503,31 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
                 if widget is not None:  # Active
                     plugin_active = None
+                    plugin_failed = False
                     for plugin in widget.plugins:  # Find plugin by name
                         if isinstance(plugin, self.plugins[plugin_name]):
                             plugin_active = plugin.active
+                            plugin_failed = getattr(plugin, "failed", False)
                             break
 
                     if not widget.active:
                         item.setText("Paused")
                         item.setBackground(self.paused_color)
-                    elif plugin_active == None:
-                        item.setText("Inactive")
-                        item.setBackground(self.inactive_color)
+                    elif plugin_active is None:
+                        if plugin_name in getattr(widget, "failed_plugins", {}):
+                            item.setText("Failed")
+                            item.setBackground(self.failed_color)
+                        else:
+                            item.setText("Inactive")
+                            item.setBackground(self.inactive_color)
                     elif plugin_active:
                         item.setText("Active")
                         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
                         item.setCheckState(Qt.CheckState.Checked)
                         item.setBackground(self.active_color)
+                    elif plugin_failed:
+                        item.setText("Failed")
+                        item.setBackground(self.failed_color)
                     else:
                         item.setText("Paused")
                         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
@@ -373,10 +561,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.plugin_pipeline.resizeColumnsToContents()
 
     def toggle_camera_plugin(self, item):
+        """Handle check-state changes in the pipeline table to pause/resume individual plugins."""
         cam_name = self.plugin_pipeline.verticalHeaderItem(item.row()).text()
-        camID = list(self.camera_names.keys())[
-            list(self.camera_names.values()).index(cam_name)
-        ]
+        camID = self._camera_id_from_name(cam_name)
         plugin_name = self.plugin_pipeline.horizontalHeaderItem(item.column()).text()
 
         if item.checkState() == Qt.CheckState.Checked:
@@ -407,10 +594,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 item.setText("Disabled")
                 item.setBackground(self.inactive_color)
 
-    # def sync_trigger_checkbox(self, item):
-    #     pass
+    def _on_plugin_failed(self, camera_name, plugin_name):
+        """Show a warning dialog when a plugin is deactivated due to errors."""
+        QtWidgets.QMessageBox.warning(
+            self,
+            "Plugin Failed",
+            f"Plugin '{plugin_name}' has been deactivated due to repeated errors "
+            f"on camera '{camera_name}'.\n\n"
+            f"If this is VideoWriter, video is NOT being saved.\n"
+            f"Check the log for details.",
+        )
 
     def populate_trigger_list(self):
+        """Initialize the trigger list widget and wire double-click toggle behaviour."""
+
         def sync_check_box(item):
             deviceID = item.text()
             trigger_type = type(self.triggers[deviceID]).__name__
@@ -437,6 +634,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # trigger_list is initially empty as triggers are added dynamically
 
     def populate_trigger_settings(self):
+        """Create device selector and settings tab for each trigger type."""
         for trigger_cls in self.trigger_types.values():
             tab = QtWidgets.QWidget()
             self.cam_triggers.addTab(tab, trigger_cls.__name__)
@@ -466,6 +664,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.trigger_tabs[trigger_cls.__name__] = tab
 
     def add_trigger_config(self, options):
+        """Add a trigger device to the configuration panel and trigger list.
+
+        :param options: QComboBox listing available device IDs.
+        """
 
         def sync_check_box(group_box):
             deviceID = group_box.title()
@@ -495,7 +697,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 add_config_handler(config, key, setting)
         self.trigger_configs[deviceID] = config
 
-        config_layout = make_config_layout(config, extend_line_edits=False)
+        config_layout, _ = make_config_layout(config, extend_line_edits=False)
         delete_btn = QtWidgets.QToolButton()
         delete_btn.setFixedSize(15, 15)
         delete_btn.setText("X")
@@ -514,6 +716,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         options.removeItem(options.currentIndex())
 
     def remove_trigger_config(self, config_box, options):
+        """Remove a trigger device from the config panel, list, and close it if initialized."""
         deviceID = config_box.title()
         # Delete from trigger list
         for idx in range(self.trigger_list.count()):
@@ -537,6 +740,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             options.addItem(deviceID)
 
     def start_camera_widgets(self):
+        """Create and start CameraWidget instances for all checked cameras with their enabled plugins."""
+
         def reset_interface(camID, item):
             self.camera_widgets[camID] = None
             item.setData(Qt.ItemDataRole.BackgroundRole, None)
@@ -557,9 +762,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         screen_width = self.screen.width()
         for cam_idx in range(self.plugin_pipeline.rowCount()):
             cam_name = self.plugin_pipeline.verticalHeaderItem(cam_idx).text()
-            camID = list(self.camera_names.keys())[
-                list(self.camera_names.values()).index(cam_name)
-            ]  # cam_name -> camID
+            camID = self._camera_id_from_name(cam_name)
             widget = self.camera_widgets[camID]
             if widget is None:  # Create new widget
                 enabled_plugins = []
@@ -590,6 +793,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 widget.pipeline_initialized.connect(
                     lambda item=cam_item: item.setBackground(self.active_color)
                 )
+
+                widget.plugin_failed.connect(self._on_plugin_failed)
 
                 widget.destroyed.connect(
                     lambda _, id=camID, item=cam_item: reset_interface(id, item)
@@ -627,17 +832,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 continue
 
     def pause_camera_widgets(self):
+        """Pause frame acquisition on all checked camera widgets."""
         for cam_item in get_checked_items(self.cam_list):
             cam_name = cam_item.text()
-            camID = list(self.camera_names.keys())[
-                list(self.camera_names.values()).index(cam_name)
-            ]  # cam_name -> camID
+            camID = self._camera_id_from_name(cam_name)
             cam_widget = self.camera_widgets[camID]
             if cam_widget is not None:
                 cam_widget.active = False
                 cam_item.setBackground(self.paused_color)
 
     def stop_camera_widgets(self):
+        """Stop all checked camera pipelines and close checked triggers."""
         # Stop all checked triggers
         for trig_item in get_checked_items(self.trigger_list):
             try:
@@ -653,42 +858,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         for cam_item in get_checked_items(self.cam_list):
             cam_name = cam_item.text()
-            camID = list(self.camera_names.keys())[
-                list(self.camera_names.values()).index(cam_name)
-            ]  # cam_name -> camID
+            camID = self._camera_id_from_name(cam_name)
             cam_widget = self.camera_widgets[camID]
             if cam_widget is not None:
                 cam_widget.stop_camera_pipeline()
 
     def save_settings(self, save_dir):
+        """Persist all camera, plugin, trigger, and UI settings to JSON files.
+
+        :param save_dir: Directory to write setting files into (created if absent).
+        """
         os.makedirs(save_dir, exist_ok=True)
 
-        with open(os.path.join(save_dir, "camera_settings.json"), "w+") as file:
-            cam_settings = {}
-            contents = file.read()
-            if len(contents) != 0:
-                cam_settings = json.loads(contents)
-            for camID, config in self.camera_configs.items():
-                cam_settings[camID] = config.as_dict()
-            json.dump(cam_settings, file, indent=2)
-
-        with open(os.path.join(save_dir, "plugin_settings.json"), "w+") as file:
-            plugin_settings = {}
-            contents = file.read()
-            if len(contents) != 0:
-                plugin_settings = json.loads(contents)
-            for name, config in self.plugin_configs.items():
-                plugin_settings[name] = config.as_dict()
-            json.dump(plugin_settings, file, indent=2)
-
-        with open(os.path.join(save_dir, "trigger_settings.json"), "w+") as file:
-            trigger_settings = {}
-            contents = file.read()
-            if len(contents) != 0:
-                trigger_settings = json.loads(contents)
-            for deviceID, config in self.trigger_configs.items():
-                trigger_settings[deviceID] = config.as_dict()
-            json.dump(trigger_settings, file, indent=2)
+        self._merge_and_save_json(
+            os.path.join(save_dir, "camera_settings.json"),
+            {camID: cfg.as_dict() for camID, cfg in self.camera_configs.items()},
+        )
+        self._merge_and_save_json(
+            os.path.join(save_dir, "plugin_settings.json"),
+            {name: cfg.as_dict() for name, cfg in self.plugin_configs.items()},
+        )
+        self._merge_and_save_json(
+            os.path.join(save_dir, "trigger_settings.json"),
+            {devID: cfg.as_dict() for devID, cfg in self.trigger_configs.items()},
+        )
 
         ui_settings = {}
         ui_settings["RataGUI Version"] = __version__
@@ -726,52 +919,52 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         logger.info(f"Saved session settings to {save_dir}")
 
     def restore_settings(self, save_dir):
-        cam_config_path = os.path.join(save_dir, "camera_settings.json")
-        if os.path.isfile(cam_config_path) and os.stat(cam_config_path).st_size > 0:
-            with open(cam_config_path, "r") as file:
-                saved_configs = json.load(file)
+        """Restore camera, plugin, trigger, and UI settings from saved JSON files.
+
+        :param save_dir: Directory containing previously saved setting files.
+        """
+        saved_configs = self._load_json_if_exists(
+            os.path.join(save_dir, "camera_settings.json")
+        )
+        if saved_configs is not None:
             for camID, config in self.camera_configs.items():
-                if camID in saved_configs.keys():
+                if camID in saved_configs:
                     try:
                         config.set_many(saved_configs[camID])
-                    except:
+                    except Exception as err:
                         logger.warning(
-                            f"Some saved settings for camera: {camID} could not be restored \
-                                        as it no longer exists in the camera's DEFAULT_PROPS"
-                        )  # TODO: Catch error when saved setting is not in config
+                            f"Some saved settings for camera: {camID} could not be restored "
+                            f"as it no longer exists in the camera's DEFAULT_PROPS"
+                        )
+                        logger.debug(err)
             logger.info("Restored saved camera settings")
         else:
             logger.info("No saved camera settings ... using defaults")
 
-        plugin_config_path = os.path.join(save_dir, "plugin_settings.json")
-        if (
-            os.path.isfile(plugin_config_path)
-            and os.stat(plugin_config_path).st_size > 0
-        ):
-            with open(plugin_config_path, "r") as file:
-                saved_configs = json.load(file)
+        saved_configs = self._load_json_if_exists(
+            os.path.join(save_dir, "plugin_settings.json")
+        )
+        if saved_configs is not None:
             for name, config in self.plugin_configs.items():
-                if name in saved_configs.keys():
+                if name in saved_configs:
                     try:
                         config.set_many(saved_configs[name])
-                    except:
+                    except Exception as err:
                         logger.warning(
-                            f"Some saved settings for plugin: {name} could not be restored \
-                                        as it no longer exists in the plugin's DEFAULT_CONFIG"
+                            f"Some saved settings for plugin: {name} could not be restored "
+                            f"as it no longer exists in the plugin's DEFAULT_CONFIG"
                         )
-            logger.info(f"Restored saved plugin settings")
+                        logger.debug(err)
+            logger.info("Restored saved plugin settings")
         else:
             logger.info("No saved plugin settings ... using defaults")
 
-        trigger_config_path = os.path.join(save_dir, "trigger_settings.json")
-        if (
-            os.path.isfile(trigger_config_path)
-            and os.stat(trigger_config_path).st_size > 0
-        ):
-            with open(trigger_config_path, "r") as file:
-                saved_configs = json.load(file)
+        saved_configs = self._load_json_if_exists(
+            os.path.join(save_dir, "trigger_settings.json")
+        )
+        if saved_configs is not None:
             for deviceID, trigger in self.triggers.items():
-                if deviceID in saved_configs.keys():
+                if deviceID in saved_configs:
                     # Add trigger by "pressing" interface button
                     trigger_type = type(trigger).__name__
                     layout = self.trigger_tabs[trigger_type].layout()
@@ -782,18 +975,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             logger.info("No saved trigger settings ... using defaults")
 
-        ui_config_path = os.path.join(save_dir, "interface_settings.json")
-        if os.path.isfile(ui_config_path) and os.stat(ui_config_path).st_size > 0:
-            with open(ui_config_path, "r") as file:
-                saved_configs = json.load(file)
-
+        saved_configs = self._load_json_if_exists(
+            os.path.join(save_dir, "interface_settings.json")
+        )
+        if saved_configs is not None:
             # Restore camera list to saved state
             for idx in range(self.cam_list.count()):
                 item = self.cam_list.item(idx)
                 cam_name = item.text()
-                camID = list(self.camera_names.keys())[
-                    list(self.camera_names.values()).index(cam_name)
-                ]  # cam_name -> camID
+                camID = self._camera_id_from_name(cam_name)
                 # Rename cameras to saved display names
                 self.cam_list.setCurrentItem(item)
                 if camID in saved_configs["camera_names"]:
@@ -857,6 +1047,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             logger.info("No saved interface settings ... using defaults")
 
     def closeEvent(self, event):
+        """Handle window close: stop pipelines, save settings, wait for cleanup, release resources."""
         widgets_active = False
         for cam_widget in self.camera_widgets.values():
             if cam_widget is not None:
@@ -869,8 +1060,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Wait for all camera widgets to close
         while widgets_active:
             time.sleep(0.05)
-            widgets_active = all(
-                widget is None for widget in self.camera_widgets.values()
+            widgets_active = any(
+                widget is not None for widget in self.camera_widgets.values()
             )
 
         # Close all initialized triggers
@@ -890,6 +1081,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
 def get_checked_items(check_list: QtWidgets.QListWidget) -> list:
+    """Return a list of all checked QListWidgetItem entries from *check_list*."""
     checked = []
     for idx in range(check_list.count()):
         item = check_list.item(idx)
@@ -898,12 +1090,19 @@ def get_checked_items(check_list: QtWidgets.QListWidget) -> list:
     return checked
 
 
-def add_config_handler(config, key, value):
-    try:
-        # if isinstance(key, list): # Mutually exclusive options
-        #     key = tuple(key)
-        #     value = value[0]
+def add_config_handler(config, key: str, value) -> None:
+    """Create and register a Qt widget handler for a single config key-value pair.
 
+    The widget type is determined by the value's Python type:
+    bool -> QCheckBox, str -> QLineEdit, int -> QSpinBox, float -> QDoubleSpinBox,
+    tuple -> bounded spin box, list -> QComboBox, dict -> mapped QComboBox.
+
+    :param config: ConfigManager to register the handler with.
+    :param key: Configuration key name.
+    :param value: Default value (its type determines the widget created).
+    """
+    try:
+        # Identity mapper pair (get, set) — overridden by dict-type values below
         mapper = (lambda x: x, lambda x: x)
         if isinstance(value, bool):
             widget = QtWidgets.QCheckBox()
@@ -954,20 +1153,17 @@ def add_config_handler(config, key, value):
         )
 
 
-def make_config_layout(config, cols=2, extend_line_edits=True):
-    """
-    Generate a QHBoxLayout based on the input ConfigManager where each column is a QFormLayout
+def make_config_layout(config, cols: int = 2, extend_line_edits: bool = True):
+    """Generate a QHBoxLayout based on the input ConfigManager where each column is a QFormLayout.
+
     For each row, the label is the config dict key, and the field is the config handler for that key.
 
     :param config: ConfigManager
     :param cols: Number of columns to use
-    :return: QHBoxLayout
+    :return: Tuple of (layout, row_map) where row_map maps config key to
+        ``(QFormLayout, row_index)`` for use with ``setRowVisible()``.
     """
     layout = QtWidgets.QHBoxLayout()
-
-    # if len(config.get_visible_keys()) < 4:
-    #     cols = 1
-
     forms = [QtWidgets.QFormLayout() for _ in range(cols)]
     for form in forms:
         form.setContentsMargins(8, 0, 8, 0)
@@ -976,6 +1172,7 @@ def make_config_layout(config, cols=2, extend_line_edits=True):
         form.setHorizontalSpacing(8)
         layout.addLayout(form)
 
+    row_map = {}
     long_line_edits = []
     count = 0
     for key in config.get_visible_keys():
@@ -984,15 +1181,18 @@ def make_config_layout(config, cols=2, extend_line_edits=True):
         label = QtWidgets.QLabel(key)
 
         if isinstance(handler, QtWidgets.QLineEdit) and extend_line_edits:
-            long_line_edits.append((label, handler))
+            long_line_edits.append((key, label, handler))
         else:
+            row_idx = forms[f_index].rowCount()
             forms[f_index].addRow(label, handler)
+            row_map[key] = (forms[f_index], row_idx)
             count += 1
 
     if len(long_line_edits) > 0:
         line_form = QtWidgets.QFormLayout()
         line_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        for label, handler in long_line_edits:
+        for key, label, handler in long_line_edits:
+            row_idx = line_form.rowCount()
             label_text = label.text().lower()
             if "directory" in label_text:
                 hbox = QtWidgets.QHBoxLayout()
@@ -1003,7 +1203,7 @@ def make_config_layout(config, cols=2, extend_line_edits=True):
                 )
                 hbox.addWidget(browse_btn)
                 line_form.addRow(label, hbox)
-            elif ("file" in label_text) and (not "save" in label_text):
+            elif ("file" in label_text) and ("save" not in label_text):
                 hbox = QtWidgets.QHBoxLayout()
                 hbox.addWidget(handler)
                 browse_btn = QtWidgets.QPushButton("Browse")
@@ -1014,17 +1214,23 @@ def make_config_layout(config, cols=2, extend_line_edits=True):
                 line_form.addRow(label, hbox)
             else:
                 line_form.addRow(label, handler)
+            row_map[key] = (line_form, row_idx)
 
         new_layout = QtWidgets.QVBoxLayout()
         new_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         new_layout.addLayout(line_form)
         new_layout.addLayout(layout)
-        return new_layout
+        return new_layout, row_map
 
-    return layout
+    return layout, row_map
 
 
-def open_file_dialog(line_edit, is_dir: bool):
+def open_file_dialog(line_edit, is_dir: bool) -> None:
+    """Open a native file/directory dialog and write the selected path into *line_edit*.
+
+    :param line_edit: Target QLineEdit to populate with the chosen path.
+    :param is_dir: If True, open a directory picker; otherwise a file picker.
+    """
     if is_dir:
         res = QtWidgets.QFileDialog.getExistingDirectory(
             caption="Select a Directory",

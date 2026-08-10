@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 try:
     import tensorflow as tf
-except:
+except ImportError:
     logger.error("Unable to import tensorflow. Check installation process")
 
 
@@ -29,13 +29,13 @@ class SleapInference(BasePlugin):
         "Fixed Interval": 0,
         "Score Threshold": 0.5,
         "Kalman Filter": {"Disabled": False, "Enabled": True},
-        # "Batch Processing": {"Disabled": False, "Enabled": True},
         "Draw on frame": {"Enabled": True, "Disabled": False},
         "Write to file": {"Disabled": False, "Enabled": True},
         "Publish to socket": {"Disabled": False, "Enabled": True},
     }
 
     def __init__(self, cam_widget, config, queue_size=0):
+        """Initialize the SLEAP inference plugin, loading the frozen TF model."""
         super().__init__(cam_widget, config, queue_size)
         self.model_dir = os.path.normpath(config.get("Model directory"))
 
@@ -48,15 +48,15 @@ class SleapInference(BasePlugin):
             input_shape[0] = 1  # Batch size
             dummy_frame = tf.zeros(input_shape, self.model_input.dtype)
             self.model(tf.constant(dummy_frame))
+
+            self.batch_size = input_shape[0]
+            self.input_height = input_shape[1]
+            self.input_width = input_shape[2]
+            self.num_channels = input_shape[3]
         except Exception as err:
             logger.exception(err)
             logger.info("Unable to load model ... auto-disabling SLEAP plugin")
             self.active = False
-
-        self.batch_size = input_shape[0]
-        self.input_height = input_shape[1]
-        self.input_width = input_shape[2]
-        self.num_channels = input_shape[3]
 
         self.interval = 0
         self.poses = []
@@ -76,7 +76,7 @@ class SleapInference(BasePlugin):
                 file_name += ".csv"
 
             self.file_path = os.path.join(cam_widget.save_dir, file_name)
-            self.save_file = open(file_name, "w")
+            self.save_file = open(self.file_path, "w")
             self.csv_writer = csv.writer(self.save_file)
 
         self.socket_trigger = None
@@ -93,6 +93,7 @@ class SleapInference(BasePlugin):
                 logger.error("Unable to find enabled socket trigger")
 
     def process(self, frame, metadata):
+        """Run SLEAP pose estimation on the frame. Returns (frame, metadata)."""
         img_h, img_w, num_ch = frame.shape
         self.interval -= 1
 
@@ -147,8 +148,12 @@ class SleapInference(BasePlugin):
         return frame, metadata
 
     def close(self):
+        """Deactivate SLEAP inference and close the CSV writer if open."""
         logger.info("Sleap Inference closed")
         self.active = False
+
+        if self.save_file is not None:
+            self.save_file.close()
 
 
 import json
@@ -156,6 +161,7 @@ import re
 
 
 def load_frozen_model(model_dir):
+    """Load a frozen TensorFlow graph from the given model directory. Returns a TF session."""
     # Load frozen graph using TensorFlow 1.x functions
     model_file = [file for file in os.listdir(model_dir) if file.endswith(".pb")]
     if len(model_file) > 1:
@@ -163,7 +169,7 @@ def load_frozen_model(model_dir):
             "Multiple model files found. Model folder should only contain one .pb file"
         )
     elif len(model_file) == 0:
-        raise IOError("Could not fild frozen model (.pb) file in specified folder")
+        raise IOError("Could not find frozen model (.pb) file in specified folder")
     else:
         model_file = model_file[0]
 

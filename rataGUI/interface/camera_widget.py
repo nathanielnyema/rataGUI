@@ -12,15 +12,22 @@ from rataGUI.utils import WorkerThread, slugify
 from rataGUI.interface.design.Ui_CameraWidget import Ui_CameraWidget
 
 import asyncio
+import multiprocessing
+from multiprocessing.shared_memory import SharedMemory
 from concurrent.futures import ThreadPoolExecutor
+
+import numpy as np
 
 import logging
 
 logger = logging.getLogger(__name__)
 
-# process_pool = ProcessPoolExecutor()
-thread_pool = ThreadPoolExecutor()
+# Shared bounded thread pool for camera I/O and blocking plugin execution.
+# Sized for up to 4 cameras with acquisition + blocking plugin threads each.
+thread_pool = ThreadPoolExecutor(max_workers=8)
 
+# Exponential moving average decay factor for smoothing pipeline latency measurements.
+# Higher values weight recent samples more heavily (0.8 = 80% new, 20% old).
 EXP_AVG_DECAY = 0.8
 
 
@@ -37,8 +44,16 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
     # Signal for when camera and plugins have been initialized
     pipeline_initialized = pyqtSignal()
 
+    # Signal emitted when a plugin is deactivated due to repeated errors
+    plugin_failed = pyqtSignal(str, str)  # (camera_name, plugin_name)
+
     def __init__(
-        self, camera=None, cam_config=None, plugins=[], triggers=[], session_dir=""
+        self,
+        camera=None,
+        cam_config=None,
+        plugins=None,
+        triggers=None,
+        session_dir: str = "",
     ):
         super().__init__()
         self.setupUi(self)
@@ -55,13 +70,16 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.camera_config = cam_config
 
         # Make triggers available to camera pipeline
-        self.triggers = triggers
+        self.triggers = triggers if triggers is not None else []
 
         # Instantiate plugins with camera-specific settings
         self.plugins = []
+        self._acquisition_queue = (
+            None  # Set when all plugins are independent (fan-out mode)
+        )
         self.plugin_names = []
         self.failed_plugins = {}
-        for Plugin, config in plugins:
+        for Plugin, config in plugins or []:
             try:
                 self.plugins.append(Plugin(self, config))
                 self.plugin_names.append(Plugin.__name__)
@@ -80,6 +98,14 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
             self.show()  # Show widget UI if displaying
         self.avg_latency = 0  # in milliseconds
         self.active = True  # acquiring frames
+        self.multiprocess = False  # set to True to use multi-process acquisition
+
+        # Multi-process resources (initialised lazily)
+        self._mp_process = None
+        self._mp_shm = None
+        self._mp_meta_queue = None
+        self._mp_control_queue = None
+        self._mp_error_queue = None
 
         # Threadpool for asynchronous tasks with signals and slots
         self.threadpool = QThreadPool().globalInstance()
@@ -92,7 +118,15 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         self.threadpool.start(self.pipeline_thread)
 
     @pyqtSlot()
-    def start_camera_pipeline(self):
+    def start_camera_pipeline(self) -> None:
+        """Entry point for the pipeline thread. Delegates to threaded or multiprocess startup."""
+        if self.multiprocess:
+            self._start_multiprocess_pipeline()
+        else:
+            self._start_threaded_pipeline()
+
+    def _start_threaded_pipeline(self) -> None:
+        """Original single-process pipeline using ThreadPoolExecutor."""
         try:
             success = self.camera.initializeCamera(
                 self.camera_config, self.plugin_names
@@ -104,6 +138,11 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
             self.camera._running = True
             self.camera.frames_acquired = 0
             self.pipeline_initialized.emit()
+            for plugin_name in self.failed_plugins:
+                self.plugin_failed.emit(
+                    self.camera.getDisplayName(),
+                    plugin_name,
+                )
             logger.info(
                 "Started pipeline for camera: {}".format(self.camera.getDisplayName())
             )
@@ -113,21 +152,131 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
             logger.exception(err)
             self.stop_camera_pipeline()
 
-    def stop_camera_pipeline(self):
+    def _start_multiprocess_pipeline(self) -> None:
+        """Multi-process pipeline: camera runs in a subprocess, plugins in main process."""
+        from rataGUI.camera_process import camera_acquisition_loop
+
+        # Default frame shape estimate — will be validated against actual frames
+        default_h, default_w, default_c = 1080, 1920, 3
+        # Number of ring buffer slots in shared memory for frame handoff
+        # between the camera subprocess and the main process plugin pipeline.
+        num_slots = 8
+
+        shm_shape = (num_slots, default_h, default_w, default_c)
+        shm_nbytes = int(np.prod(shm_shape))
+
+        try:
+            self._mp_shm = SharedMemory(create=True, size=shm_nbytes)
+            self._mp_shm_frames = np.ndarray(
+                shm_shape, dtype=np.uint8, buffer=self._mp_shm.buf
+            )
+
+            self._mp_meta_queue = multiprocessing.Queue()
+            self._mp_control_queue = multiprocessing.Queue()
+            self._mp_error_queue = multiprocessing.Queue()
+            ready_event = multiprocessing.Event()
+
+            camera_config_dict = self.camera_config.as_dict()
+
+            self._mp_process = multiprocessing.Process(
+                target=camera_acquisition_loop,
+                kwargs={
+                    "camera_module_name": self.camera_type,
+                    "camera_id": self.camera.cameraID,
+                    "camera_config_dict": camera_config_dict,
+                    "plugin_names": self.plugin_names,
+                    "shm_name": self._mp_shm.name,
+                    "shm_shape": shm_shape,
+                    "meta_queue": self._mp_meta_queue,
+                    "control_queue": self._mp_control_queue,
+                    "ready_event": ready_event,
+                    "error_queue": self._mp_error_queue,
+                    "log_dir": self.session_dir,
+                },
+                daemon=True,
+            )
+            self._mp_process.start()
+            logger.info(
+                "Started camera subprocess for %s (PID: %d)",
+                self.camera.getDisplayName(),
+                self._mp_process.pid,
+            )
+
+            # Wait for camera initialization in subprocess
+            if not ready_event.wait(timeout=30):
+                # Check for errors
+                if not self._mp_error_queue.empty():
+                    err_type, err_msg = self._mp_error_queue.get_nowait()
+                    raise IOError(f"Camera subprocess error ({err_type}): {err_msg}")
+                raise IOError("Camera subprocess timed out during initialization")
+
+            self.camera._running = True
+            self.camera.frames_acquired = 0
+            self.pipeline_initialized.emit()
+            for plugin_name in self.failed_plugins:
+                self.plugin_failed.emit(
+                    self.camera.getDisplayName(),
+                    plugin_name,
+                )
+            logger.info("Camera subprocess ready for %s", self.camera.getDisplayName())
+
+            # Run plugin pipeline with multiprocess acquisition
+            asyncio.run(self.process_plugin_pipeline(multiprocess=True), debug=False)
+
+        except Exception as err:
+            logger.exception(err)
+            self.stop_camera_pipeline()
+        finally:
+            self._cleanup_multiprocess()
+
+    def _cleanup_multiprocess(self) -> None:
+        """Clean up multiprocess resources."""
+        if self._mp_process is not None and self._mp_process.is_alive():
+            try:
+                self._mp_control_queue.put("stop")
+                self._mp_process.join(timeout=10)
+                if self._mp_process.is_alive():
+                    logger.warning("Camera subprocess did not exit, terminating")
+                    self._mp_process.terminate()
+                    self._mp_process.join(timeout=5)
+            except Exception as err:
+                logger.exception("Error stopping camera subprocess: %s", err)
+
+        if self._mp_shm is not None:
+            try:
+                self._mp_shm.close()
+                self._mp_shm.unlink()
+            except Exception:
+                pass  # unlink is a no-op on Windows; may also fail if already cleaned
+            self._mp_shm = None
+
+    def stop_camera_pipeline(self) -> None:
+        """Signal the camera and plugins to stop and clean up if no data was produced."""
         # Signal to event loop to stop camera and plugins
         self.camera._running = False
         self.active = False
-        # self.stop_plugins()
+
+        # If multiprocess, send stop signal
+        if self._mp_control_queue is not None:
+            try:
+                self._mp_control_queue.put("stop")
+            except Exception:
+                pass
+
         self.clean_session_dir()
 
-    async def acquire_frames(self):
+    async def acquire_frames(self) -> None:
+        """Read frames from the camera in a thread pool and enqueue for plugin processing.
+
+        Runs until the camera stops. Closes the camera on exit and logs FPS.
+        """
         t0 = time.time()
         try:
             loop = asyncio.get_running_loop()
             while self.camera._running:
                 if self.active:
                     status, frame = await loop.run_in_executor(
-                        None, self.camera.readCamera
+                        thread_pool, self.camera.readCamera
                     )
                     metadata = self.camera.getMetadata()
                     metadata["Camera Name"] = self.camera.getDisplayName()
@@ -135,9 +284,11 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
                     metadata["Average Latency"] = self.avg_latency
 
                     if status:
-                        # print('Camera queue: ' + str(self.plugins[0].in_queue.qsize()))
                         # Send acquired frame to first plugin process in pipeline
-                        await self.plugins[0].in_queue.put((frame, metadata))
+                        target_queue = (
+                            self._acquisition_queue or self.plugins[0].in_queue
+                        )
+                        await target_queue.put((frame, metadata))
                         await asyncio.sleep(0)
                     else:
                         raise IOError(
@@ -150,7 +301,7 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         except Exception as err:
             logger.exception(err)
             logger.error(
-                f"Exception occured acquiring frame from camera: {self.camera.getDisplayName()} ... stopping"
+                f"Exception occurred acquiring frame from camera: {self.camera.getDisplayName()} ... stopping"
             )
             self.stop_camera_pipeline()
 
@@ -159,18 +310,127 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         # Close camera when camera stops streaming
         self.camera.closeCamera()
 
-    # Asynchronous execution loop for an arbitrary plugin
-    async def plugin_process(self, plugin):
+    def _read_from_mp_queue(self) -> tuple | None:
+        """Blocking read from the multiprocessing metadata queue.
+
+        Returns ``(slot_idx, metadata)`` or ``None`` if the camera stopped.
+        Uses a short timeout to allow checking ``_running`` periodically.
+        """
+        import queue as _queue
+
+        while self.camera._running:
+            try:
+                return self._mp_meta_queue.get(timeout=0.1)
+            except _queue.Empty:
+                # Check for errors from subprocess
+                if not self._mp_error_queue.empty():
+                    err_type, err_msg = self._mp_error_queue.get_nowait()
+                    raise IOError(f"Camera subprocess error ({err_type}): {err_msg}")
+                continue
+        return None
+
+    async def acquire_frames_mp(self) -> None:
+        """Acquire frames from camera subprocess via shared memory."""
+        t0 = time.time()
+        try:
+            loop = asyncio.get_running_loop()
+            while self.camera._running:
+                if self.active:
+                    result = await loop.run_in_executor(
+                        thread_pool, self._read_from_mp_queue
+                    )
+                    if result is None:
+                        break
+
+                    slot_idx, metadata = result
+                    metadata["Average Latency"] = self.avg_latency
+                    self.camera.frames_acquired += 1
+
+                    # Copy frame from shared memory (subprocess may overwrite slot)
+                    frame = self._mp_shm_frames[slot_idx].copy()
+
+                    target_queue = self._acquisition_queue or self.plugins[0].in_queue
+                    await target_queue.put((frame, metadata))
+                    await asyncio.sleep(0)
+                else:
+                    await asyncio.sleep(0)
+
+        except Exception as err:
+            logger.exception(err)
+            logger.error(
+                f"Exception in multiprocess acquisition for camera: "
+                f"{self.camera.getDisplayName()} ... stopping"
+            )
+            self.stop_camera_pipeline()
+
+        t1 = time.time()
+        elapsed = t1 - t0
+        if elapsed > 0:
+            logger.debug("FPS: " + str(self.camera.frames_acquired / elapsed))
+
+    async def _put_to_queue(
+        self, target_queue, item, drop_policy: str = "block", ring_buffer=None
+    ) -> None:
+        """Put item to a queue, respecting the drop policy.
+
+        When *ring_buffer* is provided and the dropped item is a slot index,
+        the slot is released so that the ring buffer does not leak.
+        """
+        if drop_policy == "drop_oldest" and target_queue.full():
+            try:
+                dropped = target_queue.get_nowait()
+                # Release the ring buffer slot for the dropped frame so
+                # that the producer can reuse it.
+                if ring_buffer is not None and isinstance(dropped, int):
+                    ring_buffer.release(dropped)
+                target_queue.task_done()
+            except asyncio.QueueEmpty:
+                pass
+        await target_queue.put(item)
+
+    async def plugin_process(self, plugin, ring_buffer=None) -> None:
+        """Async execution loop for a single plugin.
+
+        Reads from the plugin's input queue, runs its ``process()`` method
+        (in a thread pool for blocking plugins), and forwards results to the
+        next queue. Deactivates the plugin after repeated consecutive failures.
+
+        :param plugin: Plugin instance to execute.
+        :param ring_buffer: Optional FrameRingBuffer for zero-copy fan-out mode.
+        """
         loop = asyncio.get_running_loop()
         failures = 0
         while True:
-            frame, metadata = await plugin.in_queue.get()
+            raw_item = await plugin.in_queue.get()
+
+            # Resolve ring buffer slot index to (frame, metadata) for
+            # independent plugins that receive slot indices via fan-out.
+            if ring_buffer is not None and isinstance(raw_item, int):
+                slot_idx = raw_item
+                frame, metadata = ring_buffer.get_view(slot_idx)
+                logger.debug(
+                    "plugin_process(%s): resolved ring buffer slot %d, blocking=%s",
+                    type(plugin).__name__,
+                    raw_item,
+                    plugin.blocking,
+                )
+                # For blocking plugins: copy the frame and release the slot
+                # immediately so the ring buffer is not held during the
+                # (potentially slow) thread-pool execution.
+                if plugin.blocking:
+                    frame = frame.copy()
+                    ring_buffer.release(slot_idx)
+                    slot_idx = None  # prevent double-release in finally
+            else:
+                slot_idx = None
+                frame, metadata = raw_item
+
             try:
                 # Execute plugin
                 if plugin.active:
                     if plugin.blocking:  # possibly move queues outside plugins
                         result = await loop.run_in_executor(
-                            None, plugin.process, frame, metadata
+                            thread_pool, plugin.process, frame, metadata
                         )
                     else:
                         result = plugin.process(frame, metadata)
@@ -178,52 +438,231 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
                     result = (frame, metadata)
 
                 # Send output to next plugin
-                if plugin.out_queue != None:
+                if plugin.out_queue is not None:
                     await plugin.out_queue.put(result)
-                else:
+                elif not plugin.blocking:
+                    # Only measure latency from non-blocking terminal plugins
+                    # (e.g. FrameDisplay) to avoid false spikes from slow
+                    # blocking plugins like VideoWriter.
                     delta_t = datetime.now() - metadata["Timestamp"]
                     self.avg_latency = (
                         delta_t.total_seconds() * 1000 * EXP_AVG_DECAY
                         + self.avg_latency * (1 - EXP_AVG_DECAY)
                     )
             except Exception as err:
-                logger.exception(err)
                 failures += 1
-                if failures > 5:  # close plugin after 5 failures
+                logger.error(
+                    "Plugin %s failure #%d: camera=%s, frame_index=%s, "
+                    "frame_shape=%s, error=%s",
+                    type(plugin).__name__,
+                    failures,
+                    self.camera.getDisplayName(),
+                    metadata.get("Frame Index", "?") if metadata else "?",
+                    frame.shape if frame is not None else None,
+                    err,
+                )
+                logger.exception(err)
+                # Deactivate after too many consecutive failures to prevent
+                # an endlessly-crashing plugin from degrading pipeline throughput.
+                if failures > 5:
+                    logger.error(
+                        "Plugin %s exceeded failure threshold (5), deactivating. "
+                        "Camera: %s, total_frames_acquired: %d",
+                        type(plugin).__name__,
+                        self.camera.getDisplayName(),
+                        self.camera.frames_acquired,
+                    )
+                    plugin.failed = True
                     plugin.active = False
+                    self.plugin_failed.emit(
+                        self.camera.getDisplayName(),
+                        type(plugin).__name__,
+                    )
                     plugin.close()
             finally:
+                if ring_buffer is not None and slot_idx is not None:
+                    ring_buffer.release(slot_idx)
                 plugin.in_queue.task_done()
 
-    async def process_plugin_pipeline(self):
-        # Add process to continuously acquire frames from camera
-        acquisition_task = asyncio.create_task(self.acquire_frames())
+    async def fan_out(
+        self, source_queue, target_plugins: list, ring_buffer=None
+    ) -> None:
+        """Read from one source queue and distribute to multiple independent plugin queues.
 
-        # Add all plugin processes (pipeline) to async event loop
+        When *ring_buffer* is provided, frames are published into the ring
+        buffer and only the slot index (an int) is enqueued to each plugin,
+        avoiding per-plugin copies of the full frame array.
+
+        Blocking plugins receive a copied ``(frame, metadata)`` tuple and
+        their ring-buffer ref-count is released immediately so that slow
+        consumers cannot exhaust ring-buffer slots and stall non-blocking
+        plugins such as the frame display.
+        """
+        loop = asyncio.get_running_loop()
+        while True:
+            item = await source_queue.get()
+            try:
+                if ring_buffer is not None:
+                    frame, metadata = item
+                    # Run publish in a thread to avoid blocking the event loop
+                    # when the ring buffer is full (backpressure).
+                    slot_idx = await loop.run_in_executor(
+                        None, ring_buffer.publish, frame, metadata
+                    )
+                    logger.debug(
+                        "fan_out: published frame to slot %d, distributing to %d plugins",
+                        slot_idx,
+                        len(target_plugins),
+                    )
+                    for plugin in target_plugins:
+                        if plugin.blocking:
+                            # Copy frame and release the slot immediately so
+                            # slow blocking plugins do not hold ring-buffer
+                            # slots and starve non-blocking consumers.
+                            view, meta = ring_buffer.get_view(slot_idx)
+                            frame_copy = view.copy()
+                            ring_buffer.release(slot_idx)
+                            await self._put_to_queue(
+                                plugin.in_queue,
+                                (frame_copy, meta),
+                                plugin.drop_policy,
+                            )
+                        else:
+                            await self._put_to_queue(
+                                plugin.in_queue,
+                                slot_idx,
+                                plugin.drop_policy,
+                                ring_buffer=ring_buffer,
+                            )
+                else:
+                    for plugin in target_plugins:
+                        await self._put_to_queue(
+                            plugin.in_queue, item, plugin.drop_policy
+                        )
+            finally:
+                source_queue.task_done()
+
+    async def process_plugin_pipeline(self, multiprocess: bool = False) -> None:
+        """Orchestrate the full async pipeline: acquisition, serial chain, fan-out, and shutdown.
+
+        Wires serial plugins in a chain via their queues, sets up fan-out for
+        trailing independent plugins using a ring buffer, then waits for the
+        camera to stop before draining all queues and cancelling tasks.
+
+        :param multiprocess: If True, use subprocess-based frame acquisition.
+        """
+        # Add process to continuously acquire frames from camera
+        if multiprocess:
+            acquisition_task = asyncio.create_task(self.acquire_frames_mp())
+        else:
+            acquisition_task = asyncio.create_task(self.acquire_frames())
+
+        # Split plugins into serial prefix and independent tail group.
+        # Independent plugins at the end of the list run in parallel via fan-out.
+        # Any non-independent plugin breaks the independent group.
+        serial_plugins = list(self.plugins)
+        independent_plugins = []
+
+        # Walk backwards to find the trailing run of independent plugins
+        while serial_plugins and serial_plugins[-1].independent:
+            independent_plugins.insert(0, serial_plugins.pop())
+
+        # Wire serial plugins in chain
         plugin_tasks = []
-        for cur_plugin, next_plugin in zip(self.plugins, self.plugins[1:]):
-            # Connect outputs and inputs of consecutive plugin pairs
+        for cur_plugin, next_plugin in zip(serial_plugins, serial_plugins[1:]):
             cur_plugin.out_queue = next_plugin.in_queue
             plugin_tasks.append(asyncio.create_task(self.plugin_process(cur_plugin)))
-        # Add terminating plugin
-        plugin_tasks.append(asyncio.create_task(self.plugin_process(self.plugins[-1])))
+
+        fan_out_queue = None
+        ring_buffer = None
+        if independent_plugins:
+            fan_out_queue = asyncio.Queue()
+
+            # Create ring buffer for zero-copy fan-out to independent plugins.
+            # Lazy-initialized on first frame since resolution is unknown here;
+            # FrameRingBuffer.publish() handles reallocation if shape changes.
+            num_slots = max(
+                sum(
+                    p.in_queue.maxsize
+                    for p in independent_plugins
+                    if p.in_queue.maxsize > 0
+                ),
+                8,
+            )
+            try:
+                from rataGUI.frame_ring_buffer import FrameRingBuffer
+
+                ring_buffer = FrameRingBuffer(
+                    num_slots=num_slots,
+                    height=1,
+                    width=1,
+                    channels=3,  # placeholder; reallocated on first publish
+                    num_consumers=len(independent_plugins),
+                )
+                logger.info(
+                    "Ring buffer enabled for %d independent plugins (%d slots)",
+                    len(independent_plugins),
+                    num_slots,
+                )
+            except Exception as err:
+                logger.warning(
+                    "Ring buffer init failed, falling back to queue fan-out: %s", err
+                )
+                ring_buffer = None
+
+            if serial_plugins:
+                # Last serial plugin fans out to all independent plugins
+                serial_plugins[-1].out_queue = fan_out_queue
+                plugin_tasks.append(
+                    asyncio.create_task(self.plugin_process(serial_plugins[-1]))
+                )
+            else:
+                # All plugins are independent — acquisition feeds the fan-out queue directly.
+                # Use a separate acquisition queue so fan_out does not write back
+                # into its own source queue (which would create a circular dependency).
+                self._acquisition_queue = fan_out_queue
+
+            plugin_tasks.append(
+                asyncio.create_task(
+                    self.fan_out(fan_out_queue, independent_plugins, ring_buffer)
+                )
+            )
+
+            # Each independent plugin runs as a terminal plugin
+            for plugin in independent_plugins:
+                plugin_tasks.append(
+                    asyncio.create_task(
+                        self.plugin_process(plugin, ring_buffer=ring_buffer)
+                    )
+                )
+        else:
+            # No independent plugins — add terminating serial plugin
+            plugin_tasks.append(
+                asyncio.create_task(self.plugin_process(serial_plugins[-1]))
+            )
 
         # Wait until camera stops running
         await acquisition_task
 
-        # Wait for plugins to finish processing
+        # Wait for all plugin queues to drain
         for plugin in self.plugins:
             await plugin.in_queue.join()
+        if fan_out_queue is not None:
+            await fan_out_queue.join()
 
         # Cancel idle plugin processes
         for task in plugin_tasks:
             task.cancel()
 
-    def stop_plugins(self):
+        self._acquisition_queue = None
+
+    def stop_plugins(self) -> None:
+        """Deactivate all plugins in this widget's pipeline."""
         for plugin in self.plugins:
             plugin.active = False
 
-    def close_plugins(self):
+    def close_plugins(self) -> None:
+        """Close all plugins, logging any errors that occur during teardown."""
         for plugin in self.plugins:
             try:
                 plugin.close()
@@ -231,14 +670,16 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
                 logger.exception(err)
                 logger.error(f"Plugin: {type(plugin).__name__} failed to close")
 
-    def close_widget(self):
+    def close_widget(self) -> None:
+        """Finalize the widget: close all plugins and schedule Qt deletion."""
         logger.info(
             "Stopped pipeline for camera: {}".format(self.camera.getDisplayName())
         )
         self.close_plugins()
         self.deleteLater()
 
-    def clean_session_dir(self):
+    def clean_session_dir(self) -> None:
+        """Remove the session directory if it contains only metadata or is empty."""
         if os.path.isdir(self.save_dir):
             dir_list = os.listdir(self.save_dir)
             metadata_file = slugify(self.camera.getDisplayName()) + "_metadata.json"
@@ -255,7 +696,8 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
             else:  # Log metadata to file
                 self.save_widget_data()
 
-    def save_widget_data(self):  # TODO: Compare settings before and after
+    def save_widget_data(self) -> None:
+        """Write pipeline metadata (camera info, plugin states, settings) to a JSON file."""
         metadata = {}
         metadata["RataGUI Version"] = __version__
         metadata["Session Directory"] = self.session_dir
@@ -283,23 +725,8 @@ class CameraWidget(QtWidgets.QWidget, Ui_CameraWidget):
         with open(file_path, "w") as file:
             json.dump(metadata, file, indent=2)
 
-        # enabled_triggers = {}
-        # for trig in self.triggers:
-        #     triggers = enabled_triggers.get(type(trig).__name__, [])
-        #     triggers.append(trig.device)
-
     @pyqtSlot(QtGui.QImage)
     def set_window_pixmap(self, qt_image):
+        """Update the video display label with a new frame image."""
         pixmap = QtGui.QPixmap.fromImage(qt_image)
         self.video_frame.setPixmap(pixmap)
-
-
-# async def repeat_trigger(trigger, interval):
-#     """
-#     Execute trigger every interval seconds.
-#     """
-#     while trigger.active:
-#         await asyncio.gather(
-#             trigger.execute,
-#             asyncio.sleep(interval),
-#         )

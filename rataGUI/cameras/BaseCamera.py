@@ -7,14 +7,18 @@ from numpy.typing import NDArray
 class BaseCamera(ABC):
     """
     Abstract camera class with generic functions. All camera models should be subclassed
-    to ensure that all the necessary methods are available to the camera acquistion engine.
+    to ensure that all the necessary methods are available to the camera acquisition engine.
     """
 
     # Static variable mapping names of loaded camera modules to their corresponding subclass
     modules = {}
 
-    # For every class that inherits from BaseCamera, the module name will be added to camera_models
     def __init_subclass__(cls, **kwargs):
+        """Auto-register each camera subclass keyed by its module filename.
+
+        Importing a camera module automatically makes it available in
+        ``BaseCamera.modules`` without manual registration.
+        """
         super().__init_subclass__(**kwargs)
         module_name = cls.__module__.split(".")[-1]
         cls.modules[module_name] = cls
@@ -27,10 +31,10 @@ class BaseCamera(ABC):
 
     # Optional method to release static resources upon exiting program
     @staticmethod
-    def releaseResources():
+    def releaseResources() -> None:
         pass
 
-    def __init__(self, cameraID):
+    def __init__(self, cameraID: str):
         self._stream = None
         self.cameraID = cameraID
         self.display_name = None
@@ -83,5 +87,35 @@ class BaseCamera(ABC):
         """
         return {"Frame Index": self.frames_acquired}
 
-    def __str__(self):
+    @classmethod
+    def create_and_initialize(
+        cls, camera_id: str, config_dict: dict, plugin_names: list[str]
+    ) -> "BaseCamera":
+        """Factory method for subprocess use.
+
+        Creates a camera instance, builds a mock ConfigManager from a plain
+        dict, and initialises the camera.  Returns the camera instance on
+        success or raises on failure.
+
+        :param camera_id: Camera identifier passed to ``__init__``.
+        :param config_dict: Plain dict of camera settings.
+        :param plugin_names: List of plugin name strings.
+        """
+        from unittest.mock import MagicMock
+
+        camera = cls(camera_id)
+        config = MagicMock()
+        config.as_dict.return_value = dict(config_dict)
+        config.get.side_effect = lambda key, default=None: config_dict.get(key, default)
+        config.set = MagicMock()
+
+        success = camera.initializeCamera(config, plugin_names)
+        if not success:
+            raise IOError(f"Camera {camera_id} failed to initialize")
+
+        camera._running = True
+        camera.frames_acquired = 0
+        return camera
+
+    def __str__(self) -> str:
         return "Camera ID: {}".format(str(self.cameraID))

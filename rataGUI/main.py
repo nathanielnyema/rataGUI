@@ -11,22 +11,32 @@ parser.add_argument(
     default=False,
 )
 
-# parser.add_argument(
-#     "--reset",
-#     help=(
-#         "Reset session settings back to defaults."
-#     ),
-#     action="store_const",
-#     const=True,
-#     default=False,
-# )
-
 args = parser.parse_args()
 
 if args.start_menu:
     launch_config["Don't show again"] = False
 
 import os
+import sys
+
+# Fix DLL loading on Windows for PyQt6.
+# In conda environments, conflicting Qt DLLs in Library/bin can be loaded
+# instead of PyQt6's bundled DLLs, causing "DLL load failed" errors.
+# Prepending PyQt6's Qt6/bin to PATH ensures the correct DLLs are found first.
+if sys.platform == "win32":
+    import PyQt6
+
+    pyqt6_path = os.path.dirname(PyQt6.__file__)
+    qt6_bin = os.path.join(pyqt6_path, "Qt6", "bin")
+    qt6_plugins = os.path.join(pyqt6_path, "Qt6", "plugins")
+
+    if os.path.isdir(qt6_bin):
+        os.environ["PATH"] = qt6_bin + os.pathsep + os.environ.get("PATH", "")
+        os.add_dll_directory(qt6_bin)
+
+    if os.path.isdir(qt6_plugins):
+        os.environ["QT_PLUGIN_PATH"] = qt6_plugins
+
 import darkdetect
 from PyQt6.QtWidgets import QApplication
 
@@ -43,7 +53,12 @@ logger = logging.getLogger(__package__)
 
 
 def main():
-    """Starts new instance of RataGUI"""
+    """Launch the RataGUI application.
+
+    Parses CLI arguments, optionally displays the start menu for module
+    selection, then creates and runs the main window with all configured
+    camera, plugin, and trigger modules.
+    """
     logger.info("__________Starting RataGUI__________")
     QApplication.setStyle("Fusion")
     app = QApplication([])
@@ -80,7 +95,8 @@ def main():
         ]
         session_settings = launch_config["Session Settings"]
         add_file_logger(os.path.join(launch_config["Save Directory"], "logs"))
-    except:
+    except Exception as err:
+        logger.exception(err)
         logger.error("Unable to launch RataGUI due to incomplete launch_config")
         return
 

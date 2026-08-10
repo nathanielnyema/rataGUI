@@ -18,11 +18,11 @@ RataGUI is a **customizable** and **user-friendly** Python framework for real-ti
 # Features
 RataGUI was developed with four primary design principles:
 
-* **Accessibility** - RataGUI features an adaptive and intuitive graphical user interface (GUI) that makes it easier to conduct complex experiments involving heterogenous hardware without any additional programming. Using minimal dependencies and efficient multi-threaded processing, RataGUI is designed to run on a wide variety of different systems.
+* **Accessibility** - RataGUI features an adaptive and intuitive graphical user interface (GUI) that makes it easier to conduct complex experiments involving heterogenous hardware without any additional programming. Using minimal dependencies and efficient multi-threaded and multi-process processing, RataGUI is designed to run on a wide variety of different systems.
 
 * **Modularity** - RataGUI's plug-and-play architecture enables easy customization of data processing pipelines to support your experiment's specific needs. Cameras, plugins and triggers are separated into individual modules (see tables below) and configured together in a single unified interface.
 
-* **Extensitibility** - RataGUI's modular framework allows for seamless integration of user-created modules for additional functionality. You are encouraged to fork the repository and write additional modules using the provided instructions and template code. RataGUI aims to provide a platform for researchers to share code and contribute to the growing list of modules below.
+* **Extensibility** - RataGUI's modular framework allows for seamless integration of user-created modules for additional functionality. You are encouraged to fork the repository and write additional modules using the provided instructions and template code. RataGUI aims to provide a platform for researchers to share code and contribute to the growing list of modules below.
 
 * **Reproducibility** - RataGUI automatically logs all relevant experimental info and saves its state in a restorable, human-readable JSON format. This allows RataGUI to replicate an experiment's parameters from a single session directory. 
 
@@ -42,7 +42,7 @@ RataGUI was developed with four primary design principles:
 | FrameDisplay  | Displays video stream in a separate window | [BrainHu42](https://github.com/BrainHu42) |
 | MetadataWriter | Overlays metadata onto frames and/or into a log file | [BrainHu42](https://github.com/BrainHu42) |
 | SleapInference | Estimates animal poses using exported SLEAP model and writes keypoints as metadata | [BrainHu42](https://github.com/BrainHu42) |
-| VideoWriter | Writes frames to video file using FFMPEG | [BrainHu42](https://github.com/BrainHu42) |
+| VideoWriter | Writes frames to video file using FFMPEG (supports NVENC hardware acceleration) | [BrainHu42](https://github.com/BrainHu42) |
 | Pixel2World | Converts pixel space to real world coordinates using MATLAB camera calibration file | [nathanielnyema](https://github.com/nathanielnyema) |
 | Undistort | Undistorts video stream given camera parameters in MATLAB camera calibration file | [nathanielnyema](https://github.com/nathanielnyema) |
 
@@ -68,12 +68,114 @@ Note: A "session" is a recording session. Every time you press start, it starts 
 ## Video Demo -->
 
 
+# Headless Mode
+
+RataGUI can run without a GUI using the headless mode, which provides both a CLI and a Python API. This is useful for scripted experiments, server deployments, and CI pipelines. The FrameDisplay plugin is automatically excluded in headless mode.
+
+## CLI
+
+After installing rataGUI, the `rataGUI-headless` command is available:
+
+```bash
+# Run with a config file
+rataGUI-headless config.json
+
+# Override save directory
+rataGUI-headless config.json --save-dir /data/output
+
+# Use multiprocess camera acquisition
+rataGUI-headless config.json --multiprocess
+```
+
+Press Ctrl+C to stop all pipelines gracefully.
+
+### Config file format
+
+The config file uses the same JSON format as `launch_config.json`, with optional per-module settings:
+
+```json
+{
+  "Enabled Camera Modules": ["VideoReader"],
+  "Enabled Plugin Modules": ["video_writer", "metadata_writer"],
+  "Enabled Trigger Modules": [],
+  "Save Directory": "/data/recordings",
+  "cameras": {
+    "Video Reader 1": {
+      "File path": "/data/input.mp4"
+    }
+  },
+  "plugins": {
+    "VideoWriter": {
+      "vcodec": "libx264",
+      "framerate": 30
+    }
+  },
+  "triggers": {}
+}
+```
+
+If `cameras`, `plugins`, or `triggers` keys are absent, each module's `DEFAULT_PROPS`/`DEFAULT_CONFIG` defaults are used.
+
+## Python API
+
+```python
+from rataGUI.headless import PipelineRunner
+
+# From a config file
+runner = PipelineRunner("config.json")
+
+# Or from a dict
+runner = PipelineRunner({
+    "Enabled Camera Modules": ["VideoReader"],
+    "Enabled Plugin Modules": ["video_writer"],
+    "Enabled Trigger Modules": [],
+    "Save Directory": "/data/recordings",
+    "cameras": {
+        "Video Reader 1": {"File path": "/data/input.mp4"}
+    },
+})
+
+# Synchronous — blocks until pipelines complete or stop() is called
+runner.start()
+
+# To stop from another thread or signal handler:
+runner.stop()
+```
+
+For async usage:
+
+```python
+import asyncio
+from rataGUI.headless import PipelineRunner
+
+async def main():
+    runner = PipelineRunner("config.json")
+    await runner.run()
+
+asyncio.run(main())
+```
+
+The `PipelineRunner` runs the same asyncio pipeline as the GUI (frame acquisition, serial plugin chaining, independent plugin fan-out with ring buffers), just without Qt widgets.
+
+
 # Development Guide
 
-RataGUI's modular framework was built for user customizability and integration. We encourage you to [fork](https://guides.github.com/activities/forking/#fork) the package [Github repository](https://github.com/BrainHu42/rataGUI) and add additional modules for your specific use case. Then, run the following command to clone the forked repository to your computer. 
+RataGUI's modular framework was built for user customizability and integration. We encourage you to [fork](https://guides.github.com/activities/forking/#fork) the package [Github repository](https://github.com/BrainHu42/rataGUI) and add additional modules for your specific use case. Then, clone the forked repository and install in editable mode:
 ```
 git clone https://github.com/<YOUR-USERNAME>/rataGUI.git
+cd rataGUI
+
+# CPU-only
+conda create -n rataGUI ffmpeg pip scipy python=3.10
+
+# Or GPU-enabled (requires NVIDIA GPU with latest drivers)
+conda create -n rataGUI ffmpeg pip scipy python=3.10 cudnn=8.2 cudatoolkit=11.3 nvidia::cuda-nvcc=11.3
+
+conda activate rataGUI
+python -m pip install -e ".[test]"
 ```
+
+This installs rataGUI in editable mode so that any source changes take effect immediately without reinstalling.
 
 ## Implement Custom Camera Models
 To add another camera model, simply rename and edit the required functions provided in `cameras/TemplateCamera.py` to fit your camera model's specifications. RataGUI will use these functions to find, initialize, read frames from and close the camera. Any configurable camera settings should be specified in the dictionary named `DEFAULT_PROPS`. RataGUI will use these default settings to automatically create a dynamic menu and add it to the user interface. The configured settings will be passed into the `initializeCamera` function.
@@ -83,6 +185,12 @@ To incorporate additional functionality, simply rename and edit the required fun
 
 ## Implement Custom Triggers
 To interface with other external devices, simply rename and edit the required functions provided in `triggers/template_trigger.py` to fit your custom use case. RataGUI will use these functions to populate the trigger tab in the user interface with all available devices and their configurable settings. Trigger devices can be controlled through the interface as well as within a plugin process. 
+
+## Running Tests
+RataGUI includes a comprehensive test suite. If you used the development install above, pytest is already included. To run the tests:
+```
+pytest
+```
 
 ## Contributing
 If you think your module would be useful to other people, please consider submitting a merge request so that we can review and integrate your code into the main branch. We'll also add you to the list of module contributors!
