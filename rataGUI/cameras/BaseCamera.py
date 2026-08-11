@@ -40,6 +40,7 @@ class BaseCamera(ABC):
         self.display_name = None
         self._running = False
         self.frames_acquired = 0
+        self.props_complete = True
 
     @abstractmethod
     def initializeCamera(

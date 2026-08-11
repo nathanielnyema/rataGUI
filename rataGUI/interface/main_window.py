@@ -118,6 +118,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.camera_configs = {}
         self.camera_names = OrderedDict()  # holds camera display name and order
         self.camera_models = {c.__name__: c for c in camera_models}
+        self.camera_prop_options = {}  # camID -> {prop_name: valid_values}
         self.populate_camera_list()
         self.populate_camera_properties()
         self.populate_camera_stats()
@@ -356,6 +357,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for key in remove:
                 props.pop(key, None)
             props.update(device_props)
+            self.camera_prop_options[camID] = props
             config.set_defaults(props)
             for key, setting in props.items():
                 add_config_handler(config, key, setting)
@@ -874,6 +876,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if cam_widget is not None:
                 cam_widget.stop_camera_pipeline()
 
+    def _save_camera_settings(self, path):
+        """Write camera configs, preserving the existing entry for any camera whose
+        property discovery was incomplete this session."""
+        existing = self._load_json_if_exists(path) or {}
+        settings = {}
+        for camID, config in self.camera_configs.items():
+            camera = self.cameras.get(camID)
+            if camera is not None and not camera.props_complete:
+                if camID in existing:
+                    settings[camID] = existing[camID]
+                    logger.warning(
+                        "Property discovery for camera %s was incomplete; keeping the "
+                        "previously saved settings rather than overwriting them", camID,
+                    )
+                    continue
+                logger.warning(
+                    "Property discovery for camera %s was incomplete; saved settings "
+                    "may be missing device-specific options", camID,
+                )
+            settings[camID] = config.as_dict()
+        with open(path, "w") as file:
+            json.dump(settings, file, indent=2)
+
     def save_settings(self, save_dir):
         """Persist all camera, plugin, trigger, and UI settings to JSON files.
 
@@ -881,10 +906,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         os.makedirs(save_dir, exist_ok=True)
 
-        self._merge_and_save_json(
-            os.path.join(save_dir, "camera_settings.json"),
-            {camID: cfg.as_dict() for camID, cfg in self.camera_configs.items()},
-        )
+        self._save_camera_settings(os.path.join(save_dir, "camera_settings.json"))
         self._merge_and_save_json(
             os.path.join(save_dir, "plugin_settings.json"),
             {name: cfg.as_dict() for name, cfg in self.plugin_configs.items()},
@@ -929,6 +951,32 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         logger.info(f"Saved session settings to {save_dir}")
 
+    def _restore_config(self, label: str, config, saved: dict, kind: str) -> None:
+        """Restore saved values one key at a time, skipping any that no longer apply."""
+        options = config.as_dict()
+        skipped = []
+        for key, value in saved.items():
+            if key not in options:
+                skipped.append(f"{key} (no longer available)")
+                continue
+            choices = self.camera_prop_options.get(label, {}).get(key)
+            if isinstance(choices, dict) and value not in choices.values():
+                skipped.append(f"{key} (value not supported by this camera)")
+                continue
+            if isinstance(choices, list) and value not in choices:
+                skipped.append(f"{key} (value not supported by this camera)")
+                continue
+            try:
+                config.set(key, value)
+            except Exception as err:
+                skipped.append(f"{key} (invalid value)")
+                logger.debug("Could not restore %s.%s: %s", label, key, err)
+        if skipped:
+            logger.warning(
+                "Some saved settings for %s %s were not restored: %s",
+                kind, label, ", ".join(skipped),
+            )
+
     def restore_settings(self, save_dir):
         """Restore camera, plugin, trigger, and UI settings from saved JSON files.
 
@@ -940,14 +988,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if saved_configs is not None:
             for camID, config in self.camera_configs.items():
                 if camID in saved_configs:
-                    try:
-                        config.set_many(saved_configs[camID])
-                    except Exception as err:
-                        logger.warning(
-                            f"Some saved settings for camera: {camID} could not be restored "
-                            f"as it no longer exists in the camera's DEFAULT_PROPS"
-                        )
-                        logger.debug(err)
+                    self._restore_config(camID, config, saved_configs[camID], "camera")
             logger.info("Restored saved camera settings")
         else:
             logger.info("No saved camera settings ... using defaults")

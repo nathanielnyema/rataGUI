@@ -219,7 +219,7 @@ class FLIRCamera(BaseCamera):
             allowed = {FLIRCamera.TRIGGER_SOURCE_NAMES[s] for s in input_lines
                     if s in FLIRCamera.TRIGGER_SOURCE_NAMES}
             options = {d: v for d, v in options.items()
-                    if not d.startswith("Line ") or d in allowed}
+                    if d in allowed or not d.startswith("Line ")}
         if not options:
             return {}
         return {"Off": FLIRCamera.TRIGGER_OFF, **options}
@@ -265,6 +265,7 @@ class FLIRCamera(BaseCamera):
         cam_list = None
         stream = None
         did_init = False
+        self.props_complete = False
         try:
             cam_list = FLIRCamera.getCameraList()
             stream = cam_list.GetBySerial(self.serial_num)
@@ -305,10 +306,18 @@ class FLIRCamera(BaseCamera):
                 if capable:
                     props["Timestamp Line"] = ["None"] + capable
                     props["Timestamp While Recording"] = True
-
+            else:
+                self.props_complete = False
+                logger.warning("No line outputs discovered on camera %s; using DEFAULT_PROPS",
+                            self.serial_num)
+    
             formats = FLIRCamera._query_pixel_formats(nodemap)
             if formats:
                 props["Pixel Format"] = formats
+            else:
+                self.props_complete = False
+                logger.warning("No pixel formats discovered on camera %s; using DEFAULT_PROPS",
+                            self.serial_num)
 
             input_lines = {name for name, m in modes.items() if "Input" in m}
             triggers = FLIRCamera._query_trigger_sources(nodemap, input_lines or None)
