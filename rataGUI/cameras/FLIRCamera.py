@@ -83,6 +83,20 @@ class FLIRCamera(BaseCamera):
     # LINE_SOURCE_DEFAULTS = {"Line2 Output": "UserOutput0"}
     LINE_SOURCE_ORDER = ["Off", "UserOutput0", "ExposureActive"]
 
+    TRIGGER_SOURCE_NAMES = {
+        "Line0": "Line 0",
+        "Line1": "Line 1",
+        "Line2": "Line 2",
+        "Line3": "Line 3",
+        "Software": "Software",
+        "Counter0Start": "Counter 0 Start",
+        "Counter1Start": "Counter 1 Start",
+    }
+    TRIGGER_SOURCE_ORDER = ["Line0", "Line1", "Line2", "Line3", "Software"]
+
+    # Sentinel meaning "no external trigger" — not a device enum entry.
+    TRIGGER_OFF = "TriggerMode_Off"
+
     PIXEL_FORMAT_NAMES = {
         "Mono8": "Mono 8-bit",
         "BayerRG8": "Bayer RG 8-bit",
@@ -114,35 +128,134 @@ class FLIRCamera(BaseCamera):
 
 
     @staticmethod
-    def _order_options(
-        options: Dict[str, Tuple[Any, str]],
-        preferred: Optional[str] = None,
-        order: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
-        """Order discovered enum entries for display, dropping the symbolic names.
-
-        ``add_config_handler`` defaults a dropdown to its first key, so the first
-        entry here determines the default selection.
-
-        :param options: Mapping of display name -> (enum value, symbolic name).
-        :param preferred: Symbolic name to place first, if present.
-        :param order: Symbolic names giving the preferred order of the remainder.
-        :return: Mapping of display name -> enum value, in display order.
-        """
+    def _order_options(entries, names, preferred=None, order=None) -> Dict[str, Any]:
         order = order or []
 
         def sort_key(item):
-            display, (_value, symbolic) = item
+            symbolic, _value = item
             if preferred is not None and symbolic == preferred:
-                return (0, 0, display)
+                return (0, 0, symbolic)
             if symbolic in order:
-                return (1, order.index(symbolic), display)
-            return (2, 0, display)
+                return (1, order.index(symbolic), symbolic)
+            return (2, 0, symbolic)
 
         return {
-            display: value
-            for display, (value, _symbolic) in sorted(options.items(), key=sort_key)
+            names.get(symbolic, symbolic): value
+            for symbolic, value in sorted(entries.items(), key=sort_key)
         }
+
+    @staticmethod
+    def _enum_entries(nodemap, node_name: str) -> Dict[str, Any]:
+        """Return {symbolic: value} for every available, readable entry of an enum node."""
+        node = PySpin.CEnumerationPtr(nodemap.GetNode(node_name))
+        if not PySpin.IsAvailable(node) or not PySpin.IsReadable(node):
+            return {}
+        entries = {}
+        for ptr in node.GetEntries():
+            entry = PySpin.CEnumEntryPtr(ptr)
+            if PySpin.IsAvailable(entry) and PySpin.IsReadable(entry):
+                entries[entry.GetSymbolic()] = entry.GetValue()
+        return entries
+
+
+    @staticmethod
+    def _enum_options(
+        nodemap,
+        node_name: str,
+        names: Dict[str, str],
+        preferred: Optional[str] = None,
+        order: Optional[List[str]] = None,
+        strict: bool = True,
+    ) -> Dict[str, Any]:
+        """Enumerate an enum node as an ordered {display name: value} prop dict.
+
+        :param names: Symbolic -> display name. With ``strict``, entries absent
+            from this map are dropped; otherwise the symbolic name is used as-is.
+        """
+        entries = FLIRCamera._enum_entries(nodemap, node_name)
+        if strict:
+            entries = {s: v for s, v in entries.items() if s in names}
+        return FLIRCamera._order_options(entries, names, preferred, order)
+
+    @staticmethod
+    def _iter_selector(nodemap, selector_name: str, prefix: str = ""):
+        """Yield (symbolic, node) for each selectable entry, restoring the selector after.
+
+        Note: do not ``break`` out of this loop — the selector is restored when the
+        generator closes, which is deferred on an early exit.
+        """
+        selector = PySpin.CEnumerationPtr(nodemap.GetNode(selector_name))
+        if not PySpin.IsAvailable(selector) or not PySpin.IsReadable(selector):
+            return
+        original = selector.GetIntValue()
+        try:
+            for ptr in selector.GetEntries():
+                entry = PySpin.CEnumEntryPtr(ptr)
+                if not PySpin.IsAvailable(entry) or not PySpin.IsReadable(entry):
+                    continue
+                symbolic = entry.GetSymbolic()
+                if prefix and not symbolic.startswith(prefix):
+                    continue
+                selector.SetIntValue(entry.GetValue())
+                yield symbolic
+        finally:
+            selector.SetIntValue(original)
+
+    @staticmethod
+    def _query_pixel_formats(nodemap) -> Dict[str, Any]:
+        return FLIRCamera._enum_options(
+            nodemap, "PixelFormat", FLIRCamera.PIXEL_FORMAT_NAMES,
+            order=FLIRCamera.PIXEL_FORMAT_ORDER,
+        )
+
+
+    @staticmethod
+    def _query_trigger_sources(nodemap, input_lines=None) -> Dict[str, Any]:
+        options = FLIRCamera._enum_options(
+            nodemap, "TriggerSource", FLIRCamera.TRIGGER_SOURCE_NAMES,
+            order=FLIRCamera.TRIGGER_SOURCE_ORDER,
+        )
+        if input_lines is not None:
+            allowed = {FLIRCamera.TRIGGER_SOURCE_NAMES[s] for s in input_lines
+                    if s in FLIRCamera.TRIGGER_SOURCE_NAMES}
+            options = {d: v for d, v in options.items()
+                    if not d.startswith("Line ") or d in allowed}
+        if not options:
+            return {}
+        return {"Off": FLIRCamera.TRIGGER_OFF, **options}
+
+
+    @staticmethod
+    def _query_line_props(nodemap, modes: Dict[str, set]) -> Dict[str, Dict[str, Any]]:
+        props = {}
+        for line_name in FLIRCamera._iter_selector(nodemap, "LineSelector", prefix="Line"):
+            if "Output" not in modes.get(line_name, set()):
+                continue
+            options = FLIRCamera._enum_options(
+                nodemap, "LineSource", FLIRCamera.LINE_SOURCE_NAMES,
+                order=FLIRCamera.LINE_SOURCE_ORDER, strict=False,
+            )
+            if options:
+                props[f"{line_name} Output"] = options
+        return props
+
+    @staticmethod
+    def _query_line_modes(nodemap) -> Dict[str, set]:
+        modes = {}
+        for line_name in FLIRCamera._iter_selector(nodemap, "LineSelector", prefix="Line"):
+            mode = PySpin.CEnumerationPtr(nodemap.GetNode("LineMode"))
+            if not PySpin.IsAvailable(mode):
+                continue
+            if PySpin.IsWritable(mode):
+                available = {m for m in ("Input", "Output")
+                            if (e := mode.GetEntryByName(m)) is not None
+                            and PySpin.IsAvailable(e)}
+            else:
+                current = mode.GetCurrentEntry()
+                available = {current.GetSymbolic()} if current is not None else set()
+            if available:
+                modes[line_name] = available
+        return modes
 
     def getDeviceProps(self) -> Tuple[Dict[str, Any], List[str]]:
         """Query this camera for the settings it actually supports.
@@ -171,7 +284,8 @@ class FLIRCamera(BaseCamera):
             props: Dict[str, Any] = {}
             remove: List[str] = []
 
-            lines = FLIRCamera._query_line_props(nodemap)
+            modes = FLIRCamera._query_line_modes(nodemap)
+            lines = FLIRCamera._query_line_props(nodemap, modes)
             if lines:
                 props.update(lines)
                 # Prune hardcoded lines this model doesn't expose as outputs.
@@ -196,6 +310,11 @@ class FLIRCamera(BaseCamera):
             if formats:
                 props["Pixel Format"] = formats
 
+            input_lines = {name for name, m in modes.items() if "Input" in m}
+            triggers = FLIRCamera._query_trigger_sources(nodemap, input_lines or None)
+            if triggers:
+                props["TriggerSource"] = triggers
+
             FLIRCamera._DEVICE_PROPS_CACHE[model] = (dict(props), list(remove))
             return props, remove
 
@@ -215,79 +334,6 @@ class FLIRCamera(BaseCamera):
             del stream
             if cam_list is not None:
                 cam_list.Clear()
-
-    @staticmethod
-    def _query_line_props(nodemap) -> Dict[str, Dict[str, Any]]:
-        """Enumerate LineSource options for each line that can act as an output."""
-        props = {}
-        selector = PySpin.CEnumerationPtr(nodemap.GetNode("LineSelector"))
-        if not PySpin.IsAvailable(selector) or not PySpin.IsReadable(selector):
-            return props
-
-        original = selector.GetIntValue()
-        for ptr in selector.GetEntries():
-            entry = PySpin.CEnumEntryPtr(ptr)
-            if not PySpin.IsAvailable(entry) or not PySpin.IsReadable(entry):
-                continue
-            line_name = entry.GetSymbolic()          # "Line0", "Line1", ...
-            if not line_name.startswith("Line"):
-                continue
-            selector.SetIntValue(entry.GetValue())
-
-            # LineSource only reports output entries once the line is an output,
-            # so input-only lines drop out here.
-            mode = PySpin.CEnumerationPtr(nodemap.GetNode("LineMode"))
-            if not PySpin.IsAvailable(mode):
-                continue
-            if PySpin.IsWritable(mode):
-                output_entry = mode.GetEntryByName("Output")
-                if output_entry is None or not PySpin.IsAvailable(output_entry):
-                    continue   # line cannot be an output
-            else:
-                # Direction is fixed; keep the line only if it is already an output
-                current = mode.GetCurrentEntry()
-                if current is None or current.GetSymbolic() != "Output":
-                    continue
-            source = PySpin.CEnumerationPtr(nodemap.GetNode("LineSource"))
-            if not PySpin.IsAvailable(source) or not PySpin.IsReadable(source):
-                continue
-
-            options = {}
-            for src_ptr in source.GetEntries():
-                src = PySpin.CEnumEntryPtr(src_ptr)
-                if PySpin.IsAvailable(src) and PySpin.IsReadable(src):
-                    symbolic = src.GetSymbolic()
-                    options[FLIRCamera.LINE_SOURCE_NAMES.get(symbolic, symbolic)] = (
-                        src.GetValue(), symbolic,
-                    )
-            if options:
-                key = f"{line_name} Output"
-                props[key] = FLIRCamera._order_options(
-                    options, #preferred=FLIRCamera.LINE_SOURCE_DEFAULTS.get(key),
-                    order=FLIRCamera.LINE_SOURCE_ORDER,
-                )
-        selector.SetIntValue(original)   # restore selector state
-        return props
-
-
-    @staticmethod
-    def _query_pixel_formats(nodemap) -> Dict[str, Any]:
-        """Enumerate supported pixel formats, filtered to those readCamera handles."""
-        node = PySpin.CEnumerationPtr(nodemap.GetNode("PixelFormat"))
-        if not PySpin.IsAvailable(node) or not PySpin.IsReadable(node):
-            return {}
-
-        options = {}
-        for ptr in node.GetEntries():
-            entry = PySpin.CEnumEntryPtr(ptr)
-            if not PySpin.IsAvailable(entry) or not PySpin.IsReadable(entry):
-                continue
-            symbolic = entry.GetSymbolic()
-            if symbolic in FLIRCamera.PIXEL_FORMAT_NAMES:
-                options[FLIRCamera.PIXEL_FORMAT_NAMES[symbolic]] = (
-                    entry.GetValue(), symbolic,
-                )
-        return FLIRCamera._order_options(options, order=FLIRCamera.PIXEL_FORMAT_ORDER)
 
     @staticmethod
     def getCameraList():
