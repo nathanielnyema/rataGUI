@@ -48,6 +48,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         raise ValueError(f"No camera found with display name: {cam_name}")
 
     @staticmethod
+    def _save_json(path: str, entries: dict) -> None:
+        """Write *entries* to *path*, replacing any existing contents."""
+        with open(path, "w") as f:
+            json.dump(entries, f, indent=2)
+        
+    @staticmethod
     def _merge_and_save_json(path: str, new_entries: dict) -> None:
         """Load existing JSON from *path*, merge *new_entries*, and write back.
 
@@ -63,8 +69,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 if contents:
                     existing = json.loads(contents)
         existing.update(new_entries)
-        with open(path, "w") as f:
-            json.dump(existing, f, indent=2)
+        MainWindow._save_json(path, existing)
+
 
     @staticmethod
     def _load_json_if_exists(path: str) -> dict | None:
@@ -910,7 +916,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             os.path.join(save_dir, "plugin_settings.json"),
             {name: cfg.as_dict() for name, cfg in self.plugin_configs.items()},
         )
-        self._merge_and_save_json(
+        self._save_json(
             os.path.join(save_dir, "trigger_settings.json"),
             {devID: cfg.as_dict() for devID, cfg in self.trigger_configs.items()},
         )
