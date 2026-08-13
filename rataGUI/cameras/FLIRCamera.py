@@ -280,7 +280,7 @@ class FLIRCamera(BaseCamera):
         cam_list = None
         stream = None
         did_init = False
-        self.props_complete = False
+        self.props_complete = True
         try:
             cam_list = FLIRCamera.getCameraList()
             stream = cam_list.GetBySerial(self.serial_num)
