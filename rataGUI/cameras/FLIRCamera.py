@@ -15,25 +15,25 @@ READ_TIMEOUT = 15000
 class FLIRCamera(BaseCamera):
     DEFAULT_PROPS = {  # Order Sensitive
         "Line1 Output": {
-            "User Output 0": "UserOutput0",
-            "Exposure Active": "ExposureActive",
+            "UserOutput0": PySpin.LineSource_UserOutput0,
+            "ExposureActive": PySpin.LineSource_ExposureActive,
         },
         "Line2 Output": {
-            "User Output 1": "UserOutput1",
-            "Exposure Active": "ExposureActive",
+            "UserOutput1": PySpin.LineSource_UserOutput1,
+            "ExposureActive": PySpin.LineSource_ExposureActive,
         },
         "Timestamp Line": ["None", "Line1", "Line2"],
         "Timestamp While Recording": True,
         "TriggerSource": {
-            "Off": "TriggerMode_Off",
-            "Line 3": "Line3",
-            "Line 0": "Line0",
-            "Line 1": "Line1",
-            "Line 2": "Line2",
+            "Off": "TriggerMode_Off",          # sentinel, not a device entry
+            "Line3": PySpin.TriggerSource_Line3,
+            "Line0": PySpin.TriggerSource_Line0,
+            "Line1": PySpin.TriggerSource_Line1,
+            "Line2": PySpin.TriggerSource_Line2,
         },
         "Buffer Mode": {
-            "OldestFirst": "OldestFirst",
-            "NewestOnly": "NewestOnly",
+            "OldestFirst": PySpin.StreamBufferHandlingMode_OldestFirst,
+            "NewestOnly": PySpin.StreamBufferHandlingMode_NewestOnly,
         },
         "Limit Framerate": {"On": True, "Off": False},
         "Framerate": 30,
@@ -45,8 +45,10 @@ class FLIRCamera(BaseCamera):
         "Height": 10000,
         "OffsetX": 0,
         "OffsetY": 0,
-        "Pixel Format": {"Bayer RG 8-bit": "BayerRG8",
-                         "Mono 8-bit": "Mono8"},
+        "Pixel Format": {
+            "Bayer RG 8-bit": PySpin.PixelFormat_BayerRG8,
+            "Mono 8-bit": PySpin.PixelFormat_Mono8,
+        },
     }
 
     DISPLAY_PROP_MAP = {
@@ -56,36 +58,12 @@ class FLIRCamera(BaseCamera):
         "Exposure (μs)": "ExposureTime",
     }
 
-    # Global pyspin system variable
-    _SYSTEM = None
-
-    # ---- Discovery tables ----------------------------------------------------
-
-    # Symbolic LineSource entry -> display name. Unlisted entries fall back to
-    # their raw symbolic name (e.g. "Counter0Active").
-    LINE_SOURCE_NAMES = {
-        "Off": "None",
-        "UserOutput0": "User Output 0",
-        "UserOutput1": "User Output 1",
-        "UserOutput2": "User Output 2",
-        "UserOutput3": "User Output 3",
-        "ExposureActive": "Exposure Active",
-    }
-    # add_config_handler defaults a dropdown to its first key, so ordering matters.
-    # LINE_SOURCE_DEFAULTS = {"Line2 Output": "UserOutput0"}
+    # Default order of Enums keys
     LINE_SOURCE_ORDER = ["Off", "UserOutput0", "ExposureActive"]
-
-    TRIGGER_SOURCE_NAMES = {
-        "Line0": "Line 0",
-        "Line1": "Line 1",
-        "Line2": "Line 2",
-        "Line3": "Line 3",
-        "Software": "Software",
-        "Counter0Start": "Counter 0 Start",
-        "Counter1Start": "Counter 1 Start",
-    }
     TRIGGER_SOURCE_ORDER = ["Line0", "Line1", "Line2", "Line3", "Software"]
+    PIXEL_FORMAT_ORDER = ["BayerRG8", "Mono8"]  # preserve current color default
 
+    # Pixel Format Info
     PIXEL_FORMAT_NAMES = {
         "Mono8": "Mono 8-bit",
         "BayerRG8": "Bayer RG 8-bit",
@@ -95,7 +73,6 @@ class FLIRCamera(BaseCamera):
         "RGB8": "RGB 8-bit (camera ISP)",
         "BGR8": "BGR 8-bit (camera ISP)",
     }
-    PIXEL_FORMAT_ORDER = ["BayerRG8", "Mono8"]  # preserve current color default
     MONO_FORMATS = {"Mono8", "Mono16"}
 
     # NOTE: OpenCV's Bayer naming is offset by one row/column relative to the
@@ -112,12 +89,19 @@ class FLIRCamera(BaseCamera):
     # fixed by firmware, so one query per model is enough.
     _DEVICE_PROPS_CACHE: Dict[str, Tuple[Dict[str, Any], List[str]]] = {}
 
-    SKIP_PROPS = {"Camera Parameters File", "Pixel Format",
-                "Timestamp Line", "Timestamp While Recording"}
+    # Properties to skip when looping through and setting camera properties
+    SKIP_PROPS = {
+        "Camera Parameters File",
+        "Pixel Format",                 # handled separately after the main loop
+        "Timestamp Line",               # handled in configure_custom_settings
+        "Timestamp While Recording"     # handled in configure_custom_settings
+    }
 
+    # Global pyspin system variable
+    _SYSTEM = None
 
     @staticmethod
-    def _order_options(entries, names, preferred=None, order=None) -> Dict[str, Any]:
+    def _order_options(entries, names={}, preferred=None, order=None) -> Dict[str, Any]:
         order = order or []
 
         def sort_key(item):
@@ -129,79 +113,64 @@ class FLIRCamera(BaseCamera):
             return (2, 0, symbolic)
 
         return {
-            names.get(symbolic, symbolic): symbolic
-            for symbolic, _value in sorted(entries.items(), key=sort_key)
+            names.get(symbolic, symbolic): value
+            for symbolic, value in sorted(entries.items(), key=sort_key)
         }
 
     @staticmethod
-    def _set_enum(nodemap, node_name: str, symbolic: str, label: str = "") -> bool:
-        """Set an enumeration node by symbolic entry name via the GenApi nodemap.
+    def _sdk_value(prefix: str, symbolic: str) -> Optional[int]:
+        """Resolve a symbolic entry name to the SDK constant QuickSpin's SetValue wants."""
+        return getattr(PySpin, f"{prefix}_{symbolic}", None)
 
-        Uses SetIntValue with the device's own entry value — QuickSpin's SetValue
-        expects SDK enum constants instead and will reject device values.
-        """
-        try:
-            node = PySpin.CEnumerationPtr(nodemap.GetNode(node_name))
-            if not PySpin.IsAvailable(node) or not PySpin.IsWritable(node):
-                logger.warning("Node %s is not writable%s", node_name,
-                            f" for {label}" if label else "")
-                return False
-            entry = node.GetEntryByName(symbolic)
-            if entry is None or not PySpin.IsAvailable(entry):
-                logger.warning("Enum entry %s is unavailable for %s", symbolic, node_name)
-                return False
-            node.SetIntValue(entry.GetValue())
-            return True
-        except PySpin.SpinnakerException as err:
-            logger.warning("Could not set %s on %s%s", symbolic, node_name,
-                        f" for {label}" if label else "")
-            logger.debug(err)
-        return False
 
     @staticmethod
-    def _enum_entries(nodemap, node_name: str) -> Dict[str, Any]:
-        """Return {symbolic: value} for every available, readable entry of an enum node."""
-        node = PySpin.CEnumerationPtr(nodemap.GetNode(node_name))
-        if not PySpin.IsAvailable(node) or not PySpin.IsReadable(node):
+    def _set_enum(node, value, label: str = "") -> bool:
+        """Set a QuickSpin enumeration node to an SDK enum constant."""
+        try:
+            if node.GetAccessMode() != PySpin.RW:
+                logger.warning("Node is not writable%s", f" for {label}" if label else "")
+                return False
+            node.SetValue(value)
+            return True
+        except PySpin.SpinnakerException as err:
+            logger.warning("Could not set value%s", f" for {label}" if label else "")
+            logger.debug(err)
+            return False
+
+    @staticmethod
+    def _enum_options(node, prefix, names={}, preferred=None, order=None, strict=False):
+        """Enumerate a QuickSpin enum node as an ordered {display name: SDK constant}."""
+        if node.GetAccessMode() not in (PySpin.RO, PySpin.RW):
             return {}
         entries = {}
         for ptr in node.GetEntries():
             entry = PySpin.CEnumEntryPtr(ptr)
-            if PySpin.IsAvailable(entry) and PySpin.IsReadable(entry):
-                entries[entry.GetSymbolic()] = entry.GetValue()
-        return entries
-
-
-    @staticmethod
-    def _enum_options(
-        nodemap,
-        node_name: str,
-        names: Dict[str, str],
-        preferred: Optional[str] = None,
-        order: Optional[List[str]] = None,
-        strict: bool = True,
-    ) -> Dict[str, Any]:
-        """Enumerate an enum node as an ordered {display name: value} prop dict.
-
-        :param names: Symbolic -> display name. With ``strict``, entries absent
-            from this map are dropped; otherwise the symbolic name is used as-is.
-        """
-        entries = FLIRCamera._enum_entries(nodemap, node_name)
-        if strict:
-            entries = {s: v for s, v in entries.items() if s in names}
+            if not PySpin.IsAvailable(entry) or not PySpin.IsReadable(entry):
+                continue
+            symbolic = entry.GetSymbolic()
+            if strict and symbolic not in names:
+                continue
+            value = FLIRCamera._sdk_value(prefix, symbolic)
+            if value is None:
+                # Device offers an entry this SDK build has no constant for
+                logger.debug("No SDK constant for %s_%s; not offered", prefix, symbolic)
+                continue
+            entries[symbolic] = value
         return FLIRCamera._order_options(entries, names, preferred, order)
-
+    
     @staticmethod
-    def _iter_selector(nodemap, selector_name: str, prefix: str = ""):
-        """Yield symbolic for each selectable entry, restoring the selector after.
+    def _iter_selector(selector, prefix_name: str, prefix: str = ""):
+        """Yield each selectable entry's symbolic name, restoring the selector after.
+
+        :param selector: QuickSpin selector node (e.g. ``stream.LineSelector``).
+        :param prefix_name: SDK constant prefix for that selector, e.g. "LineSelector".
 
         Note: do not ``break`` out of this loop — the selector is restored when the
         generator closes, which is deferred on an early exit.
         """
-        selector = PySpin.CEnumerationPtr(nodemap.GetNode(selector_name))
-        if not PySpin.IsAvailable(selector) or not PySpin.IsReadable(selector):
+        if selector.GetAccessMode() not in (PySpin.RO, PySpin.RW):
             return
-        original = selector.GetIntValue()
+        original = selector.GetValue()
         try:
             for ptr in selector.GetEntries():
                 entry = PySpin.CEnumEntryPtr(ptr)
@@ -210,57 +179,68 @@ class FLIRCamera(BaseCamera):
                 symbolic = entry.GetSymbolic()
                 if prefix and not symbolic.startswith(prefix):
                     continue
-                selector.SetIntValue(entry.GetValue())
+                value = FLIRCamera._sdk_value(prefix_name, symbolic)
+                if value is None:
+                    logger.debug("No SDK constant for %s_%s", prefix_name, symbolic)
+                    continue
+                selector.SetValue(value)
                 yield symbolic
         finally:
-            selector.SetIntValue(original)
+            selector.SetValue(original)
+
 
     @staticmethod
-    def _query_pixel_formats(nodemap) -> Dict[str, Any]:
+    def _query_pixel_formats(stream) -> Dict[str, Any]:
         return FLIRCamera._enum_options(
-            nodemap, "PixelFormat", FLIRCamera.PIXEL_FORMAT_NAMES,
+            stream.PixelFormat, "PixelFormat",
+            names=FLIRCamera.PIXEL_FORMAT_NAMES,
             order=FLIRCamera.PIXEL_FORMAT_ORDER,
         )
 
-
     @staticmethod
-    def _query_trigger_sources(nodemap, input_lines=None) -> Dict[str, Any]:
+    def _query_trigger_sources(stream, input_lines=None) -> Dict[str, Any]:
         options = FLIRCamera._enum_options(
-            nodemap, "TriggerSource", FLIRCamera.TRIGGER_SOURCE_NAMES,
+            stream.TriggerSource, "TriggerSource",
             order=FLIRCamera.TRIGGER_SOURCE_ORDER,
         )
         if input_lines is not None:
-            allowed = {FLIRCamera.TRIGGER_SOURCE_NAMES[s] for s in input_lines
-                    if s in FLIRCamera.TRIGGER_SOURCE_NAMES}
+            # allowed holds display names of Input-capable lines only
             options = {d: v for d, v in options.items()
-                    if d in allowed or not d.startswith("Line ")}
+                        if d in input_lines}
         if not options:
             return {}
         return {"Off": "TriggerMode_Off", **options}
 
 
     @staticmethod
-    def _query_line_props(nodemap, modes: Dict[str, set]) -> Dict[str, Dict[str, Any]]:
+    def _query_line_props(stream, modes: Dict[str, set]) -> Dict[str, Dict[str, Any]]:
         props = {}
-        for line_name in FLIRCamera._iter_selector(nodemap, "LineSelector", prefix="Line"):
+        for line_name in FLIRCamera._iter_selector(
+            stream.LineSelector, "LineSelector", prefix="Line"
+        ):
             if "Output" not in modes.get(line_name, set()):
                 continue
             options = FLIRCamera._enum_options(
-                nodemap, "LineSource", FLIRCamera.LINE_SOURCE_NAMES,
-                order=FLIRCamera.LINE_SOURCE_ORDER, strict=False,
+                stream.LineSource, "LineSource",
+                order=FLIRCamera.LINE_SOURCE_ORDER, 
+                strict=False,
             )
             if options:
                 props[f"{line_name} Output"] = options
         return props
 
+
     @staticmethod
-    def _query_line_modes(nodemap) -> Dict[str, set]:
+    def _query_line_modes(stream) -> Dict[str, set]:
         modes = {}
-        for line_name in FLIRCamera._iter_selector(nodemap, "LineSelector", prefix="Line"):
-            mode = PySpin.CEnumerationPtr(nodemap.GetNode("LineMode"))
-            if not PySpin.IsAvailable(mode):
+        for line_name in FLIRCamera._iter_selector(
+            stream.LineSelector, "LineSelector", prefix="Line"
+        ):
+            mode = stream.LineMode
+            access = mode.GetAccessMode()
+            if access not in (PySpin.RO, PySpin.RW):
                 continue
-            if PySpin.IsWritable(mode):
+            if access == PySpin.RW:
                 available = {m for m in ("Input", "Output")
                             if (e := mode.GetEntryByName(m)) is not None
                             and PySpin.IsAvailable(e)}
@@ -294,13 +274,12 @@ class FLIRCamera(BaseCamera):
             if not stream.IsInitialized():
                 stream.Init()
                 did_init = True
-            nodemap = stream.GetNodeMap()
 
             props: Dict[str, Any] = {}
             remove: List[str] = []
 
-            modes = FLIRCamera._query_line_modes(nodemap)
-            lines = FLIRCamera._query_line_props(nodemap, modes)
+            modes = FLIRCamera._query_line_modes(stream)
+            lines = FLIRCamera._query_line_props(stream, modes)
             if lines:
                 props.update(lines)
                 # Prune hardcoded lines this model doesn't expose as outputs.
@@ -325,7 +304,7 @@ class FLIRCamera(BaseCamera):
                 logger.warning("No line outputs discovered on camera %s; using DEFAULT_PROPS",
                             self.serial_num)
     
-            formats = FLIRCamera._query_pixel_formats(nodemap)
+            formats = FLIRCamera._query_pixel_formats(stream)
             if formats:
                 props["Pixel Format"] = formats
             else:
@@ -334,14 +313,14 @@ class FLIRCamera(BaseCamera):
                             self.serial_num)
 
             input_lines = {name for name, m in modes.items() if "Input" in m}
-            triggers = FLIRCamera._query_trigger_sources(nodemap, input_lines or None)
+            triggers = FLIRCamera._query_trigger_sources(stream, input_lines or None)
             if triggers:
                 props["TriggerSource"] = triggers
 
             FLIRCamera._DEVICE_PROPS_CACHE[model] = (dict(props), list(remove))
             return props, remove
 
-        except PySpin.SpinnakerException as err:
+        except (PySpin.SpinnakerException, AttributeError) as err:
             self.props_complete = False
             logger.warning(
                 "Could not query device properties for camera %s; using DEFAULT_PROPS",
@@ -407,10 +386,11 @@ class FLIRCamera(BaseCamera):
         recording = "VideoWriter" in plugin_names
         settings = prop_config.as_dict()
 
-        line = settings.get("Timestamp Line", "None")
-        auto = settings.get("Timestamp While Recording", False)
+        self._timestamp_line = None
+        self._timestamp_idle = None
 
-        if auto and line != "None":
+        line = settings.get("Timestamp Line", "None")
+        if settings.get("Timestamp While Recording", False) and line != "None":
             key = f"{line} Output"
             if key not in settings:
                 logger.warning(
@@ -418,18 +398,24 @@ class FLIRCamera(BaseCamera):
                     "frame timestamps will not be generated", line, self.serial_num,
                 )
             elif recording:
-                try:
-                    prop_config.set(key, "ExposureActive")
-                    logger.info("Recording: driving %s with ExposureActive", line)
-                except Exception as err:
-                    logger.warning(
-                        "Could not set %s to ExposureActive on camera %s; frame timestamps "
-                        "will not be generated", key, self.serial_num,
-                    )
-                    logger.debug(err)
+                # Applied to hardware after the property loop; the config keeps the
+                # user's idle value so it survives save/restore.
+                self._timestamp_line = line
+                self._timestamp_idle = settings[key]
 
         if prop_config.get("TriggerSource") != "TriggerMode_Off":
             prop_config.set("Limit Framerate", False)
+
+    def _set_line_source(self, line: str, value) -> bool:
+        """Select `line` and set its LineSource. Returns True on success."""
+        selector = FLIRCamera._sdk_value("LineSelector", line)
+        if selector is None:
+            logger.warning("No SDK constant for %s", line)
+            return False
+        if not FLIRCamera._set_enum(self._stream.LineSelector, selector, label=line):
+            return False
+        FLIRCamera._set_enum(self._stream.LineMode, PySpin.LineMode_Output, label=line)
+        return FLIRCamera._set_enum(self._stream.LineSource, value, label=line)
 
     def initializeCamera(self, prop_config, plugin_names=[]) -> bool:
         """Configure and start the FLIR camera stream via PySpin. Returns True on success."""
@@ -472,60 +458,65 @@ class FLIRCamera(BaseCamera):
 
         self.configure_custom_settings(prop_config, plugin_names)
         try:
-            nodemap = self._stream.GetNodeMap()
-            enabled_chunks = [
-                "FrameID",
-            ]  # ExposureTime, PixelFormat
-            self.configure_chunk_data(nodemap, enabled_chunks)
+            # configure_chunk_data works on the GenApi nodemap; everything else in this
+            # method uses QuickSpin nodes, which take SDK enum constants.
+            self.configure_chunk_data(self._stream.GetNodeMap(), ["FrameID"])
 
             for name, value in prop_config.as_dict().items():
                 if name in FLIRCamera.SKIP_PROPS:
                     continue
                 if name.startswith("Line") and name.endswith("Output"):
                     line = name.split()[0]
-                    if FLIRCamera._set_enum(nodemap, "LineSelector", line, label=name):
-                        FLIRCamera._set_enum(nodemap, "LineMode", "Output", label=name)
-                        FLIRCamera._set_enum(nodemap, "LineSource", value, label=name)
+                    if line == self._timestamp_line:
+                        if not self._set_line_source(line, PySpin.LineSource_ExposureActive):
+                            self._timestamp_line = None      # nothing to restore
+                        else:
+                            logger.info("Recording: driving %s with ExposureActive", self._timestamp_line)
+                    else:
+                        self._set_line_source(name.split()[0], value)
                 elif name == "TriggerSource":
                     if value == "TriggerMode_Off":
-                        FLIRCamera._set_enum(nodemap, "TriggerMode", "Off", label=name)
+                        FLIRCamera._set_enum(self._stream.TriggerMode, PySpin.TriggerMode_Off, label=name)
                     else:
-                        # TriggerSource/Selector are read-only while TriggerMode is On
-                        FLIRCamera._set_enum(nodemap, "TriggerMode", "Off", label=name)
-                        FLIRCamera._set_enum(nodemap, "TriggerSelector", "FrameStart", label=name)
-                        FLIRCamera._set_enum(nodemap, "TriggerSource", value, label=name)
-                        FLIRCamera._set_enum(nodemap, "TriggerActivation", "RisingEdge", label=name)
-                        FLIRCamera._set_enum(nodemap, "TriggerOverlap", "ReadOut", label=name)
-                        FLIRCamera._set_enum(nodemap, "TriggerMode", "On", label=name)
+                        FLIRCamera._set_enum(self._stream.TriggerMode, PySpin.TriggerMode_Off, label=name)
+                        FLIRCamera._set_enum(self._stream.TriggerSelector,
+                                            PySpin.TriggerSelector_FrameStart, label=name)
+                        FLIRCamera._set_enum(self._stream.TriggerSource, value, label=name)
+                        FLIRCamera._set_enum(self._stream.TriggerActivation,
+                                            PySpin.TriggerActivation_RisingEdge, label=name)
+                        FLIRCamera._set_enum(self._stream.TriggerOverlap,
+                                            PySpin.TriggerOverlap_ReadOut, label=name)
+                        FLIRCamera._set_enum(self._stream.TriggerMode, PySpin.TriggerMode_On, label=name)
 
                 else:
-                    
                     # Set to auto mode if value is negative
                     if name == "Buffer Size":
-                        # if value < 0: # No buffer auto mode
-                        #     continue
-                        self._stream.TLStream.StreamBufferCountMode.SetValue(
-                            PySpin.StreamBufferCountMode_Manual
-                        )
+                        FLIRCamera._set_enum(
+                            self._stream.TLStream.StreamBufferCountMode,
+                            PySpin.StreamBufferCountMode_Manual, label=name)
                     elif name == "Gain":
                         if value < 0:
-                            FLIRCamera._set_enum(nodemap, "GainAuto", "Continuous", label=name)
+                            FLIRCamera._set_enum(self._stream.GainAuto,
+                                                PySpin.GainAuto_Continuous, label=name)
                             continue
-                        FLIRCamera._set_enum(nodemap, "GainAuto", "Off", label=name)
+                        FLIRCamera._set_enum(self._stream.GainAuto, PySpin.GainAuto_Off, label=name)
                     elif name == "Exposure (μs)":
                         if value < 0:
-                            FLIRCamera._set_enum(nodemap, "ExposureAuto", "Continuous", label=name)
+                            FLIRCamera._set_enum(self._stream.ExposureAuto,
+                                                PySpin.ExposureAuto_Continuous, label=name)
                             continue
-                        FLIRCamera._set_enum(nodemap, "ExposureAuto", "Off", label=name)
-                        FLIRCamera._set_enum(nodemap, "ExposureMode", "Timed", label=name)
+                        FLIRCamera._set_enum(self._stream.ExposureAuto,
+                                            PySpin.ExposureAuto_Off, label=name)
+                        FLIRCamera._set_enum(self._stream.ExposureMode,
+                                            PySpin.ExposureMode_Timed, label=name)
                     elif name == "Gamma":
                         if value < 0:
                             self._stream.GammaEnable.SetValue(False)
                             continue
                         self._stream.GammaEnable.SetValue(True)
                     elif name == "Buffer Mode":
-                        FLIRCamera._set_enum(
-                            self._stream.GetTLStreamNodeMap(), "StreamBufferHandlingMode", value, label=name)
+                        FLIRCamera._set_enum(self._stream.TLStream.StreamBufferHandlingMode,
+                                            value, label=name)
                         continue
 
                     # Recursively access QuickSpin API
@@ -551,15 +542,12 @@ class FLIRCamera(BaseCamera):
                         if node.GetAccessMode() == PySpin.RW:
                             node.SetValue(value)
 
-            fmt = prop_config.get("Pixel Format")     # now a symbolic like "Mono8"
+            fmt = prop_config.get("Pixel Format")     # SDK constant again
             if self._stream.IspEnable.GetAccessMode() == PySpin.RW:
-                self._stream.IspEnable.SetValue(fmt in ("RGB8", "BGR8"))
-            elif fmt in ("RGB8", "BGR8"):
-                logger.warning("ISP cannot be enabled on camera %s; %s may not be available",
-                            self.serial_num, fmt)
-
+                self._stream.IspEnable.SetValue(
+                    fmt in (PySpin.PixelFormat_RGB8, PySpin.PixelFormat_BGR8))
             if fmt is not None:
-                FLIRCamera._set_enum(nodemap, "PixelFormat", fmt, label="Pixel Format")
+                FLIRCamera._set_enum(self._stream.PixelFormat, fmt, label="Pixel Format")
             self.pixel_format = self._stream.PixelFormat.GetCurrentEntry().GetSymbolic()
 
         except PySpin.SpinnakerException as err:
@@ -635,12 +623,17 @@ class FLIRCamera(BaseCamera):
         }
 
     def closeCamera(self):
-        """Stop acquisition and release the FLIR camera."""
         logger.info(f"Closing camera: {self.getDisplayName()}")
         try:
             if self._stream is not None:
                 if self._stream.IsStreaming():
                     self._stream.EndAcquisition()
+
+                if self._timestamp_line is not None:
+                    logger.info("Restoring %s to its idle output", self._timestamp_line)
+                    self._set_line_source(self._timestamp_line, self._timestamp_idle)
+                    self._timestamp_line = None
+                    self._timestamp_idle = None
 
                 self._stream.DeInit()
                 self._stream = None
