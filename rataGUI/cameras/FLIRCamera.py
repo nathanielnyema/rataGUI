@@ -135,31 +135,29 @@ class FLIRCamera(BaseCamera):
         }
 
     @staticmethod
-    def _set_enum(node, symbolic: str, label: str = "") -> bool:
-        """Set an enumeration node by symbolic entry name, resolving the device's value.
+    def _set_enum(nodemap, node_name: str, symbolic: str, label: str = "") -> bool:
+        """Set an enumeration node by symbolic entry name via the GenApi nodemap.
 
-        Entry values come from the camera's XML and need not match the SDK's
-        PySpin.<Node>_<Entry> constants, so always resolve by name.
+        Uses SetIntValue with the device's own entry value — QuickSpin's SetValue
+        expects SDK enum constants instead and will reject device values.
         """
         try:
-            entry = node.GetEntryByName(symbolic)
-            if entry is None or not PySpin.IsAvailable(entry):
-                logger.warning("Enum entry %s is unavailable%s", symbolic,
+            node = PySpin.CEnumerationPtr(nodemap.GetNode(node_name))
+            if not PySpin.IsAvailable(node) or not PySpin.IsWritable(node):
+                logger.warning("Node %s is not writable%s", node_name,
                             f" for {label}" if label else "")
                 return False
-            node.SetValue(entry.GetValue())
+            entry = node.GetEntryByName(symbolic)
+            if entry is None or not PySpin.IsAvailable(entry):
+                logger.warning("Enum entry %s is unavailable for %s", symbolic, node_name)
+                return False
+            node.SetIntValue(entry.GetValue())
             return True
         except PySpin.SpinnakerException as err:
-            logger.warning("Could not set %s%s", symbolic, f" for {label}" if label else "")
+            logger.warning("Could not set %s on %s%s", symbolic, node_name,
+                        f" for {label}" if label else "")
             logger.debug(err)
-            return False
-
-
-    @staticmethod
-    def _enum_value(node, symbolic: str) -> Optional[int]:
-        """Resolve a symbolic enum entry name to this device's integer value."""
-        entry = node.GetEntryByName(symbolic)
-        return None if entry is None else entry.GetValue()
+        return False
 
     @staticmethod
     def _enum_entries(nodemap, node_name: str) -> Dict[str, Any]:
@@ -486,20 +484,20 @@ class FLIRCamera(BaseCamera):
                     continue
                 if name.startswith("Line") and name.endswith("Output"):
                     line = name.split()[0]
-                    if FLIRCamera._set_enum(self._stream.LineSelector, line, label=name):
-                        FLIRCamera._set_enum(self._stream.LineMode, "Output", label=name)
-                        FLIRCamera._set_enum(self._stream.LineSource, value, label=name)
+                    if FLIRCamera._set_enum(nodemap, "LineSelector", line, label=name):
+                        FLIRCamera._set_enum(nodemap, "LineMode", "Output", label=name)
+                        FLIRCamera._set_enum(nodemap, "LineSource", value, label=name)
                 elif name == "TriggerSource":
                     if value == "TriggerMode_Off":
-                        FLIRCamera._set_enum(self._stream.TriggerMode, "Off", label=name)
+                        FLIRCamera._set_enum(nodemap, "TriggerMode", "Off", label=name)
                     else:
                         # TriggerSource/Selector are read-only while TriggerMode is On
-                        FLIRCamera._set_enum(self._stream.TriggerMode, "Off", label=name)
-                        FLIRCamera._set_enum(self._stream.TriggerSelector, "FrameStart", label=name)
-                        FLIRCamera._set_enum(self._stream.TriggerSource, value, label=name)
-                        FLIRCamera._set_enum(self._stream.TriggerActivation, "RisingEdge", label=name)
-                        FLIRCamera._set_enum(self._stream.TriggerOverlap, "ReadOut", label=name)
-                        FLIRCamera._set_enum(self._stream.TriggerMode, "On", label=name)
+                        FLIRCamera._set_enum(nodemap, "TriggerMode", "Off", label=name)
+                        FLIRCamera._set_enum(nodemap, "TriggerSelector", "FrameStart", label=name)
+                        FLIRCamera._set_enum(nodemap, "TriggerSource", value, label=name)
+                        FLIRCamera._set_enum(nodemap, "TriggerActivation", "RisingEdge", label=name)
+                        FLIRCamera._set_enum(nodemap, "TriggerOverlap", "ReadOut", label=name)
+                        FLIRCamera._set_enum(nodemap, "TriggerMode", "On", label=name)
 
                 else:
                     
@@ -512,15 +510,15 @@ class FLIRCamera(BaseCamera):
                         )
                     elif name == "Gain":
                         if value < 0:
-                            FLIRCamera._set_enum(self._stream.GainAuto, "Continuous", label=name)
+                            FLIRCamera._set_enum(nodemap, "GainAuto", "Continuous", label=name)
                             continue
-                        FLIRCamera._set_enum(self._stream.GainAuto, "Off", label=name)
+                        FLIRCamera._set_enum(nodemap, "GainAuto", "Off", label=name)
                     elif name == "Exposure (μs)":
                         if value < 0:
-                            FLIRCamera._set_enum(self._stream.ExposureAuto, "Continuous", label=name)
+                            FLIRCamera._set_enum(nodemap, "ExposureAuto", "Continuous", label=name)
                             continue
-                        FLIRCamera._set_enum(self._stream.ExposureAuto, "Off", label=name)
-                        FLIRCamera._set_enum(self._stream.ExposureMode, "Timed", label=name)
+                        FLIRCamera._set_enum(nodemap, "ExposureAuto", "Off", label=name)
+                        FLIRCamera._set_enum(nodemap, "ExposureMode", "Timed", label=name)
                     elif name == "Gamma":
                         if value < 0:
                             self._stream.GammaEnable.SetValue(False)
@@ -528,7 +526,7 @@ class FLIRCamera(BaseCamera):
                         self._stream.GammaEnable.SetValue(True)
                     elif name == "Buffer Mode":
                         FLIRCamera._set_enum(
-                            self._stream.TLStream.StreamBufferHandlingMode, value, label=name)
+                            self._stream.GetTLStreamNodeMap(), "StreamBufferHandlingMode", value, label=name)
                         continue
 
                     # Recursively access QuickSpin API
@@ -562,7 +560,7 @@ class FLIRCamera(BaseCamera):
                             self.serial_num, fmt)
 
             if fmt is not None:
-                FLIRCamera._set_enum(self._stream.PixelFormat, fmt, label="Pixel Format")
+                FLIRCamera._set_enum(nodemap, "PixelFormat", fmt, label="Pixel Format")
             self.pixel_format = self._stream.PixelFormat.GetCurrentEntry().GetSymbolic()
 
         except PySpin.SpinnakerException as err:
