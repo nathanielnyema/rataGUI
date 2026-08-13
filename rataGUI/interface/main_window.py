@@ -347,7 +347,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if hasattr(cls, "DEFAULT_PROPS"):
                 props.update(cls.DEFAULT_PROPS)
             try:
-                device_props = self.cameras[camID].getDeviceProps()
                 device_props, remove = self.cameras[camID].getDeviceProps()
             except Exception as err:
                 logger.warning("Device property query failed for %s", camID)

@@ -22,7 +22,7 @@ class FLIRCamera(BaseCamera):
             "User Output 1": "UserOutput1",
             "Exposure Active": "ExposureActive",
         },
-        "Timestamp Line": ["None", "Line0", "Line1", "Line2", "Line3"],
+        "Timestamp Line": ["None", "Line1", "Line2"],
         "Timestamp While Recording": True,
         "TriggerSource": {
             "Off": "TriggerMode_Off",
@@ -52,7 +52,6 @@ class FLIRCamera(BaseCamera):
     DISPLAY_PROP_MAP = {
         "Limit Framerate": "AcquisitionFrameRateEnable",
         "Framerate": "AcquisitionFrameRate",
-        "Buffer Mode": "TLStream.StreamBufferHandlingMode",
         "Buffer Size": "TLStream.StreamBufferCountManual",
         "Exposure (μs)": "ExposureTime",
     }
